@@ -6,7 +6,7 @@ android {
     compileSdkVersion 28
 
     defaultConfig {
-        applicationId "com.arindam.cameraxapp"
+        applicationId "com.arindam.camerax"
         minSdkVersion 21
         targetSdkVersion 28
 
