@@ -1,18 +1,15 @@
-package com.arindam.camerax
+package com.arindam.camerax.activities
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-
-// Your IDE likely can auto-import these classes, but there are several
-// different implementations so we list them here to disambiguate
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Size
 import android.graphics.Matrix
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.util.Rational
+import android.util.Size
 import android.view.Surface
 import android.view.TextureView
 import android.widget.ImageButton
@@ -21,12 +18,17 @@ import androidx.camera.core.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.arindam.camerax.LuminosityAnalyzer
+import com.arindam.camerax.R
 import java.io.File
+
+// Your IDE likely can auto-import these classes, but there are several
+// different implementations so we list them here to disambiguate
 
 /**
  * Created by Arindam Karmakar on 9/5/19.
  */
-class MainActivity : AppCompatActivity(), LifecycleOwner {
+class SampleActivity : AppCompatActivity(), LifecycleOwner {
 
     // This is an arbitrary number we are using to keep tab of the permission
     // request. Where an app has multiple context for requesting permission,
@@ -39,7 +41,7 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_sample)
 
         // Add this at the end of onCreate function
 
@@ -113,12 +115,14 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
         val analyzerConfig = ImageAnalysisConfig.Builder().apply {
             // Use a worker thread for image analysis to prevent glitches
             val analyzerThread = HandlerThread(
-                "LuminosityAnalysis").apply { start() }
+                "LuminosityAnalysis"
+            ).apply { start() }
             setCallbackHandler(Handler(analyzerThread.looper))
             // In our analysis, we care more about the latest image than
             // analyzing *every* image
             setImageReaderMode(
-                ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+                ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE
+            )
         }.build()
 
         // Build the image analysis use case and instantiate our analyzer

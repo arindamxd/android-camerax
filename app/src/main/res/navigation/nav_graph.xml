@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/nav_graph"
+        app:startDestination="@id/permissionsFragment">
+
+    <fragment
+            android:id="@+id/cameraFragment"
+            android:name="com.arindam.camerax.fragments.CameraFragment"
+            android:label="CameraFragment">
+        <action
+                android:id="@+id/action_camera_to_gallery"
+                app:destination="@id/galleryFragment"/>
+    </fragment>
+
+    <fragment
+            android:id="@+id/galleryFragment"
+            android:name="com.arindam.camerax.fragments.GalleryFragment"
+            android:label="GalleryFragment">
+        <action
+                android:id="@+id/action_gallery_to_camera"
+                app:destination="@id/cameraFragment"/>
+        <argument
+                android:name="rootDirectoryString"
+                app:argType="string"
+                android:defaultValue='""'/>
+    </fragment>
+
+    <fragment
+            android:id="@+id/permissionsFragment"
+            android:name="com.arindam.camerax.fragments.PermissionsFragment"
+            android:label="PermissionsFragment">
+        <action
+                android:id="@+id/action_permissions_to_camera"
+                app:destination="@id/cameraFragment"/>
+    </fragment>
+
+</navigation>
