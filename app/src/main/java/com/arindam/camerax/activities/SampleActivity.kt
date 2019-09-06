@@ -87,7 +87,7 @@ class SampleActivity : AppCompatActivity(), LifecycleOwner {
                 setTargetAspectRatio(Rational(1, 1))
                 // We don't set a resolution for image capture; instead, we
                 // select a capture mode which will infer the appropriate
-                // resolution based on aspect ration and requested mode
+                // resolution based on aspect ratio and requested mode.
                 setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
             }.build()
 
