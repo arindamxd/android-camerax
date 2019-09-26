@@ -15,11 +15,12 @@ import org.junit.runner.RunWith
 /**
  * Created by Arindam Karmakar on 9/5/19.
  */
+
 @RunWith(AndroidJUnit4::class)
 class MainInstrumentedTest {
 
     @get:Rule
-    val permissionRule = GrantPermissionRule.grant(
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
         Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO
     )
 

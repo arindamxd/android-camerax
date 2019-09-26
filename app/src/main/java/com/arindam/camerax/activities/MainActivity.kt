@@ -1,19 +1,15 @@
 package com.arindam.camerax.activities
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.appcompat.app.AppCompatActivity
-import java.io.File
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import android.content.Intent
 import android.widget.FrameLayout
+import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.R
 import com.arindam.camerax.utils.FLAGS_FULLSCREEN
-
-const val KEY_EVENT_ACTION = "key_event_action"
-const val KEY_EVENT_EXTRA = "key_event_extra"
-private const val IMMERSIVE_FLAG_TIMEOUT = 500L
+import java.io.File
 
 /**
  * Main entry point into our app. This app follows the single-activity pattern, and all
@@ -21,8 +17,26 @@ private const val IMMERSIVE_FLAG_TIMEOUT = 500L
  *
  * Created by Arindam Karmakar on 9/5/19.
  */
+
 class MainActivity : AppCompatActivity() {
+
     private lateinit var container: FrameLayout
+
+    companion object {
+        private const val IMMERSIVE_FLAG_TIMEOUT = 500L
+
+        const val KEY_EVENT_ACTION = "key_event_action"
+        const val KEY_EVENT_EXTRA = "key_event_extra"
+
+        /** Use external media if it is available, our app's file directory otherwise */
+        fun getOutputDirectory(context: Context): File {
+            val appContext = context.applicationContext
+            val mediaDir = context.externalMediaDirs.firstOrNull()?.let {
+                File(it, appContext.resources.getString(R.string.app_name)).apply { mkdirs() }
+            }
+            return if (mediaDir != null && mediaDir.exists()) mediaDir else appContext.filesDir
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,19 +62,6 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             else -> super.onKeyDown(keyCode, event)
-        }
-    }
-
-    companion object {
-
-        /** Use external media if it is available, our app's file directory otherwise */
-        fun getOutputDirectory(context: Context): File {
-            val appContext = context.applicationContext
-            val mediaDir = context.externalMediaDirs.firstOrNull()?.let {
-                File(it, appContext.resources.getString(R.string.app_name)).apply { mkdirs() }
-            }
-            return if (mediaDir != null && mediaDir.exists())
-                mediaDir else appContext.filesDir
         }
     }
 }

@@ -6,9 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.hardware.Camera
+import android.hardware.display.DisplayManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -18,56 +18,36 @@ import android.os.HandlerThread
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Rational
-import android.util.Size
-import android.view.KeyEvent
-import android.view.LayoutInflater
-import android.view.TextureView
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
-import androidx.camera.core.CameraX
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageAnalysisConfig
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureConfig
+import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CaptureMode
 import androidx.camera.core.ImageCapture.Metadata
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.PreviewConfig
-import androidx.navigation.Navigation
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.arindam.camerax.activities.MainActivity
+import androidx.navigation.Navigation
 import com.arindam.camerax.R
-import com.arindam.camerax.activities.KEY_EVENT_ACTION
-import com.arindam.camerax.activities.KEY_EVENT_EXTRA
-import com.arindam.camerax.utils.*
+import com.arindam.camerax.activities.MainActivity
+import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_ACTION
+import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_EXTRA
+import com.arindam.camerax.fragments.GalleryFragment.Companion.EXTENSION_WHITELIST
+import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
+import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.utils.AutoFitPreviewBuilder
+import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
-import kotlinx.coroutines.CoroutineScope
+import com.bumptech.glide.request.RequestOptions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
-import java.lang.Exception
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
-import java.util.ArrayDeque
-import java.util.Locale
-import java.util.concurrent.TimeUnit
-import kotlin.coroutines.CoroutineContext
 import java.util.*
-
-private const val TAG = "CameraX"
-private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
-private const val PHOTO_EXTENSION = ".jpg"
-
-/** Helper function used to create a timestamped file */
-private fun createFile(baseFolder: File, format: String, extension: String): File {
-    return File(baseFolder, SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension)
-}
+import java.util.concurrent.TimeUnit
 
 /**
  * Main fragment for this app. Implements all camera operations including:
@@ -77,24 +57,27 @@ private fun createFile(baseFolder: File, format: String, extension: String): Fil
  *
  * Created by Arindam Karmakar on 9/5/19.
  */
-class CameraFragment : Fragment(), CoroutineScope {
+
+/** Helper type alias used for analysis use case callbacks */
+typealias LumaListener = (luma: Double) -> Unit
+
+class CameraFragment : Fragment() {
 
     private lateinit var container: ConstraintLayout
     private lateinit var viewFinder: TextureView
     private lateinit var outputDirectory: File
+    private lateinit var broadcastManager: LocalBroadcastManager
 
+    private var displayId = -1
     private var lensFacing = CameraX.LensFacing.BACK
+    private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalyzer: ImageAnalysis? = null
 
-    private val job = Job()
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Default + job
-
-    // Volume down button receiver
+    /** Volume down button receiver used to trigger shutter */
     private val volumeDownReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val keyCode = intent.getIntExtra(KEY_EVENT_EXTRA, KeyEvent.KEYCODE_UNKNOWN)
-            when (keyCode) {
+            when (intent.getIntExtra(KEY_EVENT_EXTRA, KeyEvent.KEYCODE_UNKNOWN)) {
                 // When the volume down button is pressed, simulate a shutter button click
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     val shutter = container.findViewById<ImageButton>(R.id.camera_capture_button)
@@ -104,78 +87,101 @@ class CameraFragment : Fragment(), CoroutineScope {
         }
     }
 
+    /** Declare worker thread at the class level so it can be reused after config changes */
+    private val analyzerThread = HandlerThread("LuminosityAnalysis").apply { start() }
+
+    /** Internal reference of the [DisplayManager] */
+    private lateinit var displayManager: DisplayManager
+
+    /**
+     * We need a display listener for orientation changes that do not trigger a configuration
+     * change, for example if we choose to override config change in manifest or for 180-degree
+     * orientation changes.
+     */
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = Unit
+        override fun onDisplayRemoved(displayId: Int) = Unit
+        override fun onDisplayChanged(displayId: Int) = view?.let { view ->
+            if (displayId == this@CameraFragment.displayId) {
+                Log.d(TAG, "Rotation changed: ${view.display.rotation}")
+                preview?.setTargetRotation(view.display.rotation)
+                imageCapture?.setTargetRotation(view.display.rotation)
+                imageAnalyzer?.setTargetRotation(view.display.rotation)
+            }
+        } ?: Unit
+    }
+
+    companion object {
+        private const val TAG = "CameraXBasic"
+        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val PHOTO_EXTENSION = ".jpg"
+
+        /** Helper function used to create a timestamped file */
+        private fun createFile(baseFolder: File, format: String, extension: String) =
+            File(baseFolder, SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
         retainInstance = true
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Make sure that all permissions are still present, since user could have removed them
+        // while the app was on paused state
+        if (!PermissionsFragment.hasPermissions(requireContext())) {
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+                CameraFragmentDirections.actionCameraToPermissions()
+            )
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
-
-        // Unregister the broadcast receivers
-        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(volumeDownReceiver)
-
-        // Turn off all camera operations when we navigate away
-        CameraX.unbindAll()
+        // Unregister the broadcast receivers and listeners
+        broadcastManager.unregisterReceiver(volumeDownReceiver)
+        displayManager.unregisterDisplayListener(displayListener)
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_camera, container, false)
-    }
-
-    override fun onDestroy() {
-        // Stop the coroutines as the context gets destroyed
-        job.cancel()
-        super.onDestroy()
-    }
+    ): View? = inflater.inflate(R.layout.fragment_camera, container, false)
 
     private fun setGalleryThumbnail(file: File) {
         // Reference of the view that holds the gallery thumbnail
         val thumbnail = container.findViewById<ImageButton>(R.id.photo_view_button)
 
-        // Use a coroutine to perform thumbnail operations in background
-        launch(coroutineContext) {
+        // Run the operations in the view's thread
+        thumbnail.post {
 
-            // Create thumbnail for this photo
-            val bitmap = ImageUtils.decodeBitmap(file)
+            // Remove thumbnail padding
+            thumbnail.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
 
-            // Crop the bitmap into a circle for the thumbnail
-            val thumbnailBitmap = ImageUtils.cropCircularThumbnail(bitmap)
-
-            // Set the foreground drawable if we can, fallback using Glide
-            // This must be done in the main thread, so use main thread's context
-            withContext(Dispatchers.Main) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    thumbnail.foreground = BitmapDrawable(resources, thumbnailBitmap)
-                } else {
-                    Glide.with(requireContext()).load(thumbnailBitmap).into(thumbnail)
-                }
-            }
+            // Load thumbnail into circular button using Glide
+            Glide.with(thumbnail)
+                .load(file)
+                .apply(RequestOptions.circleCropTransform())
+                .into(thumbnail)
         }
     }
 
     /** Define callback that will be triggered after a photo has been taken and saved to disk */
     private val imageSavedListener = object : ImageCapture.OnImageSavedListener {
-        override fun onError(
-            error: ImageCapture.UseCaseError, message: String, exc: Throwable?
-        ) {
+
+        override fun onError(useCaseError: ImageCapture.UseCaseError, message: String, cause: Throwable?) {
             Log.e(TAG, "Photo capture failed: $message")
-            exc?.printStackTrace()
+            cause?.printStackTrace()
         }
 
         override fun onImageSaved(photoFile: File) {
             Log.d(TAG, "Photo capture succeeded: ${photoFile.absolutePath}")
 
-
             // We can only change the foreground Drawable using API level 23+ API
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-
                 // Update the gallery thumbnail with latest picture taken
                 setGalleryThumbnail(photoFile)
             }
@@ -184,41 +190,48 @@ class CameraFragment : Fragment(), CoroutineScope {
             // level >= 24, so if you only target 24+ you can remove this statement
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 requireActivity().sendBroadcast(
-                    Intent(Camera.ACTION_NEW_PICTURE).setData(Uri.fromFile(photoFile))
+                    Intent(Camera.ACTION_NEW_PICTURE, Uri.fromFile(photoFile))
                 )
             }
 
             // If the folder selected is an external media directory, this is unnecessary
             // but otherwise other apps will not be able to access our images unless we
             // scan them using [MediaScannerConnection]
-            val mimeType = MimeTypeMap.getSingleton()
-                .getMimeTypeFromExtension(photoFile.extension)
-            MediaScannerConnection.scanFile(
-                context, arrayOf(photoFile.absolutePath), arrayOf(mimeType), null
-            )
+            val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(photoFile.extension)
+            MediaScannerConnection.scanFile(context, arrayOf(photoFile.absolutePath), arrayOf(mimeType), null)
         }
     }
 
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         container = view as ConstraintLayout
         viewFinder = container.findViewById(R.id.view_finder)
+        broadcastManager = LocalBroadcastManager.getInstance(view.context)
 
         // Set up the intent filter that will receive events from our main activity
         val filter = IntentFilter().apply { addAction(KEY_EVENT_ACTION) }
-        LocalBroadcastManager.getInstance(context!!).registerReceiver(volumeDownReceiver, filter)
+        broadcastManager.registerReceiver(volumeDownReceiver, filter)
+
+        // Every time the orientation of device changes, recompute layout
+        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        displayManager.registerDisplayListener(displayListener, null)
 
         // Determine the output directory
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
 
-        // Build UI and bind all camera use cases once the views have been laid out
+        // Wait for the views to be properly laid out
         viewFinder.post {
+            // Keep track of the display in which this view is attached
+            displayId = viewFinder.display.displayId
+
+            // Build UI controls and bind all camera use cases
             updateCameraUi()
             bindCameraUseCases()
 
             // In the background, load latest photo taken (if any) for gallery thumbnail
-            launch(coroutineContext) {
+            lifecycleScope.launch(Dispatchers.IO) {
                 outputDirectory.listFiles { file ->
                     EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
                 }.sorted().reversed().firstOrNull()?.let { setGalleryThumbnail(it) }
@@ -229,26 +242,23 @@ class CameraFragment : Fragment(), CoroutineScope {
     /** Declare and bind preview, capture and analysis use cases */
     private fun bindCameraUseCases() {
 
-        // Make sure that there are no other use cases bound to CameraX
-        CameraX.unbindAll()
-
+        // Get screen metrics used to setup camera for full screen resolution
         val metrics = DisplayMetrics().also { viewFinder.display.getRealMetrics(it) }
-        val screenSize = Size(metrics.widthPixels, metrics.heightPixels)
         val screenAspectRatio = Rational(metrics.widthPixels, metrics.heightPixels)
-        Log.d(javaClass.simpleName, "Metrics: ${metrics.widthPixels} x ${metrics.heightPixels}")
+        Log.d(TAG, "Screen metrics: ${metrics.widthPixels} x ${metrics.heightPixels}")
 
         // Set up the view finder use case to display camera preview
         val viewFinderConfig = PreviewConfig.Builder().apply {
             setLensFacing(lensFacing)
-            // We request a specific resolution matching screen size
-            setTargetResolution(screenSize)
-            // We also provide an aspect ratio in case the exact resolution is not available
+            // We request aspect ratio but no resolution to let CameraX optimize our use cases
             setTargetAspectRatio(screenAspectRatio)
+            // Set initial target rotation, we will have to call this again if rotation changes
+            // during the lifecycle of this use case
             setTargetRotation(viewFinder.display.rotation)
         }.build()
 
         // Use the auto-fit preview builder to automatically handle size and orientation changes
-        val preview = AutoFitPreviewBuilder.build(viewFinderConfig, viewFinder)
+        preview = AutoFitPreviewBuilder.build(viewFinderConfig, viewFinder)
 
         // Set up the capture use case to allow users to take photos
         val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
@@ -257,6 +267,8 @@ class CameraFragment : Fragment(), CoroutineScope {
             // We request aspect ratio but no resolution to match preview config but letting
             // CameraX optimize for whatever specific resolution best fits requested capture mode
             setTargetAspectRatio(screenAspectRatio)
+            // Set initial target rotation, we will have to call this again if rotation changes
+            // during the lifecycle of this use case
             setTargetRotation(viewFinder.display.rotation)
         }.build()
 
@@ -266,30 +278,25 @@ class CameraFragment : Fragment(), CoroutineScope {
         val analyzerConfig = ImageAnalysisConfig.Builder().apply {
             setLensFacing(lensFacing)
             // Use a worker thread for image analysis to prevent preview glitches
-            val analyzerThread = HandlerThread("LuminosityAnalysis").apply { start() }
             setCallbackHandler(Handler(analyzerThread.looper))
             // In our analysis, we care more about the latest image than analyzing *every* image
             setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+            // Set initial target rotation, we will have to call this again if rotation changes
+            // during the lifecycle of this use case
+            setTargetRotation(viewFinder.display.rotation)
         }.build()
 
-        val imageAnalyzer = ImageAnalysis(analyzerConfig).apply {
-            analyzer = LuminosityAnalyzer().apply {
-                onFrameAnalyzed { luma ->
-                    // Values returned from our analyzer are passed to the attached listener
-                    // We log image analysis results here -- you should do something
-                    // useful instead!
-                    Log.d(
-                        TAG, "Average luminosity: $luma. " +
-                                "Frames per second: ${"%.01f".format(framesPerSecond)}"
-                    )
-                }
+        imageAnalyzer = ImageAnalysis(analyzerConfig).apply {
+            analyzer = LuminosityAnalyzer { luma ->
+                // Values returned from our analyzer are passed to the attached listener
+                // We log image analysis results here -- you should do something useful instead!
+                val fps = (analyzer as LuminosityAnalyzer).framesPerSecond
+                Log.d(TAG, "Average luminosity: $luma. Frames per second: ${"%.01f".format(fps)}")
             }
         }
 
         // Apply declared configs to CameraX using the same lifecycle owner
-        CameraX.bindToLifecycle(
-            this, preview, imageCapture, imageAnalyzer
-        )
+        CameraX.bindToLifecycle(viewLifecycleOwner, preview, imageCapture, imageAnalyzer)
     }
 
     /** Method used to re-draw the camera UI controls, called every time configuration changes */
@@ -306,25 +313,30 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         // Listener for button used to capture photo
         controls.findViewById<ImageButton>(R.id.camera_capture_button).setOnClickListener {
-            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
+            // Get a stable reference of the modifiable image capture use case
+            imageCapture?.let { imageCapture ->
 
-            // Setup image capture metadata
-            val metadata = Metadata().apply {
-                // Mirror image when using the front camera
-                isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
-            }
+                // Create output file to hold the image
+                val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
 
-            // Setup image capture listener which is triggered after photo has been taken
-            imageCapture?.takePicture(photoFile, imageSavedListener, metadata)
+                // Setup image capture metadata
+                val metadata = Metadata().apply {
+                    // Mirror image when using the front camera
+                    isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
+                }
 
-            // We can only change the foreground Drawable using API level 23+ API
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // Setup image capture listener which is triggered after photo has been taken
+                imageCapture.takePicture(photoFile, imageSavedListener, metadata)
 
-                // Display flash animation to indicate that photo was captured
-                container.postDelayed({
-                    container.foreground = ColorDrawable(Color.WHITE)
-                    container.postDelayed({ container.foreground = null }, ANIMATION_FAST_MILLIS)
-                }, ANIMATION_SLOW_MILLIS)
+                // We can only change the foreground Drawable using API level 23+ API
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+                    // Display flash animation to indicate that photo was captured
+                    container.postDelayed({
+                        container.foreground = ColorDrawable(Color.WHITE)
+                        container.postDelayed({ container.foreground = null }, ANIMATION_FAST_MILLIS)
+                    }, ANIMATION_SLOW_MILLIS)
+                }
             }
         }
 
@@ -335,9 +347,13 @@ class CameraFragment : Fragment(), CoroutineScope {
             } else {
                 CameraX.LensFacing.FRONT
             }
+
             try {
                 // Only bind use cases if we can query a camera with this orientation
                 CameraX.getCameraWithLensFacing(lensFacing)
+
+                // Unbind all use cases and bind them again with the new lens facing configuration
+                CameraX.unbindAll()
                 bindCameraUseCases()
             } catch (exc: Exception) {
                 // Do nothing
@@ -346,24 +362,22 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         // Listener for button used to view last photo
         controls.findViewById<ImageButton>(R.id.photo_view_button).setOnClickListener {
-            val arguments = Bundle().apply {
-                putString(KEY_ROOT_DIRECTORY, outputDirectory.absolutePath)
-            }
-            Navigation.findNavController(requireActivity(), R.id.fragment_container)
-                .navigate(R.id.action_camera_to_gallery, arguments)
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+                CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath)
+            )
         }
     }
 
     /**
      * Our custom image analysis class.
      *
-     * <p>All we need to do is override the function `analyze` with our desired operations. Here,
+     * All we need to do is override the function `analyze` with our desired operations. Here,
      * we compute the average luminosity of the image by looking at the Y plane of the YUV frame.
      */
-    private class LuminosityAnalyzer : ImageAnalysis.Analyzer {
+    private class LuminosityAnalyzer(listener: LumaListener? = null) : ImageAnalysis.Analyzer {
         private val frameRateWindow = 8
         private val frameTimestamps = ArrayDeque<Long>(5)
-        private val listeners = ArrayList<(luma: Double) -> Unit>()
+        private val listeners = ArrayList<LumaListener>().apply { listener?.let { add(it) } }
         private var lastAnalyzedTimestamp = 0L
         var framesPerSecond: Double = -1.0
             private set
@@ -371,7 +385,7 @@ class CameraFragment : Fragment(), CoroutineScope {
         /**
          * Used to add listeners that will be called with each luma computed
          */
-        fun onFrameAnalyzed(listener: (luma: Double) -> Unit) = listeners.add(listener)
+        fun onFrameAnalyzed(listener: LumaListener) = listeners.add(listener)
 
         /**
          * Helper extension function used to extract a byte array from an image plane buffer
@@ -386,11 +400,11 @@ class CameraFragment : Fragment(), CoroutineScope {
         /**
          * Analyzes an image to produce a result.
          *
-         * <p>The caller is responsible for ensuring this analysis method can be executed quickly
+         * The caller is responsible for ensuring this analysis method can be executed quickly
          * enough to prevent stalls in the image acquisition pipeline. Otherwise, newly available
          * images will not be acquired and analyzed.
          *
-         * <p>The image passed to this method becomes invalid after this method returns. The caller
+         * The image passed to this method becomes invalid after this method returns. The caller
          * should not store external references to this image, as these references will become
          * invalid.
          *
@@ -407,19 +421,20 @@ class CameraFragment : Fragment(), CoroutineScope {
 
             // Compute the FPS using a moving average
             while (frameTimestamps.size >= frameRateWindow) frameTimestamps.removeLast()
-            framesPerSecond = 1.0 / ((frameTimestamps.peekFirst() -
-                    frameTimestamps.peekLast()) / frameTimestamps.size.toDouble()) * 1000.0
+            framesPerSecond = 1.0 / ((frameTimestamps.peekFirst() - frameTimestamps.peekLast()) / frameTimestamps.size.toDouble()) * 1000.0
 
             // Calculate the average luma no more often than every second
             if (frameTimestamps.first - lastAnalyzedTimestamp >= TimeUnit.SECONDS.toMillis(1)) {
-                // Since format in ImageAnalysis is YUV, image.planes[0] contains the Y
-                // (luminance) plane
+                lastAnalyzedTimestamp = frameTimestamps.first
+
+                // Since format in ImageAnalysis is YUV, image.planes[0] contains the luminance
+                //  plane
                 val buffer = image.planes[0].buffer
 
                 // Extract image data from callback object
                 val data = buffer.toByteArray()
 
-                // Convert the data into an array of pixel values
+                // Convert the data into an array of pixel values ranging 0-255
                 val pixels = data.map { it.toInt() and 0xFF }
 
                 // Compute average luminance for the image
@@ -427,8 +442,6 @@ class CameraFragment : Fragment(), CoroutineScope {
 
                 // Call all listeners with new value
                 listeners.forEach { it(luma) }
-
-                lastAnalyzedTimestamp = frameTimestamps.first
             }
         }
     }

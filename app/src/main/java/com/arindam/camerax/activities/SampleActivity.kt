@@ -3,7 +3,6 @@ package com.arindam.camerax.activities
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Matrix
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -14,6 +13,7 @@ import android.view.Surface
 import android.view.TextureView
 import android.widget.ImageButton
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -28,6 +28,7 @@ import java.io.File
 /**
  * Created by Arindam Karmakar on 9/5/19.
  */
+
 class SampleActivity : AppCompatActivity(), LifecycleOwner {
 
     // This is an arbitrary number we are using to keep tab of the permission
@@ -82,25 +83,26 @@ class SampleActivity : AppCompatActivity(), LifecycleOwner {
         }
 
         // Create configuration object for the image capture use case
-        val imageCaptureConfig = ImageCaptureConfig.Builder()
-            .apply {
-                setTargetAspectRatio(Rational(1, 1))
-                // We don't set a resolution for image capture; instead, we
-                // select a capture mode which will infer the appropriate
-                // resolution based on aspect ration and requested mode
-                setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
-            }.build()
+        val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
+            setTargetAspectRatio(Rational(1, 1))
+            // We don't set a resolution for image capture; instead, we
+            // select a capture mode which will infer the appropriate
+            // resolution based on aspect ration and requested mode
+            setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
+        }.build()
 
         // Build the image capture use case and attach button click listener
         val imageCapture = ImageCapture(imageCaptureConfig)
         findViewById<ImageButton>(R.id.capture_button).setOnClickListener {
+
             val file = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
             imageCapture.takePicture(file, object : ImageCapture.OnImageSavedListener {
-                override fun onError(error: ImageCapture.UseCaseError, message: String, exc: Throwable?) {
+
+                override fun onError(useCaseError: ImageCapture.UseCaseError, message: String, cause: Throwable?) {
                     val msg = "Photo capture failed: $message"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.e("CameraXApp", msg)
-                    exc?.printStackTrace()
+                    cause?.printStackTrace()
                 }
 
                 override fun onImageSaved(file: File) {
@@ -113,16 +115,17 @@ class SampleActivity : AppCompatActivity(), LifecycleOwner {
 
         // Setup image analysis pipeline that computes average pixel luminance
         val analyzerConfig = ImageAnalysisConfig.Builder().apply {
+
             // Use a worker thread for image analysis to prevent glitches
             val analyzerThread = HandlerThread(
                 "LuminosityAnalysis"
             ).apply { start() }
+
             setCallbackHandler(Handler(analyzerThread.looper))
             // In our analysis, we care more about the latest image than
             // analyzing *every* image
-            setImageReaderMode(
-                ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE
-            )
+            setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+
         }.build()
 
         // Build the image analysis use case and instantiate our analyzer
@@ -153,6 +156,7 @@ class SampleActivity : AppCompatActivity(), LifecycleOwner {
             Surface.ROTATION_270 -> 270
             else -> return
         }
+
         matrix.postRotate(-rotationDegrees.toFloat(), centerX, centerY)
 
         // Finally, apply transformations to our TextureView
@@ -163,9 +167,7 @@ class SampleActivity : AppCompatActivity(), LifecycleOwner {
      * Process result from permission request dialog box, has the request
      * been granted? If yes, start Camera. Otherwise display a toast
      */
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 viewFinder.post { startCamera() }

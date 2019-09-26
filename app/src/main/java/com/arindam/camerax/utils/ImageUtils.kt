@@ -1,14 +1,6 @@
 package com.arindam.camerax.utils
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.Rect
+import android.graphics.*
 import android.media.ThumbnailUtils
 import androidx.camera.core.ImageProxy
 import androidx.exifinterface.media.ExifInterface
@@ -19,10 +11,10 @@ import java.io.File
  *
  * Created by Arindam Karmakar on 9/5/19.
  */
+
 abstract class ImageUtils {
 
     companion object {
-
         /**
          * Helper function used to convert an EXIF orientation enum into a transformation matrix
          * that can be applied to a bitmap.
@@ -68,7 +60,8 @@ abstract class ImageUtils {
             val exif = ExifInterface(file.absolutePath)
             val transformation = decodeExifOrientation(
                 exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_ROTATE_90
                 )
             )
 
@@ -76,7 +69,12 @@ abstract class ImageUtils {
             val bitmap = BitmapFactory.decodeFile(file.absolutePath)
             return Bitmap.createBitmap(
                 BitmapFactory.decodeFile(file.absolutePath),
-                0, 0, bitmap.width, bitmap.height, transformation, true
+                0,
+                0,
+                bitmap.width,
+                bitmap.height,
+                transformation,
+                true
             )
         }
 
@@ -99,9 +97,7 @@ abstract class ImageUtils {
             val thumbnail = ThumbnailUtils.extractThumbnail(bitmap, diameter, diameter)
 
             // Create an additional bitmap of same size as thumbnail to carve a circle out of
-            val circular = Bitmap.createBitmap(
-                diameter, diameter, Bitmap.Config.ARGB_8888
-            )
+            val circular = Bitmap.createBitmap(diameter, diameter, Bitmap.Config.ARGB_8888)
 
             // Paint will be used as a mask to cut out the circle
             val paint = Paint().apply {
@@ -112,6 +108,7 @@ abstract class ImageUtils {
                 drawARGB(0, 0, 0, 0)
                 drawCircle(diameter / 2F, diameter / 2F, diameter / 2F - 8, paint)
                 paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+
                 val rect = Rect(0, 0, diameter, diameter)
                 drawBitmap(thumbnail, rect, rect, paint)
             }

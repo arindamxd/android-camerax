@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Created by Arindam Karmakar on 9/5/19.
  */
+
 internal class LuminosityAnalyzer : ImageAnalysis.Analyzer {
 
     private var lastAnalyzedTimestamp = 0L
