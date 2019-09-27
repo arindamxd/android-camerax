@@ -7,21 +7,25 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: "androidx.navigation.safeargs"
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "com.arindam.camerax"
 
-        minSdkVersion 21
-        targetSdkVersion 28
+        minSdkVersion rootProject.ext.minMobileSdkVersion
+        targetSdkVersion rootProject.ext.targetMobileSdkVersion
 
-        versionCode 1
-        versionName "1.0.0"
+        versionCode rootProject.ext.versionCodeMobile
+        versionName rootProject.ext.versionNameBase
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -54,12 +58,17 @@ android {
             includeAndroidResources = true
         }
     }
+
+    dynamicFeatures = [":editorx"]
 }
 
 dependencies {
+    // Dynamic Module
+    //implementation project(':editorx')
+
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.2.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.0'
 
     // AndroidX
     implementation 'androidx.core:core-ktx:1.1.0'
@@ -71,7 +80,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
 
     // Navigation library
-    def nav_version = "2.1.0"
+    def nav_version = "2.0.0"
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
 
@@ -85,6 +94,9 @@ dependencies {
     implementation "com.github.bumptech.glide:glide:$glide_version"
     kapt "com.github.bumptech.glide:compiler:$glide_version"
 
+    // Play Core Library
+    implementation 'com.google.android.play:core:1.6.3'
+
     // Unit testing
     testImplementation 'androidx.test.ext:junit:1.1.1'
     testImplementation 'androidx.test:rules:1.2.0'
@@ -97,4 +109,5 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.2.0'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    compile "org.jetbrains.kotlin:kotlin-reflect:1.3.50"
 }

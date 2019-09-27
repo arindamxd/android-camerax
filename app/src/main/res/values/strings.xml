@@ -13,4 +13,6 @@
     <string name="delete_button_alt">Delete</string>
     <string name="delete_dialog">Delete current photo?</string>
     <string name="delete_title">Confirm</string>
+    <string name="title_editorx">EditorX</string>
+    <string name="slider">Photo Slider</string>
 </resources>

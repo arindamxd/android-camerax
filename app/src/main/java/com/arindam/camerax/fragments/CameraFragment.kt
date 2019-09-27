@@ -11,16 +11,15 @@ import android.hardware.Camera
 import android.hardware.display.DisplayManager
 import android.media.MediaScannerConnection
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
+import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Rational
 import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import android.widget.Switch
+import android.widget.Toast
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CaptureMode
 import androidx.camera.core.ImageCapture.Metadata
@@ -35,12 +34,18 @@ import com.arindam.camerax.activities.MainActivity
 import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_ACTION
 import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_EXTRA
 import com.arindam.camerax.fragments.GalleryFragment.Companion.EXTENSION_WHITELIST
+import com.arindam.camerax.interfaces.DynamicInterface
 import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.utils.AutoFitPreviewBuilder
 import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.play.core.splitinstall.SplitInstallManager
+import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
+import com.google.android.play.core.splitinstall.SplitInstallRequest
+import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener
+import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -125,10 +130,14 @@ class CameraFragment : Fragment() {
         super.onCreate(savedInstanceState)
         // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
         retainInstance = true
+        // Split Install Manager Init
+        manager = SplitInstallManagerFactory.create(context)
     }
 
     override fun onResume() {
         super.onResume()
+        manager.registerListener(listener)
+
         // Make sure that all permissions are still present, since user could have removed them
         // while the app was on paused state
         if (!PermissionsFragment.hasPermissions(requireContext())) {
@@ -136,6 +145,11 @@ class CameraFragment : Fragment() {
                 CameraFragmentDirections.actionCameraToPermissions()
             )
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        manager.unregisterListener(listener)
     }
 
     override fun onDestroyView() {
@@ -366,6 +380,10 @@ class CameraFragment : Fragment() {
                 CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath)
             )
         }
+
+        controls.findViewById<Switch>(R.id.dynamic_switch).setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) requestInstall("editorx") else requestUninstall()
+        }
     }
 
     /**
@@ -445,4 +463,76 @@ class CameraFragment : Fragment() {
             }
         }
     }
+
+    // -------------------------------------------------------------------------------------- //
+
+    private lateinit var manager: SplitInstallManager
+    private var sessionId = 0
+
+    /** Listener used to handle changes in state for install requests. */
+    private val listener = SplitInstallStateUpdatedListener { state ->
+        if (state.sessionId() == sessionId) {
+            when (state.status()) {
+                SplitInstallSessionStatus.FAILED -> {
+                    Toast.makeText(requireContext(), "Module install failed with ${state.errorCode()}", Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "Module install failed with ${state.errorCode()}")
+                }
+                SplitInstallSessionStatus.INSTALLED -> {
+                    Toast.makeText(requireContext(), "Storage module installed successfully", Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "Module install success with ${state.sessionId()}")
+
+                    initializeFeature()
+                }
+                else -> Log.d(TAG, "Status: ${state.status()}")
+            }
+        } else {
+            Toast.makeText(requireContext(), "State/Stored Session Id: ${state.sessionId()}/${sessionId}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Load a feature by module name.
+     * @param name The name of the feature module to load.
+     */
+    private fun requestInstall(name: String) {
+        //updateProgressMessage(getString(R.string.loading_module, name))
+
+        // Skip loading if the module already is installed. Perform success action directly.
+        if (manager.installedModules.contains(name)) {
+            //updateProgressMessage(getString(R.string.already_installed))
+            //onLoadSuccess(name, launch = true)
+            Log.e(TAG, "Load Success")
+            initializeFeature()
+            return
+        }
+
+        // Create request to install a feature module by name.
+        val request = SplitInstallRequest.newBuilder()
+            .addModule(name)
+            .build()
+
+        // Load and install the requested feature module.
+        manager.startInstall(request).addOnSuccessListener { sessionId = it }
+
+        //updateProgressMessage(getString(R.string.starting_install_for, name))
+    }
+
+    /** Request uninstall of all features. */
+    private fun requestUninstall() {
+        val installedModules = manager.installedModules.toList()
+        manager.deferredUninstall(installedModules).addOnSuccessListener {
+            Log.e(TAG, "Uninstalling $installedModules")
+        }.addOnFailureListener {
+            Log.e(TAG, "Failed installation of $installedModules")
+        }
+    }
+
+    private fun initializeFeature() {
+        val editorxModule = Class.forName(EDITORX_CLASS_FetchValue).kotlin.objectInstance as DynamicInterface
+        Log.e(TAG, "EditorX Version Name: ${editorxModule.getVersionName()}")
+        Toast.makeText(requireContext(), "EditorX Version Name: ${editorxModule.getVersionName()}", Toast.LENGTH_LONG).show()
+    }
 }
+
+private const val PACKAGE_NAME_EDITORX = "com.arindam.editorx"
+private const val EDITORX_CLASS_FetchValue = "$PACKAGE_NAME_EDITORX.FetchValue"

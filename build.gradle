@@ -7,6 +7,18 @@ buildscript {
     ext.kotlin_version = '1.3.50'
     ext.navigation_version = '2.1.0'
 
+    // App version
+    ext.versionNameBase = '1.1.0' // X.Y.Z; X = Major, Y = minor, Z = Patch level
+    ext.versionCodeBase = 110 // XYYZZM; M = Module (tv, mobile)
+    ext.versionCodeTv = versionCodeBase + 2
+    ext.versionCodeMobile = versionCodeBase + 3
+
+    // SDK and tools
+    ext.compileSdkVersion = 29
+    ext.minMobileSdkVersion = 21
+    ext.minTvSdkVersion = 21 // TV was introduced with Lollipop, min SDK should be 21.
+    ext.targetMobileSdkVersion = 29
+
     repositories {
         google()
         jcenter()

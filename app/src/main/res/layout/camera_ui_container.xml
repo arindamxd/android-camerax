@@ -46,4 +46,13 @@
             app:layout_constraintRight_toRightOf="parent"
             app:srcCompat="@drawable/ic_photo" />
 
+    <Switch
+            android:id="@+id/dynamic_switch"
+            android:layout_width="@dimen/round_button_small_x"
+            android:layout_height="@dimen/round_button_small_x"
+            app:layout_constraintBottom_toTopOf="@+id/camera_capture_button"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:dist="http://schemas.android.com/apk/distribution"
+        xmlns:tools="http://schemas.android.com/tools"
+        package="com.arindam.editorx">
+
+    <dist:module
+            dist:instant="false"
+            dist:title="@string/title_editorx">
+
+        <dist:delivery>
+            <dist:on-demand />
+        </dist:delivery>
+
+        <dist:fusing dist:include="false" />
+
+    </dist:module>
+
+    <application
+            android:hasCode="true"
+            tools:replace="android:hasCode" />
+
+</manifest>
