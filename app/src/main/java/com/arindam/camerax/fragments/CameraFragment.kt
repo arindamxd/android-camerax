@@ -134,6 +134,49 @@ class CameraFragment : Fragment() {
         manager = SplitInstallManagerFactory.create(context)
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? = inflater.inflate(R.layout.fragment_camera, container, false)
+
+    @SuppressLint("MissingPermission")
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        container = view as ConstraintLayout
+        viewFinder = container.findViewById(R.id.view_finder)
+        broadcastManager = LocalBroadcastManager.getInstance(view.context)
+
+        // Set up the intent filter that will receive events from our main activity
+        val filter = IntentFilter().apply { addAction(KEY_EVENT_ACTION) }
+        broadcastManager.registerReceiver(volumeDownReceiver, filter)
+
+        // Every time the orientation of device changes, recompute layout
+        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        displayManager.registerDisplayListener(displayListener, null)
+
+        // Determine the output directory
+        outputDirectory = MainActivity.getOutputDirectory(requireContext())
+
+        // Wait for the views to be properly laid out
+        viewFinder.post {
+            // Keep track of the display in which this view is attached
+            displayId = viewFinder.display.displayId
+
+            // Build UI controls and bind all camera use cases
+            updateCameraUi()
+            bindCameraUseCases()
+
+            // In the background, load latest photo taken (if any) for gallery thumbnail
+            lifecycleScope.launch(Dispatchers.IO) {
+                outputDirectory.listFiles { file ->
+                    EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
+                }.sorted().reversed().firstOrNull()?.let { setGalleryThumbnail(it) }
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         manager.registerListener(listener)
@@ -158,12 +201,6 @@ class CameraFragment : Fragment() {
         broadcastManager.unregisterReceiver(volumeDownReceiver)
         displayManager.unregisterDisplayListener(displayListener)
     }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.fragment_camera, container, false)
 
     private fun setGalleryThumbnail(file: File) {
         // Reference of the view that holds the gallery thumbnail
@@ -216,43 +253,6 @@ class CameraFragment : Fragment() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        container = view as ConstraintLayout
-        viewFinder = container.findViewById(R.id.view_finder)
-        broadcastManager = LocalBroadcastManager.getInstance(view.context)
-
-        // Set up the intent filter that will receive events from our main activity
-        val filter = IntentFilter().apply { addAction(KEY_EVENT_ACTION) }
-        broadcastManager.registerReceiver(volumeDownReceiver, filter)
-
-        // Every time the orientation of device changes, recompute layout
-        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-        displayManager.registerDisplayListener(displayListener, null)
-
-        // Determine the output directory
-        outputDirectory = MainActivity.getOutputDirectory(requireContext())
-
-        // Wait for the views to be properly laid out
-        viewFinder.post {
-            // Keep track of the display in which this view is attached
-            displayId = viewFinder.display.displayId
-
-            // Build UI controls and bind all camera use cases
-            updateCameraUi()
-            bindCameraUseCases()
-
-            // In the background, load latest photo taken (if any) for gallery thumbnail
-            lifecycleScope.launch(Dispatchers.IO) {
-                outputDirectory.listFiles { file ->
-                    EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
-                }.sorted().reversed().firstOrNull()?.let { setGalleryThumbnail(it) }
-            }
-        }
-    }
-
     /** Declare and bind preview, capture and analysis use cases */
     private fun bindCameraUseCases() {
 
@@ -289,7 +289,7 @@ class CameraFragment : Fragment() {
         imageCapture = ImageCapture(imageCaptureConfig)
 
         // Setup image analysis pipeline that computes average pixel luminance in real time
-        val analyzerConfig = ImageAnalysisConfig.Builder().apply {
+        /*val analyzerConfig = ImageAnalysisConfig.Builder().apply {
             setLensFacing(lensFacing)
             // Use a worker thread for image analysis to prevent preview glitches
             setCallbackHandler(Handler(analyzerThread.looper))
@@ -310,7 +310,8 @@ class CameraFragment : Fragment() {
         }
 
         // Apply declared configs to CameraX using the same lifecycle owner
-        CameraX.bindToLifecycle(viewLifecycleOwner, preview, imageCapture, imageAnalyzer)
+        CameraX.bindToLifecycle(viewLifecycleOwner, preview, imageCapture, imageAnalyzer)*/
+        CameraX.bindToLifecycle(viewLifecycleOwner, preview, imageCapture)
     }
 
     /** Method used to re-draw the camera UI controls, called every time configuration changes */
@@ -393,6 +394,7 @@ class CameraFragment : Fragment() {
      * we compute the average luminosity of the image by looking at the Y plane of the YUV frame.
      */
     private class LuminosityAnalyzer(listener: LumaListener? = null) : ImageAnalysis.Analyzer {
+
         private val frameRateWindow = 8
         private val frameTimestamps = ArrayDeque<Long>(5)
         private val listeners = ArrayList<LumaListener>().apply { listener?.let { add(it) } }

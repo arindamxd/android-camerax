@@ -8,10 +8,8 @@ buildscript {
     ext.navigation_version = '2.1.0'
 
     // App version
-    ext.versionNameBase = '1.1.0' // X.Y.Z; X = Major, Y = minor, Z = Patch level
-    ext.versionCodeBase = 110 // XYYZZM; M = Module (tv, mobile)
-    ext.versionCodeTv = versionCodeBase + 2
-    ext.versionCodeMobile = versionCodeBase + 3
+    ext.versionNameBase = '1.5.1' // X.Y.Z; X = Major, Y = minor, Z = Patch level
+    ext.versionCodeBase = 1501 // XYYZZM; M = Module (tv, mobile)
 
     // SDK and tools
     ext.compileSdkVersion = 29
