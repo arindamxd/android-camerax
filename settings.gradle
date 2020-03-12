@@ -1,1 +1,1 @@
-include ':app', ':editorx'
+include ':app'
