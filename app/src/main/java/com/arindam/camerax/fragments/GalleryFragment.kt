@@ -31,6 +31,8 @@ import java.util.*
  * Created by Arindam Karmakar on 9/5/19.
  */
 
+internal val EXTENSION_WHITELIST = arrayOf("JPG")
+
 class GalleryFragment internal constructor() : Fragment() {
 
     /** AndroidX navigation arguments */
@@ -44,10 +46,6 @@ class GalleryFragment internal constructor() : Fragment() {
         override fun getCount(): Int = mediaList.size
         override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
         override fun getItemPosition(obj: Any): Int = POSITION_NONE
-    }
-
-    companion object {
-        val EXTENSION_WHITELIST = arrayOf("JPG")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

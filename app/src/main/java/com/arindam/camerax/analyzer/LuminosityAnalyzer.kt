@@ -1,4 +1,4 @@
-package com.arindam.camerax
+package com.arindam.camerax.analyzer
 
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -39,7 +39,6 @@ internal class LuminosityAnalyzer(listener: LumaListener? = null) : ImageAnalysi
     private fun ByteBuffer.toByteArray(): ByteArray {
         rewind()    // Rewind the buffer to zero
         val data = ByteArray(remaining())
-
         get(data)   // Copy the buffer into a byte array
         return data // Return the byte array
     }

@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.ActivityTestRule
 import androidx.test.rule.GrantPermissionRule
-import com.arindam.camerax.activities.MainActivity
+import com.arindam.camerax.activities.BaseActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,11 +21,11 @@ class MainInstrumentedTest {
 
     @get:Rule
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO
+        Manifest.permission.CAMERA/*, Manifest.permission.RECORD_AUDIO*/
     )
 
     @get:Rule
-    val activityRule: ActivityTestRule<MainActivity> = ActivityTestRule(MainActivity::class.java)
+    val activityRule: ActivityTestRule<BaseActivity> = ActivityTestRule(BaseActivity::class.java)
 
     @Test
     fun useAppContext() {

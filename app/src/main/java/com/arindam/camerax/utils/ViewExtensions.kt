@@ -23,6 +23,7 @@ const val FLAGS_FULLSCREEN = View.SYSTEM_UI_FLAG_LOW_PROFILE or
 /** Milliseconds used for UI animations */
 const val ANIMATION_FAST_MILLIS = 50L
 const val ANIMATION_SLOW_MILLIS = 100L
+const val INITIAL_DELAY = 500L
 
 /**
  * Simulate a button click, including a small delay while it is being pressed to trigger the
@@ -54,7 +55,7 @@ fun View.padWithDisplayCutout() {
     rootWindowInsets?.displayCutout?.let { doPadding(it) }
 
     // Set a listener for window insets since view.rootWindowInsets may not be ready yet
-    setOnApplyWindowInsetsListener { view, insets ->
+    setOnApplyWindowInsetsListener { _, insets ->
         insets.displayCutout?.let { doPadding(it) }
         insets
     }

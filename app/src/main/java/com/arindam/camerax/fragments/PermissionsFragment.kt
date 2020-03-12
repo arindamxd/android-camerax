@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.navigation.NavOptions
 import androidx.navigation.Navigation
 import com.arindam.camerax.R
 
@@ -18,16 +17,12 @@ import com.arindam.camerax.R
  * Created by Arindam Karmakar on 9/5/19.
  */
 
+private const val PERMISSIONS_REQUEST_CODE = 10
+private val PERMISSIONS_REQUIRED = arrayOf(Manifest.permission.CAMERA)
+
 class PermissionsFragment : Fragment() {
 
-    private val navOptions = NavOptions.Builder().setPopUpTo(R.id.permissionsFragment, true).build()
-
     companion object {
-        private const val PERMISSIONS_REQUEST_CODE = 10
-        private val PERMISSIONS_REQUIRED = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO
-        )
 
         /** Convenience method used to check if all permissions required by this app are granted */
         fun hasPermissions(context: Context) = PERMISSIONS_REQUIRED.all {
@@ -53,9 +48,10 @@ class PermissionsFragment : Fragment() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Take the user to the success fragment when permission is granted
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(context, "Permission request granted", Toast.LENGTH_LONG).show()
+
+                // Take the user to the success fragment when permission is granted
                 Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
                     PermissionsFragmentDirections.actionPermissionsToCamera()
                 )

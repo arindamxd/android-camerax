@@ -12,7 +12,6 @@
 
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
             android:hasCode="true"
@@ -22,7 +21,7 @@
             tools:replace="android:hasCode">
 
         <activity
-                android:name=".activities.MainActivity"
+                android:name=".activities.BaseActivity"
                 android:clearTaskOnLaunch="true"
                 android:icon="@mipmap/ic_launcher"
                 android:theme="@style/AppTheme">

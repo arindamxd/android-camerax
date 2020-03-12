@@ -34,14 +34,15 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.Navigation
-import com.arindam.camerax.LuminosityAnalyzer
+import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
-import com.arindam.camerax.activities.MainActivity
-import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_ACTION
-import com.arindam.camerax.activities.MainActivity.Companion.KEY_EVENT_EXTRA
-import com.arindam.camerax.fragments.GalleryFragment.Companion.EXTENSION_WHITELIST
+import com.arindam.camerax.activities.BaseActivity
+import com.arindam.camerax.activities.KEY_EVENT_ACTION
+import com.arindam.camerax.activities.KEY_EVENT_EXTRA
+import com.arindam.camerax.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.utils.INITIAL_DELAY
 import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -136,13 +137,6 @@ class CameraFragment : Fragment() {
         )
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
-        // retainInstance = true
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -168,17 +162,21 @@ class CameraFragment : Fragment() {
         displayManager.registerDisplayListener(displayListener, null)
 
         // Determine the output directory
-        outputDirectory = MainActivity.getOutputDirectory(requireContext())
+        outputDirectory = BaseActivity.getOutputDirectory(requireContext())
 
-        // Wait for the views to be properly laid out
-        viewFinder.post {
+        viewFinder.run {
 
-            // Keep track of the display in which this view is attached
-            displayId = viewFinder.display.displayId
+            // Wait for the views to be properly laid out
+            post {
+                // Keep track of the display in which this view is attached
+                displayId = viewFinder.display.displayId
 
-            // Build UI controls and bind all camera use cases
-            updateCameraUi()
-            bindCameraUseCases()
+                // Build UI controls
+                updateCameraUi()
+            }
+
+            // Bind all camera use cases
+            postDelayed({ bindCameraUseCases() }, INITIAL_DELAY)
         }
     }
 
@@ -396,7 +394,9 @@ class CameraFragment : Fragment() {
             try {
                 // A variable number of use-cases can be passed here -
                 // camera provides access to CameraControl & CameraInfo
-                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture, imageAnalyzer)
+                camera = cameraProvider.bindToLifecycle(
+                    this, cameraSelector, preview, imageCapture, if (BuildConfig.DEBUG) imageAnalyzer else null
+                )
             } catch (exception: Exception) {
                 Log.e(TAG, "Use case binding failed", exception)
             }
@@ -404,7 +404,7 @@ class CameraFragment : Fragment() {
     }
 
     /**
-     *  [androidx.camera.core.ImageAnalysisConfig] requires enum value of
+     *  [androidx.camera.core.impl.ImageAnalysisConfig] requires enum value of
      *  [androidx.camera.core.AspectRatio]. Currently it has values of 4:3 & 16:9.
      *
      *  Detecting the most suitable ratio for dimensions provided in @params by counting absolute
