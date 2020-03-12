@@ -18,15 +18,15 @@ import java.io.File
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class MainActivity : AppCompatActivity() {
+private const val IMMERSIVE_FLAG_TIMEOUT = 500L
+internal const val KEY_EVENT_ACTION = "key_event_action"
+internal const val KEY_EVENT_EXTRA = "key_event_extra"
+
+class BaseActivity : AppCompatActivity() {
 
     private lateinit var container: FrameLayout
 
     companion object {
-        private const val IMMERSIVE_FLAG_TIMEOUT = 500L
-
-        const val KEY_EVENT_ACTION = "key_event_action"
-        const val KEY_EVENT_EXTRA = "key_event_extra"
 
         /** Use external media if it is available, our app's file directory otherwise */
         fun getOutputDirectory(context: Context): File {
@@ -40,7 +40,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_base)
+
         container = findViewById(R.id.fragment_container)
     }
 

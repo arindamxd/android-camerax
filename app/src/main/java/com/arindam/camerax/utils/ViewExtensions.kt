@@ -3,10 +3,8 @@ package com.arindam.camerax.utils
 import android.os.Build
 import android.view.DisplayCutout
 import android.view.View
-import android.view.WindowManager
 import android.widget.ImageButton
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 
 /**
  * Created by Arindam Karmakar on 9/5/19.
@@ -23,6 +21,7 @@ const val FLAGS_FULLSCREEN = View.SYSTEM_UI_FLAG_LOW_PROFILE or
 /** Milliseconds used for UI animations */
 const val ANIMATION_FAST_MILLIS = 50L
 const val ANIMATION_SLOW_MILLIS = 100L
+const val INITIAL_DELAY = 500L
 
 /**
  * Simulate a button click, including a small delay while it is being pressed to trigger the
@@ -54,26 +53,8 @@ fun View.padWithDisplayCutout() {
     rootWindowInsets?.displayCutout?.let { doPadding(it) }
 
     // Set a listener for window insets since view.rootWindowInsets may not be ready yet
-    setOnApplyWindowInsetsListener { view, insets ->
+    setOnApplyWindowInsetsListener { _, insets ->
         insets.displayCutout?.let { doPadding(it) }
         insets
     }
-}
-
-/** Same as [AlertDialog.show] but setting immersive mode in the dialog's window */
-fun AlertDialog.showImmersive() {
-    // Set the dialog to not focusable
-    window?.setFlags(
-        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-    )
-
-    // Make sure that the dialog's window is in full screen
-    window?.decorView?.systemUiVisibility = FLAGS_FULLSCREEN
-
-    // Show the dialog while still in immersive mode
-    show()
-
-    // Set the dialog to focusable again
-    window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
 }

@@ -16,10 +16,11 @@ import java.io.File
  * Created by Arindam Karmakar on 9/5/19.
  */
 
+private const val FILE_NAME_KEY = "file_name"
+
 class PhotoFragment internal constructor() : Fragment() {
 
     companion object {
-        private const val FILE_NAME_KEY = "file_name"
 
         fun create(image: File) = PhotoFragment().apply {
             arguments = Bundle().apply {

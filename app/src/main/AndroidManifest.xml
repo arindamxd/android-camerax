@@ -12,10 +12,8 @@
 
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
-            android:name="com.google.android.play.core.splitcompat.SplitCompatApplication"
             android:hasCode="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
@@ -23,7 +21,7 @@
             tools:replace="android:hasCode">
 
         <activity
-                android:name=".activities.MainActivity"
+                android:name=".activities.BaseActivity"
                 android:clearTaskOnLaunch="true"
                 android:icon="@mipmap/ic_launcher"
                 android:theme="@style/AppTheme">
@@ -76,11 +74,6 @@
                     android:resource="@xml/file_paths" />
 
         </provider>
-
-        <activity
-                android:name=".activities.SampleActivity"
-                android:icon="@mipmap/ic_launcher"
-                android:theme="@style/AppTheme" />
 
     </application>
 
