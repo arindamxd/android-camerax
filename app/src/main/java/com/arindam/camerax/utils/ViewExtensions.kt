@@ -3,10 +3,8 @@ package com.arindam.camerax.utils
 import android.os.Build
 import android.view.DisplayCutout
 import android.view.View
-import android.view.WindowManager
 import android.widget.ImageButton
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 
 /**
  * Created by Arindam Karmakar on 9/5/19.
@@ -59,22 +57,4 @@ fun View.padWithDisplayCutout() {
         insets.displayCutout?.let { doPadding(it) }
         insets
     }
-}
-
-/** Same as [AlertDialog.show] but setting immersive mode in the dialog's window */
-fun AlertDialog.showImmersive() {
-    // Set the dialog to not focusable
-    window?.setFlags(
-        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-    )
-
-    // Make sure that the dialog's window is in full screen
-    window?.decorView?.systemUiVisibility = FLAGS_FULLSCREEN
-
-    // Show the dialog while still in immersive mode
-    show()
-
-    // Set the dialog to focusable again
-    window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
 }

@@ -9,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
-import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -20,8 +19,11 @@ import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
+import com.arindam.camerax.utils.dialog.AlertDialogX
+import com.arindam.camerax.utils.dialog.AlertDialogXListener
+import com.arindam.camerax.utils.dialog.Animation
+import com.arindam.camerax.utils.dialog.Icon
 import com.arindam.camerax.utils.padWithDisplayCutout
-import com.arindam.camerax.utils.showImmersive
 import java.io.File
 import java.util.*
 
@@ -129,27 +131,33 @@ class GalleryFragment internal constructor() : Fragment() {
 
             mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
 
-                AlertDialog.Builder(view.context, android.R.style.Theme_Material_Dialog)
+                AlertDialogX.Builder(view.context)
                     .setTitle(getString(R.string.delete_title))
                     .setMessage(getString(R.string.delete_dialog))
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton(android.R.string.yes) { _, _ ->
+                    .setNegativeBtnText("Cancel")
+                    .setPositiveBtnText("Ok")
+                    .setAnimation(Animation.POP)
+                    .isCancellable(true)
+                    .setIcon(R.drawable.ic_delete, Icon.VISIBLE)
+                    .onPositiveClicked(object : AlertDialogXListener {
+                        override fun onClick() {
 
-                        // Delete current photo
-                        mediaFile.delete()
+                            // Delete current photo
+                            mediaFile.delete()
 
-                        // Send relevant broadcast to notify other apps of deletion
-                        MediaScannerConnection.scanFile(view.context, arrayOf(mediaFile.absolutePath), null, null)
+                            // Send relevant broadcast to notify other apps of deletion
+                            MediaScannerConnection.scanFile(view.context, arrayOf(mediaFile.absolutePath), null, null)
 
-                        // Notify our view pager
-                        mediaList.removeAt(mediaViewPager.currentItem)
-                        mediaViewPager.adapter?.notifyDataSetChanged()
+                            // Notify our view pager
+                            mediaList.removeAt(mediaViewPager.currentItem)
+                            mediaViewPager.adapter?.notifyDataSetChanged()
 
-                        // If all photos have been deleted, return to camera
-                        if (mediaList.isEmpty()) Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
-                    }
-                    .setNegativeButton(android.R.string.no, null)
-                    .create().showImmersive()
+                            // If all photos have been deleted, return to camera
+                            if (mediaList.isEmpty()) Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+                        }
+                    }).onNegativeClicked(object : AlertDialogXListener {
+                        override fun onClick() { }
+                    }).build()
             }
         }
     }
