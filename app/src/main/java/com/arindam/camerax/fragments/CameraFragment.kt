@@ -394,9 +394,9 @@ class CameraFragment : Fragment() {
             try {
                 // A variable number of use-cases can be passed here -
                 // camera provides access to CameraControl & CameraInfo
-                camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture, if (BuildConfig.DEBUG) imageAnalyzer else null
-                )
+                camera = if (BuildConfig.DEBUG) {
+                    cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture,  imageAnalyzer)
+                } else cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
             } catch (exception: Exception) {
                 Log.e(TAG, "Use case binding failed", exception)
             }
