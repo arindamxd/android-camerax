@@ -21,7 +21,6 @@ const val FLAGS_FULLSCREEN = View.SYSTEM_UI_FLAG_LOW_PROFILE or
 /** Milliseconds used for UI animations */
 const val ANIMATION_FAST_MILLIS = 50L
 const val ANIMATION_SLOW_MILLIS = 100L
-const val INITIAL_DELAY = 500L
 
 /**
  * Simulate a button click, including a small delay while it is being pressed to trigger the

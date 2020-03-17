@@ -42,7 +42,6 @@ import com.arindam.camerax.activities.KEY_EVENT_EXTRA
 import com.arindam.camerax.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
-import com.arindam.camerax.utils.INITIAL_DELAY
 import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -164,19 +163,17 @@ class CameraFragment : Fragment() {
         // Determine the output directory
         outputDirectory = BaseActivity.getOutputDirectory(requireContext())
 
-        viewFinder.run {
+        // Wait for the views to be properly laid out
+        viewFinder.post {
 
-            // Wait for the views to be properly laid out
-            post {
-                // Keep track of the display in which this view is attached
-                displayId = viewFinder.display.displayId
+            // Keep track of the display in which this view is attached
+            displayId = viewFinder.display.displayId
 
-                // Build UI controls
-                updateCameraUi()
-            }
+            // Build UI controls
+            updateCameraUi()
 
             // Bind all camera use cases
-            postDelayed({ bindCameraUseCases() }, INITIAL_DELAY)
+            bindCameraUseCases()
         }
     }
 
