@@ -72,6 +72,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    implementation 'androidx.preference:preference:1.1.0'
 
     // Lifecycle and LiveData
     def lifecycle_version = '2.3.0-alpha01'

@@ -11,6 +11,15 @@
 
         <!-- Camera control and gallery buttons -->
 
+        <SeekBar
+                android:id="@+id/zoom_bar"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
         <ImageButton
                 android:id="@+id/switch_button"
                 android:layout_width="@dimen/bottom_app_bar_height"

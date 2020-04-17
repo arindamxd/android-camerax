@@ -1,5 +1,7 @@
 <resources>
+
     <string name="app_name">CameraX</string>
+    <string name="app_version">1.6.0</string>
 
     <string name="capture_button_alt">Capture</string>
     <string name="switch_camera_button_alt">Switch camera</string>
@@ -16,4 +18,8 @@
     <string name="title_editorx">EditorX</string>
     <string name="slider">Photo Slider</string>
     <string name="shutter">Shutter</string>
+
+    <!-- BottomSheet Menus -->
+    <string name="menu_item_settings">Settings</string>
+
 </resources>

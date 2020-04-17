@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <androidx.preference.PreferenceCategory android:title="About" />
+
+    <Preference
+        android:icon="@drawable/ic_code_dark"
+        android:summary="Arindam Karmakar (arindamxd.github.io)"
+        android:title="Developer" />
+
+    <Preference
+        android:icon="@drawable/ic_info_dark"
+        android:summary="@string/app_version"
+        android:title="Version" />
+
+</androidx.preference.PreferenceScreen>

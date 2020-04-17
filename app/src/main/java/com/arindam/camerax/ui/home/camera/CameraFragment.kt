@@ -16,12 +16,15 @@ import android.os.Build
 import android.os.Bundle
 import android.os.HandlerThread
 import android.util.DisplayMetrics
-import android.view.KeyEvent
-import android.view.View
+import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import android.widget.SeekBar
+import androidx.appcompat.widget.Toolbar
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
+import androidx.camera.extensions.BeautyImageCaptureExtender
+import androidx.camera.extensions.BeautyPreviewExtender
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -31,10 +34,10 @@ import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.R
-import com.arindam.camerax.utils.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.utils.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_ACTION
 import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
 import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
@@ -42,6 +45,7 @@ import com.arindam.camerax.utils.log.Logger
 import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -292,22 +296,43 @@ class CameraFragment : BaseFragment() {
         }
 
         // Listener for button used to switch cameras
-        controls.findViewById<ImageButton>(R.id.switch_button).setOnClickListener {
+        controls.findViewById<ImageButton>(R.id.switch_button).apply {
+            setOnClickListener {
+                lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
+                    CameraSelector.LENS_FACING_BACK
+                } else {
+                    CameraSelector.LENS_FACING_FRONT
+                }
 
-            lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
-                CameraSelector.LENS_FACING_BACK
-            } else {
-                CameraSelector.LENS_FACING_FRONT
+                // Re-bind use cases to update selected camera
+                bindCameraUseCases()
             }
-
-            // Re-bind use cases to update selected camera
-            bindCameraUseCases()
         }
 
         // Listener for button used to view last photo
-        controls.findViewById<ImageButton>(R.id.view_button).setOnClickListener {
-            if (isDirectoryNotEmpty()) {
-                navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+        controls.findViewById<ImageButton>(R.id.view_button).apply {
+            setOnClickListener {
+                if (isDirectoryNotEmpty()) {
+                    navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+                }
+            }
+        }
+
+        controls.findViewById<SeekBar>(R.id.zoom_bar).apply {
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    camera?.cameraControl?.setLinearZoom(progress / 100.toFloat())
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+
+        controls.findViewById<BottomAppBar>(R.id.bottom_app_bar).apply {
+            inflateMenu(R.menu.menu_home)
+            setOnMenuItemClickListener {
+                navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToSettings())
+                true
             }
         }
     }
@@ -334,18 +359,19 @@ class CameraFragment : BaseFragment() {
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
             // Preview
-            preview = Preview.Builder()
+            previewBuilder = Preview.Builder()
                 // We request aspect ratio but no resolution
                 .setTargetAspectRatio(screenAspectRatio)
                 // Set initial target rotation
                 .setTargetRotation(rotation)
-                .build()
+
+            preview = previewBuilder?.build()
 
             // Attach the viewfinder's surface provider to preview use case
             preview?.setSurfaceProvider(viewFinder.createSurfaceProvider(camera?.cameraInfo))
 
             // ImageCapture
-            imageCapture = ImageCapture.Builder()
+            imageCaptureBuilder = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 // We request aspect ratio but no resolution to match preview config, but letting
                 // CameraX optimize for whatever specific resolution best fits our use cases
@@ -353,7 +379,8 @@ class CameraFragment : BaseFragment() {
                 // Set initial target rotation, we will have to call this again if rotation changes
                 // during the lifecycle of this use case
                 .setTargetRotation(rotation)
-                .build()
+
+            imageCapture = imageCaptureBuilder?.build()
 
             // ImageAnalysis
             imageAnalyzer = ImageAnalysis.Builder()
@@ -380,7 +407,7 @@ class CameraFragment : BaseFragment() {
 
                 // Create an Extender object which can be used to apply extension
                 // configurations.
-                /*val customCaptureExtender = BeautyImageCaptureExtender.create(imageCaptureBuilder)
+                val customCaptureExtender = BeautyImageCaptureExtender.create(imageCaptureBuilder)
                 val customPreviewExtender = BeautyPreviewExtender.create(previewBuilder)
 
                 // Query if extension is available (optional).
@@ -388,7 +415,7 @@ class CameraFragment : BaseFragment() {
                     // Enable the extension if available.
                 }
                 customCaptureExtender.enableExtension(cameraSelector)
-                customPreviewExtender.enableExtension(cameraSelector)*/
+                customPreviewExtender.enableExtension(cameraSelector)
 
                 // A variable number of use-cases can be passed here -
                 // camera provides access to CameraControl & CameraInfo
@@ -398,7 +425,7 @@ class CameraFragment : BaseFragment() {
 
 
 
-                /*viewFinder.setOnTouchListener { _, event ->
+                viewFinder.setOnTouchListener { _, event ->
                     if (event.action != MotionEvent.ACTION_UP) {
                         return@setOnTouchListener false
                     }
@@ -427,18 +454,6 @@ class CameraFragment : BaseFragment() {
                     scaleGestureDetector.onTouchEvent(event)
                     return@setOnTouchListener true
                 }
-
-
-
-                zoomBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        camera?.cameraControl?.setLinearZoom(progress / 100.toFloat())
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })*/
 
 
             } catch (exception: Exception) {
