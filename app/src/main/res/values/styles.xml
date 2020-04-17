@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Base application theme. -->
@@ -9,7 +10,13 @@
         <item name="android:windowFullscreen">true</item>
     </style>
 
-    <style name="PopTheme" parent="@android:style/Theme.DeviceDefault.Light.Dialog">
+    <style name="SplashTheme" parent="AppTheme">
+        <item name="android:background">@color/colorPrimaryDark</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
+    </style>
+
+    <style name="PopTheme" parent="Theme.MaterialComponents.Light.Dialog">
         <item name="android:windowAnimationStyle">@style/PopTheme1</item>
     </style>
 
@@ -18,7 +25,7 @@
         <item name="android:windowExitAnimation">@anim/pop_out</item>
     </style>
 
-    <style name="SideTheme" parent="@android:style/Theme.DeviceDefault.Light.Dialog">
+    <style name="SideTheme" parent="Theme.MaterialComponents.Light.Dialog">
         <item name="android:windowAnimationStyle">@style/SideTheme1</item>
     </style>
 
@@ -27,7 +34,7 @@
         <item name="android:windowExitAnimation">@anim/side_out</item>
     </style>
 
-    <style name="SlideTheme" parent="@android:style/Theme.DeviceDefault.Light.Dialog">
+    <style name="SlideTheme" parent="Theme.MaterialComponents.Light.Dialog">
         <item name="android:windowAnimationStyle">@style/SlideTheme1</item>
     </style>
 

@@ -1,14 +1,13 @@
-package com.arindam.camerax.fragments
+package com.arindam.camerax.ui.permission
 
-import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
+import android.view.View
 import androidx.navigation.Navigation
 import com.arindam.camerax.R
+import com.arindam.camerax.ui.base.BaseFragment
+import com.arindam.camerax.utils.commons.Constants.PERMISSIONS.PERMISSIONS_REQUEST_CODE
+import com.arindam.camerax.utils.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
 
 /**
  * The sole purpose of this fragment is to request permissions and, once granted, display the
@@ -17,23 +16,17 @@ import com.arindam.camerax.R
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-private const val PERMISSIONS_REQUEST_CODE = 10
-private val PERMISSIONS_REQUIRED = arrayOf(Manifest.permission.CAMERA)
+class PermissionsFragment : BaseFragment() {
 
-class PermissionsFragment : Fragment() {
+    override fun provideLayout(): Int = 0
+    override fun provideView(): View? = View(context)
 
-    companion object {
-
-        /** Convenience method used to check if all permissions required by this app are granted */
-        fun hasPermissions(context: Context) = PERMISSIONS_REQUIRED.all {
-            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
+    override fun setupView(view: View, savedInstanceState: Bundle?) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (!hasPermissions(requireContext())) {
+        if (!hasPermissions()) {
             // Request camera-related permissions
             requestPermissions(PERMISSIONS_REQUIRED, PERMISSIONS_REQUEST_CODE)
         } else {
@@ -49,14 +42,14 @@ class PermissionsFragment : Fragment() {
 
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(context, "Permission request granted", Toast.LENGTH_LONG).show()
+                showToast("Permission request granted")
 
                 // Take the user to the success fragment when permission is granted
                 Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
                     PermissionsFragmentDirections.actionPermissionsToCamera()
                 )
             } else {
-                Toast.makeText(context, "Permission request denied", Toast.LENGTH_LONG).show()
+                showToast("Permission request denied")
             }
         }
     }

@@ -1,12 +1,10 @@
-package com.arindam.camerax.fragments
+package com.arindam.camerax.ui.gallery
 
 import android.content.Intent
 import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -19,6 +17,9 @@ import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
+import com.arindam.camerax.ui.base.BaseFragment
+import com.arindam.camerax.ui.photo.PhotoFragment
+import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
 import com.arindam.camerax.utils.dialog.AlertDialogX
 import com.arindam.camerax.utils.dialog.AlertDialogXListener
 import com.arindam.camerax.utils.dialog.Animation
@@ -33,9 +34,7 @@ import java.util.*
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-internal val EXTENSION_WHITELIST = arrayOf("JPG")
-
-class GalleryFragment internal constructor() : Fragment() {
+class GalleryFragment internal constructor() : BaseFragment() {
 
     /** AndroidX navigation arguments */
     private val args: GalleryFragmentArgs by navArgs()
@@ -43,8 +42,7 @@ class GalleryFragment internal constructor() : Fragment() {
     private lateinit var mediaList: MutableList<File>
 
     /** Adapter class used to present a fragment containing one photo or video as a page */
-    inner class MediaPagerAdapter(fm: FragmentManager) :
-        FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+    inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
         override fun getCount(): Int = mediaList.size
         override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
         override fun getItemPosition(obj: Any): Int = POSITION_NONE
@@ -66,14 +64,10 @@ class GalleryFragment internal constructor() : Fragment() {
         }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.fragment_gallery, container, false)
+    override fun provideLayout(): Int = R.layout.fragment_gallery
+    override fun provideView(): View? = null
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun setupView(view: View, savedInstanceState: Bundle?) {
 
         // Checking media files list
         if (mediaList.isEmpty()) {
@@ -94,7 +88,7 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Handle back button press
         view.findViewById<ImageButton>(R.id.back_button).setOnClickListener {
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+            navigateBack(R.id.fragment_container)
         }
 
         // Handle share button press
@@ -109,13 +103,10 @@ class GalleryFragment internal constructor() : Fragment() {
                     // Infer media type from file extension
                     val mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mediaFile.extension)
                     // Get URI from our FileProvider implementation
-                    val uri = FileProvider.getUriForFile(
-                        view.context,
-                        BuildConfig.APPLICATION_ID + ".provider",
-                        mediaFile
-                    )
+                    val uri = FileProvider.getUriForFile(view.context, BuildConfig.APPLICATION_ID + ".provider", mediaFile)
                     // Set the appropriate intent extra, type, action and flags
                     putExtra(Intent.EXTRA_STREAM, uri)
+
                     type = mediaType
                     action = Intent.ACTION_SEND
                     flags = Intent.FLAG_GRANT_READ_URI_PERMISSION

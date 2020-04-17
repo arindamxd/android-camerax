@@ -3,7 +3,6 @@ package com.arindam.camerax.utils
 import android.content.Context
 import android.graphics.Matrix
 import android.hardware.display.DisplayManager
-import android.util.Log
 import android.util.Size
 import android.view.Display
 import android.view.Surface
@@ -11,8 +10,10 @@ import android.view.TextureView
 import android.view.View
 import androidx.camera.core.Preview
 import androidx.camera.core.impl.PreviewConfig
+import com.arindam.camerax.utils.log.Logger
 import java.lang.ref.WeakReference
 import java.util.*
+import kotlin.math.roundToInt
 
 /**
  * Builder for [Preview] that takes in a [WeakReference] of the view finder and
@@ -22,10 +23,7 @@ import java.util.*
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class AutoFitPreviewBuilder private constructor(
-    config: PreviewConfig,
-    viewFinderRef: WeakReference<TextureView>
-) {
+class AutoFitPreviewBuilder private constructor(config: PreviewConfig, viewFinderRef: WeakReference<TextureView>) {
 
     /** Public instance of preview use-case which can be used by consumers of this adapter */
     //val useCase: Preview
@@ -67,7 +65,8 @@ class AutoFitPreviewBuilder private constructor(
     }
 
     companion object {
-        private val TAG = AutoFitPreviewBuilder::class.java.simpleName
+
+        private val TAG by lazy { AutoFitPreviewBuilder::class.java.simpleName }
 
         /** Helper function that gets the rotation of a [Display] in degrees */
         fun getDisplaySurfaceRotation(display: Display?) = when (display?.rotation) {
@@ -83,7 +82,7 @@ class AutoFitPreviewBuilder private constructor(
          * of [Preview] which automatically adjusts in size and rotation to compensate for
          * config changes.
          */
-        //fun build(config: PreviewConfig, viewFinder: TextureView) = AutoFitPreviewBuilder(config, WeakReference(viewFinder)).useCase
+        fun build(config: PreviewConfig, viewFinder: TextureView) = AutoFitPreviewBuilder(config, WeakReference(viewFinder))
     }
 
     init {
@@ -100,7 +99,7 @@ class AutoFitPreviewBuilder private constructor(
         // Every time the view finder is updated, recompute layout
         /*useCase.onPreviewOutputUpdateListener = Preview.OnPreviewOutputUpdateListener {
             val viewFinder = viewFinderRef.get() ?: return@OnPreviewOutputUpdateListener
-            Log.d(
+            Logger.debug(
                 TAG,
                 "Preview output changed. Size: ${it.textureSize}. Rotation: ${it.rotationDegrees}"
             )
@@ -123,7 +122,7 @@ class AutoFitPreviewBuilder private constructor(
         viewFinder.addOnLayoutChangeListener { view, left, top, right, bottom, _, _, _, _ ->
             val viewFinder = view as TextureView
             val newViewFinderDimens = Size(right - left, bottom - top)
-            Log.d(TAG, "View finder layout changed. Size: $newViewFinderDimens")
+            Logger.debug(TAG, "View finder layout changed. Size: $newViewFinderDimens")
             val rotation = getDisplaySurfaceRotation(viewFinder.display)
             updateTransform(viewFinder, rotation, bufferDimens, newViewFinderDimens)
         }
@@ -138,8 +137,7 @@ class AutoFitPreviewBuilder private constructor(
         //  rotation every time [updateTransform] is called, which gets triggered by
         //  [CameraFragment] display listener -- but the approach taken in this sample is not the
         //  only valid one.
-        displayManager =
-            viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         displayManager.registerDisplayListener(displayListener, null)
 
         // Remove the display listeners when the view is detached to avoid holding a reference to
@@ -147,11 +145,8 @@ class AutoFitPreviewBuilder private constructor(
         // NOTE: Even though using a weak reference should take care of this, we still try to avoid
         //  unnecessary calls to the listener this way.
         viewFinder.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View?) =
-                displayManager.registerDisplayListener(displayListener, null)
-
-            override fun onViewDetachedFromWindow(view: View?) =
-                displayManager.unregisterDisplayListener(displayListener)
+            override fun onViewAttachedToWindow(view: View?) = displayManager.registerDisplayListener(displayListener, null)
+            override fun onViewDetachedFromWindow(view: View?) = displayManager.unregisterDisplayListener(displayListener)
         })
     }
 
@@ -198,7 +193,7 @@ class AutoFitPreviewBuilder private constructor(
         }
 
         val matrix = Matrix()
-        Log.d(
+        Logger.debug(
             TAG, "Applying output transformation.\n" +
                     "View finder size: $viewFinderDimens.\n" +
                     "Preview output size: $bufferDimens\n" +
@@ -222,10 +217,10 @@ class AutoFitPreviewBuilder private constructor(
         // Match longest sides together -- i.e. apply center-crop transformation
         if (viewFinderDimens.width > viewFinderDimens.height) {
             scaledHeight = viewFinderDimens.width
-            scaledWidth = Math.round(viewFinderDimens.width * bufferRatio)
+            scaledWidth = (viewFinderDimens.width * bufferRatio).roundToInt()
         } else {
             scaledHeight = viewFinderDimens.height
-            scaledWidth = Math.round(viewFinderDimens.height * bufferRatio)
+            scaledWidth = (viewFinderDimens.height * bufferRatio).roundToInt()
         }
 
         // Compute the relative scale value

@@ -6,7 +6,7 @@
 
     <fragment
             android:id="@+id/permissionsFragment"
-            android:name="com.arindam.camerax.fragments.PermissionsFragment"
+            android:name="com.arindam.camerax.ui.permission.PermissionsFragment"
             android:label="PermissionsFragment">
         <action
                 android:id="@+id/action_permissions_to_camera"
@@ -17,7 +17,7 @@
 
     <fragment
             android:id="@+id/cameraFragment"
-            android:name="com.arindam.camerax.fragments.CameraFragment"
+            android:name="com.arindam.camerax.ui.camera.CameraFragment"
             android:label="CameraFragment">
         <action
                 android:id="@+id/action_camera_to_gallery"
@@ -31,7 +31,7 @@
 
     <fragment
             android:id="@+id/galleryFragment"
-            android:name="com.arindam.camerax.fragments.GalleryFragment"
+            android:name="com.arindam.camerax.ui.gallery.GalleryFragment"
             android:label="GalleryFragment">
         <argument
                 android:name="root_directory"

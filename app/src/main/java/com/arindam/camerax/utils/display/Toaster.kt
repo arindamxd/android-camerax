@@ -1,0 +1,42 @@
+package com.arindam.camerax.utils.display
+
+import android.content.Context
+import android.graphics.PorterDuff
+import android.view.Gravity
+import android.widget.TextView
+import android.widget.Toast
+import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
+import com.arindam.camerax.R
+
+/**
+ * Created by Arindam Karmakar on 17/04/20.
+ */
+
+object Toaster {
+
+    /**
+     * Show Custom [Toast]
+     *
+     * @param context [Context]
+     * @param resId String Resource Id
+     */
+    fun show(context: Context, @StringRes resId: Int) {
+        show(context, context.getString(resId))
+    }
+
+    /**
+     * Show Custom [Toast]
+     *
+     * @param context [Context]
+     * @param text    Message to Print
+     */
+    fun show(context: Context, text: CharSequence?) {
+        val toast = Toast.makeText(context, text ?: "", Toast.LENGTH_SHORT)
+        toast.view.background.setColorFilter(ContextCompat.getColor(context, R.color.black), PorterDuff.Mode.SRC_IN)
+        toast.setGravity(Gravity.CENTER, 0, 0)
+        val textView = toast.view.findViewById<TextView>(android.R.id.message)
+        textView.setTextColor(ContextCompat.getColor(context, R.color.white))
+        toast.show()
+    }
+}
