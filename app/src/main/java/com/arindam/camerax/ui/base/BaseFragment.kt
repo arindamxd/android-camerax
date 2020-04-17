@@ -39,7 +39,7 @@ abstract class BaseFragment : Fragment() {
     abstract fun provideLayout(): Int
     abstract fun setupView(view: View, savedInstanceState: Bundle?)
 
-    abstract fun provideView(): View?
+    open fun provideView(): View? = null
 
     protected fun navigateBack(@IdRes viewId: Int) {
         Navigation.findNavController(requireActivity(), viewId).navigateUp()

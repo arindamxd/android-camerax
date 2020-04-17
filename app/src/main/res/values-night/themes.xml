@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!--Final, top-level theme-->
+    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX.Dark" />
+
+    <style name="Theme.CameraX.Dark" parent="Theme.CameraX">
+
+        <!--Color-->
+        <item name="colorPrimary">@color/camerax_blue_200</item>
+        <item name="colorPrimaryVariant">@color/camerax_blue_300</item>
+        <item name="colorSecondary">@color/camerax_orange_300</item>
+        <item name="colorSecondaryVariant">@color/camerax_orange_300</item>
+
+        <item name="android:colorBackground">@color/camerax_black_900</item>
+        <item name="colorSurface">@color/camerax_black_800</item>
+        <item name="colorPrimarySurfaceVariant">?attr/colorSurface</item>
+        <item name="colorError">@color/camerax_red_200</item>
+
+        <item name="colorOnPrimary">@color/camerax_black_900</item>
+        <item name="colorOnSecondary">@color/camerax_black_900</item>
+        <item name="colorOnBackground">@color/camerax_white_50</item>
+        <item name="colorOnSurface">@color/camerax_white_50</item>
+        <item name="colorOnError">@color/camerax_black_900</item>
+
+        <item name="scrimBackground">@color/camerax_black_900_alpha_087</item>
+        <item name="android:statusBarColor">@color/camerax_black_900_alpha_060</item>
+
+        <item name="elevationOverlayEnabled">true</item>
+
+        <!--System/Platform attributes-->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
+    </style>
+
+</resources>

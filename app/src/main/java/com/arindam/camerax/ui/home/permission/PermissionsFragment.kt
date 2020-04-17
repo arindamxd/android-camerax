@@ -1,4 +1,4 @@
-package com.arindam.camerax.ui.permission
+package com.arindam.camerax.ui.home.permission
 
 import android.content.pm.PackageManager
 import android.os.Bundle

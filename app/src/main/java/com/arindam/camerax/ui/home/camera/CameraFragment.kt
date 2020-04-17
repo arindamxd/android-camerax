@@ -1,4 +1,4 @@
-package com.arindam.camerax.ui.camera
+package com.arindam.camerax.ui.home.camera
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -42,6 +42,7 @@ import com.arindam.camerax.utils.log.Logger
 import com.arindam.camerax.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -97,7 +98,7 @@ class CameraFragment : BaseFragment() {
 
                 // When the volume down button is pressed, simulate a shutter button click
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    val shutter = container.findViewById<ImageButton>(R.id.camera_capture_button)
+                    val shutter = container.findViewById<FloatingActionButton>(R.id.capture_button)
                     shutter.simulateClick()
                 }
             }
@@ -133,7 +134,6 @@ class CameraFragment : BaseFragment() {
     }
 
     override fun provideLayout(): Int = R.layout.fragment_camera
-    override fun provideView(): View? = null
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {
         container = view as ConstraintLayout
@@ -206,12 +206,12 @@ class CameraFragment : BaseFragment() {
     private fun updateCameraUi() {
 
         // Remove previous UI if any
-        container.findViewById<ConstraintLayout>(R.id.camera_ui_container)?.let {
+        container.findViewById<ConstraintLayout>(R.id.camera_controller)?.let {
             container.removeView(it)
         }
 
         // Inflate a new view containing all UI for controlling the camera
-        val controls = View.inflate(requireContext(), R.layout.camera_ui_container, container)
+        val controls = View.inflate(requireContext(), R.layout.camera_controller, container)
 
         // In the background, load latest photo taken (if any) for gallery thumbnail
         lifecycleScope.launch(Dispatchers.IO) {
@@ -223,7 +223,7 @@ class CameraFragment : BaseFragment() {
         }
 
         // Listener for button used to capture photo
-        controls.findViewById<ImageButton>(R.id.camera_capture_button).setOnClickListener {
+        controls.findViewById<FloatingActionButton>(R.id.capture_button).setOnClickListener {
 
             // Get a stable reference of the modifiable image capture use case
             imageCapture?.let { imageCapture ->
@@ -292,7 +292,7 @@ class CameraFragment : BaseFragment() {
         }
 
         // Listener for button used to switch cameras
-        controls.findViewById<ImageButton>(R.id.camera_switch_button).setOnClickListener {
+        controls.findViewById<ImageButton>(R.id.switch_button).setOnClickListener {
 
             lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
                 CameraSelector.LENS_FACING_BACK
@@ -305,13 +305,9 @@ class CameraFragment : BaseFragment() {
         }
 
         // Listener for button used to view last photo
-        controls.findViewById<ImageButton>(R.id.photo_view_button).setOnClickListener {
+        controls.findViewById<ImageButton>(R.id.view_button).setOnClickListener {
             if (isDirectoryNotEmpty()) {
-                navigate(R.id.fragment_container,
-                    CameraFragmentDirections.actionCameraToGallery(
-                        outputDirectory.absolutePath
-                    )
-                )
+                navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
             }
         }
     }
@@ -470,7 +466,7 @@ class CameraFragment : BaseFragment() {
 
     private fun setGalleryThumbnail(uri: Uri) {
         // Reference of the view that holds the gallery thumbnail
-        val thumbnail = container.findViewById<ImageButton>(R.id.photo_view_button)
+        val thumbnail = container.findViewById<ImageButton>(R.id.view_button)
 
         // Run the operations in the view's thread
         thumbnail.post {

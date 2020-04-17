@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <dimen name="margin_xsmall">16dp</dimen>
+    <dimen name="margin_xsmall_x">26dp</dimen>
     <dimen name="margin_small">32dp</dimen>
     <dimen name="margin_medium">48dp</dimen>
     <dimen name="margin_large">64dp</dimen>
@@ -17,10 +19,23 @@
     <dimen name="round_button_small">32dp</dimen>
     <dimen name="round_button_small_x">48dp</dimen>
     <dimen name="round_button_medium">64dp</dimen>
+    <dimen name="round_button_medium_x">74dp</dimen>
     <dimen name="round_button_large">92dp</dimen>
 
     <dimen name="rect_button_margin">12dp</dimen>
     <dimen name="rect_button_width">80dp</dimen>
     <dimen name="rect_button_height">24dp</dimen>
     <dimen name="shutter_button_margin">80dp</dimen>
+
+    <!--BottomAppBar-->
+    <dimen name="bottom_app_bar_height">56dp</dimen>
+    <dimen name="bottom_app_bar_fab_cradle_corner_radius">32dp</dimen>
+    <dimen name="bottom_app_bar_fab_cradle_margin">8dp</dimen>
+    <dimen name="bottom_app_bar_logo_size">32dp</dimen>
+
+    <!--BottomNavigationDrawer-->
+    <dimen name="navigation_drawer_profile_image_size">48dp</dimen>
+    <dimen name="navigation_drawer_profile_image_size_padded">32dp</dimen>
+    <dimen name="navigation_drawer_menu_item_height">56dp</dimen>
+
 </resources>

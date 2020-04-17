@@ -1,4 +1,4 @@
-package com.arindam.camerax.ui.gallery
+package com.arindam.camerax.ui.home.gallery
 
 import android.content.Intent
 import android.media.MediaScannerConnection
@@ -18,7 +18,7 @@ import androidx.viewpager.widget.ViewPager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.ui.photo.PhotoFragment
+import com.arindam.camerax.ui.home.photo.PhotoFragment
 import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
 import com.arindam.camerax.utils.dialog.AlertDialogX
 import com.arindam.camerax.utils.dialog.AlertDialogXListener
@@ -65,7 +65,6 @@ class GalleryFragment internal constructor() : BaseFragment() {
     }
 
     override fun provideLayout(): Int = R.layout.fragment_gallery
-    override fun provideView(): View? = null
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {
 

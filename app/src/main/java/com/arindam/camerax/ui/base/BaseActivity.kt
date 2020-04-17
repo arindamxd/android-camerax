@@ -12,7 +12,7 @@ import com.arindam.camerax.utils.FLAGS_FULLSCREEN
 abstract class BaseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        window.decorView.systemUiVisibility = FLAGS_FULLSCREEN;
+        //window.decorView.systemUiVisibility = FLAGS_FULLSCREEN;
         super.onCreate(savedInstanceState)
         setContentView(provideLayout())
         setupView(savedInstanceState)

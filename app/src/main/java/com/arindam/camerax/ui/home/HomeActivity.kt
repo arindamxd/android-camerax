@@ -18,7 +18,9 @@ class HomeActivity : BaseActivity() {
 
     override fun provideLayout(): Int = R.layout.activity_home
 
-    override fun setupView(savedInstanceState: Bundle?) {}
+    override fun setupView(savedInstanceState: Bundle?) {
+
+    }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {

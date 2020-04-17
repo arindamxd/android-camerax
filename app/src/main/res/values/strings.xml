@@ -15,4 +15,5 @@
     <string name="delete_title">Confirm</string>
     <string name="title_editorx">EditorX</string>
     <string name="slider">Photo Slider</string>
+    <string name="shutter">Shutter</string>
 </resources>

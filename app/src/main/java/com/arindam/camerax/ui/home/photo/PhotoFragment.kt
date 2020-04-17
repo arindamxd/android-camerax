@@ -1,4 +1,4 @@
-package com.arindam.camerax.ui.photo
+package com.arindam.camerax.ui.home.photo
 
 import android.os.Bundle
 import android.view.View
@@ -27,10 +27,7 @@ class PhotoFragment internal constructor() : BaseFragment() {
     }
 
     override fun provideLayout(): Int = 0
-
-    override fun provideView(): View? {
-        return ImageView(context)
-    }
+    override fun provideView(): View? = ImageView(context)
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {
         val args = arguments ?: return
