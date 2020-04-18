@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <androidx.preference.PreferenceCategory android:title="About" />
+    <PreferenceCategory android:layout="@layout/preference_theme" />
+    <Preference android:layout="@layout/preference_theme_mode" />
 
-    <Preference
-        android:icon="@drawable/ic_code_dark"
-        android:summary="Arindam Karmakar (arindamxd.github.io)"
-        android:title="Developer" />
+    <PreferenceCategory android:layout="@layout/preference_link" />
+    <Preference android:layout="@layout/preference_link_playstore" />
+    <Preference android:layout="@layout/preference_link_github" />
 
-    <Preference
-        android:icon="@drawable/ic_info_dark"
-        android:summary="@string/app_version"
-        android:title="Version" />
+    <PreferenceCategory android:layout="@layout/preference_about" />
+    <Preference android:layout="@layout/preference_about_developer" />
+    <Preference android:layout="@layout/preference_about_version" android:enabled="false" />
+    <Preference android:layout="@layout/preference_about_app" android:enabled="false" />
 
-</androidx.preference.PreferenceScreen>
+</PreferenceScreen>

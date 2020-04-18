@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!--Final, top-level theme-->
-    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX.Dark" />
-
+    <!-- Base Theme with ActionBar -->
     <style name="Theme.CameraX.Dark" parent="Theme.CameraX">
 
-        <!--Color-->
+        <!-- Color -->
         <item name="colorPrimary">@color/camerax_blue_200</item>
         <item name="colorPrimaryVariant">@color/camerax_blue_300</item>
         <item name="colorSecondary">@color/camerax_orange_300</item>
@@ -32,5 +30,15 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
 
     </style>
+
+    <!-- Base Theme with NoActionBar -->
+    <style name="Theme.CameraX.Dark.NoActionBar" parent="Theme.CameraX.Dark">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Final, Top-Level Themes -->
+    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX.Dark" />
+    <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.Dark.NoActionBar" />
 
 </resources>

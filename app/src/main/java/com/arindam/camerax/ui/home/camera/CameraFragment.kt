@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
+import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.utils.analyzer.LuminosityAnalyzer
@@ -331,8 +332,8 @@ class CameraFragment : BaseFragment() {
         controls.findViewById<BottomAppBar>(R.id.bottom_app_bar).apply {
             inflateMenu(R.menu.menu_home)
             setOnMenuItemClickListener {
-                navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToSettings())
-                true
+                startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                return@setOnMenuItemClickListener true
             }
         }
     }

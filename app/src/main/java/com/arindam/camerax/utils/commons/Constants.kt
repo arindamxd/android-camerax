@@ -8,10 +8,6 @@ import android.Manifest
 
 object Constants {
 
-    object FLAGS {
-        internal const val IMMERSIVE_FLAG_TIMEOUT = 500L
-    }
-
     object EXTRAS {
         internal const val KEY_EVENT_ACTION = "key_event_action"
         internal const val KEY_EVENT_EXTRA = "key_event_extra"

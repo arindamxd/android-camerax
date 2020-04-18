@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Base Theme -->
-    <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <!-- Base Theme with ActionBar -->
+    <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight">
 
         <!-- Color -->
         <item name="colorPrimary">@color/camerax_blue_700</item>
@@ -62,7 +62,14 @@
 
     </style>
 
-    <!-- Final, Top-Level Theme -->
+    <!-- Base Theme with NoActionBar -->
+    <style name="Theme.CameraX.NoActionBar" parent="Theme.CameraX">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Final, Top-Level Themes -->
     <style name="Theme.CameraX.DayNight" parent="Theme.CameraX"/>
+    <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.NoActionBar"/>
 
 </resources>
