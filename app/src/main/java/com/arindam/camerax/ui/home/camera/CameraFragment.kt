@@ -20,7 +20,6 @@ import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
 import android.widget.SeekBar
-import androidx.appcompat.widget.Toolbar
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
 import androidx.camera.extensions.BeautyImageCaptureExtender

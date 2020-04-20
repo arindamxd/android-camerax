@@ -23,10 +23,19 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix applicationIdSuffix
+            resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$applicationIdSuffix)"
+            resValue "string", "app_name", "CameraX [Debug]"
+
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
+            versionNameSuffix ".release"
+            resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$versionNameSuffix)"
+            resValue "string", "app_name", "CameraX"
+
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -72,7 +81,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
-    implementation 'androidx.preference:preference:1.1.0'
+    implementation 'androidx.preference:preference:1.1.1'
 
     // Lifecycle and LiveData
     def lifecycle_version = '2.3.0-alpha01'

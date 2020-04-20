@@ -5,6 +5,7 @@
         android:layout_height="wrap_content">
 
     <Space
+            android:id="@+id/start"
             android:layout_width="match_parent"
             android:layout_height="@dimen/pref_height"
             app:layout_constraintBottom_toTopOf="@+id/icon"
@@ -28,8 +29,14 @@
             android:text="@string/app_name"
             android:textAppearance="?attr/textAppearanceOverline"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/end"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent" />
+
+    <Space
+            android:id="@+id/end"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/pref_height_half"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
