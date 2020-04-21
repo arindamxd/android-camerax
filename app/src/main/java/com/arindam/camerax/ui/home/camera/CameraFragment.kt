@@ -16,10 +16,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.HandlerThread
 import android.util.DisplayMetrics
-import android.view.*
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
-import android.widget.SeekBar
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
 import androidx.camera.extensions.BeautyImageCaptureExtender
@@ -47,7 +49,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.sdsmdg.harjot.crollerTest.Croller
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -319,12 +320,6 @@ class CameraFragment : BaseFragment() {
             }
         }
 
-        controls.findViewById<Croller>(R.id.zoom_bar).apply {
-            setOnProgressChangedListener {
-                camera?.cameraControl?.setLinearZoom(it / 100.toFloat())
-            }
-        }
-
         controls.findViewById<BottomAppBar>(R.id.bottom_app_bar).apply {
             inflateMenu(R.menu.menu_home)
             setOnMenuItemClickListener {
@@ -402,17 +397,7 @@ class CameraFragment : BaseFragment() {
 
             try {
 
-                // Create an Extender object which can be used to apply extension
-                // configurations.
-                val customCaptureExtender = BeautyImageCaptureExtender.create(imageCaptureBuilder)
-                val customPreviewExtender = BeautyPreviewExtender.create(previewBuilder)
-
-                // Query if extension is available (optional).
-                if (customCaptureExtender.isExtensionAvailable(cameraSelector)) {
-                    // Enable the extension if available.
-                }
-                customCaptureExtender.enableExtension(cameraSelector)
-                customPreviewExtender.enableExtension(cameraSelector)
+                //enableExtensionFeature(cameraSelector)
 
                 // A variable number of use-cases can be passed here -
                 // camera provides access to CameraControl & CameraInfo
@@ -420,43 +405,58 @@ class CameraFragment : BaseFragment() {
                     cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture,  imageAnalyzer)
                 } else*/ cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
 
-
-
-                viewFinder.setOnTouchListener { _, event ->
-                    if (event.action != MotionEvent.ACTION_UP) {
-                        return@setOnTouchListener false
-                    }
-
-                    val factory = viewFinder.createMeteringPointFactory(cameraSelector)
-                    val point = factory.createPoint(event.x, event.y)
-                    val action = FocusMeteringAction.Builder(point).build()
-                    camera?.cameraControl?.startFocusAndMetering(action)
-                    return@setOnTouchListener true
-                }
-
-
-
-                val listener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                    override fun onScale(detector: ScaleGestureDetector): Boolean {
-                        val currentZoomRatio: Float = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 0F
-                        val delta = detector.scaleFactor
-                        camera?.cameraControl?.setZoomRatio(currentZoomRatio * delta)
-                        return true
-                    }
-                }
-
-                val scaleGestureDetector = ScaleGestureDetector(context, listener)
-
-                viewFinder.setOnTouchListener { _, event ->
-                    scaleGestureDetector.onTouchEvent(event)
-                    return@setOnTouchListener true
-                }
-
+                enableZoomFeature()
+                enableFocusFeature(cameraSelector)
 
             } catch (exception: Exception) {
                 Logger.debug(TAG, "Use case binding failed: ${exception.message}")
             }
         }, ContextCompat.getMainExecutor(requireContext()))
+    }
+
+    private fun enableExtensionFeature(cameraSelector: CameraSelector) {
+        // Create an Extender object which can be used to apply extension
+        // configurations.
+        val customCaptureExtender = BeautyImageCaptureExtender.create(imageCaptureBuilder)
+        val customPreviewExtender = BeautyPreviewExtender.create(previewBuilder)
+
+        // Query if extension is available (optional).
+        if (customCaptureExtender.isExtensionAvailable(cameraSelector)) {
+            // Enable the extension if available.
+        }
+        customCaptureExtender.enableExtension(cameraSelector)
+        customPreviewExtender.enableExtension(cameraSelector)
+    }
+
+    private fun enableZoomFeature() {
+        val listener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val currentZoomRatio: Float = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 0F
+                val delta = detector.scaleFactor
+                camera?.cameraControl?.setZoomRatio(currentZoomRatio * delta)
+                return true
+            }
+        }
+        val scaleGestureDetector = ScaleGestureDetector(context, listener)
+
+        viewFinder.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            return@setOnTouchListener true
+        }
+    }
+
+    private fun enableFocusFeature(cameraSelector: CameraSelector) {
+        viewFinder.setOnTouchListener { _, event ->
+            if (event.action != MotionEvent.ACTION_UP) {
+                return@setOnTouchListener false
+            }
+
+            val factory = viewFinder.createMeteringPointFactory(cameraSelector)
+            val point = factory.createPoint(event.x, event.y)
+            val action = FocusMeteringAction.Builder(point).build()
+            camera?.cameraControl?.startFocusAndMetering(action)
+            return@setOnTouchListener true
+        }
     }
 
     /**

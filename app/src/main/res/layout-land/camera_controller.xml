@@ -11,32 +11,6 @@
 
         <!-- Camera control and gallery buttons -->
 
-        <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/guideline"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintGuide_begin="110dp" />
-
-        <com.sdsmdg.harjot.crollerTest.Croller
-                android:id="@+id/zoom_bar"
-                android:layout_width="210dp"
-                android:layout_height="210dp"
-                android:rotation="90"
-                app:back_circle_color="#EDEDED"
-                app:enabled="true"
-                app:indicator_color="@color/camerax_orange_500"
-                app:indicator_width="10"
-                app:is_continuous="false"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintRight_toLeftOf="@+id/guideline"
-                app:layout_constraintTop_toTopOf="parent"
-                app:main_circle_color="#FFFFFF"
-                app:max="100"
-                app:progress_primary_color="@color/camerax_orange_500"
-                app:progress_secondary_color="#EDEDED"
-                app:start_offset="100" />
-
         <ImageButton
                 android:id="@+id/view_button"
                 android:layout_width="@dimen/round_button_medium"
