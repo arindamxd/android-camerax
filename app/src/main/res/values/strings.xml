@@ -37,7 +37,7 @@
     <string name="pref_title_links">Links</string>
     <string name="pref_title_about">About</string>
 
-    <string name="pref_title_theme_mode">Theme Mode</string>
+    <string name="pref_title_theme_mode">Theme</string>
     <string name="pref_subtitle_theme_mode">Select a dark or light theme.</string>
 
     <string name="pref_title_playstore">PlayStore</string>

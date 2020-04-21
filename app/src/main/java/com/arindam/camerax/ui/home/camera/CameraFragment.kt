@@ -47,6 +47,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.sdsmdg.harjot.crollerTest.Croller
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -318,14 +319,10 @@ class CameraFragment : BaseFragment() {
             }
         }
 
-        controls.findViewById<SeekBar>(R.id.zoom_bar).apply {
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    camera?.cameraControl?.setLinearZoom(progress / 100.toFloat())
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
+        controls.findViewById<Croller>(R.id.zoom_bar).apply {
+            setOnProgressChangedListener {
+                camera?.cameraControl?.setLinearZoom(it / 100.toFloat())
+            }
         }
 
         controls.findViewById<BottomAppBar>(R.id.bottom_app_bar).apply {
