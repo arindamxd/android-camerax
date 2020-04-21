@@ -7,26 +7,28 @@
         <!-- Color -->
         <item name="colorPrimary">@color/camerax_blue_200</item>
         <item name="colorPrimaryVariant">@color/camerax_blue_300</item>
-        <item name="colorSecondary">@color/camerax_orange_300</item>
-        <item name="colorSecondaryVariant">@color/camerax_orange_300</item>
+        <item name="colorSecondary">@color/camerax_red_400</item>
+        <item name="colorSecondaryVariant">@color/camerax_red_400</item>
 
-        <item name="android:colorBackground">@color/camerax_black_900</item>
-        <item name="colorSurface">@color/camerax_black_800</item>
+        <item name="android:colorBackground">@color/black_800</item>
+        <item name="colorSurface">@color/black_800</item>
         <item name="colorPrimarySurfaceVariant">?attr/colorSurface</item>
         <item name="colorError">@color/camerax_red_200</item>
 
-        <item name="colorOnPrimary">@color/camerax_black_900</item>
-        <item name="colorOnSecondary">@color/camerax_black_900</item>
-        <item name="colorOnBackground">@color/camerax_white_50</item>
-        <item name="colorOnSurface">@color/camerax_white_50</item>
-        <item name="colorOnError">@color/camerax_black_900</item>
+        <item name="colorOnPrimary">@color/black_900</item>
+        <item name="colorOnSecondary">@color/black_900</item>
+        <item name="colorOnBackground">@color/black_800</item>
+        <item name="colorOnSurface">@color/white_50</item>
+        <item name="colorOnError">@color/camerax_red_200</item>
 
         <item name="scrimBackground">@color/camerax_black_900_alpha_087</item>
-        <item name="android:statusBarColor">@color/camerax_black_900_alpha_060</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
 
-        <item name="elevationOverlayEnabled">true</item>
+        <item name="elevationOverlayEnabled">false</item>
 
-        <!--System/Platform attributes-->
+        <!-- System/Platform attributes -->
+        <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
 
     </style>

@@ -29,7 +29,7 @@
                         android:id="@+id/background"
                         android:layout_width="match_parent"
                         android:layout_height="80dp"
-                        android:background="@color/colorPrimaryDark" />
+                        android:background="@color/colorPrimaryVariant" />
 
                 <ImageView
                         android:id="@+id/icon"

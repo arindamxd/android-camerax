@@ -5,25 +5,25 @@
     <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight">
 
         <!-- Color -->
-        <item name="colorPrimary">@color/camerax_blue_700</item>
-        <item name="colorPrimaryVariant">@color/camerax_blue_800</item>
-        <item name="colorSecondary">@color/camerax_orange_500</item>
-        <item name="colorSecondaryVariant">@color/camerax_orange_400</item>
+        <item name="colorPrimary">@color/camerax_blue_50</item>
+        <item name="colorPrimaryVariant">@color/camerax_blue_100</item>
+        <item name="colorSecondary">@color/camerax_red_400</item>
+        <item name="colorSecondaryVariant">@color/camerax_red_400</item>
 
         <item name="android:colorBackground">@color/camerax_blue_50</item>
-        <item name="colorSurface">@color/camerax_white_50</item>
-        <item name="colorPrimarySurfaceVariant">?attr/colorPrimaryVariant</item>
+        <item name="colorSurface">@color/white_50</item>
+        <item name="colorPrimarySurfaceVariant">?attr/colorSecondaryVariant</item>
         <item name="colorError">@color/camerax_red_400</item>
 
-        <item name="colorOnPrimary">@color/camerax_white_50</item>
-        <item name="colorOnSecondary">@color/camerax_black_900</item>
-        <item name="colorOnBackground">@color/camerax_black_900</item>
-        <item name="colorOnSurface">@color/camerax_black_900</item>
-        <item name="colorOnError">@color/camerax_black_900</item>
+        <item name="colorOnPrimary">@color/camerax_black_900_alpha_060</item>
+        <item name="colorOnSecondary">@color/black_900</item>
+        <item name="colorOnBackground">@color/black_900</item>
+        <item name="colorOnSurface">@color/black_900</item>
+        <item name="colorOnError">@color/black_900</item>
 
         <item name="scrimBackground">@color/camerax_white_50_alpha_060</item>
         <item name="android:statusBarColor">@color/camerax_blue_50_alpha_060</item>
-        <item name="android:navigationBarColor">@color/nav_bar</item>
+        <item name="android:navigationBarColor">@color/camerax_blue_50</item>
 
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CameraX.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CameraX.MediumComponent</item>

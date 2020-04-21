@@ -3,11 +3,13 @@ package com.arindam.camerax.utils.display
 import android.content.Context
 import android.graphics.PorterDuff
 import android.view.Gravity
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import com.arindam.camerax.R
+import com.google.android.material.snackbar.Snackbar
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
@@ -38,5 +40,9 @@ object Toaster {
         val textView = toast.view.findViewById<TextView>(android.R.id.message)
         textView.setTextColor(ContextCompat.getColor(context, R.color.white))
         toast.show()
+    }
+
+    fun showSnack(view: View, text: CharSequence?) {
+        Snackbar.make(view, text ?: "", Snackbar.LENGTH_LONG).show()
     }
 }

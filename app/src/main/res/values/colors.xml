@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="colorPrimary">#FFD43D</color>
-    <color name="colorPrimaryDark">#353846</color>
+    <color name="colorPrimary">#00695C</color>
+    <color name="colorPrimaryVariant">#004D40</color>
+    <color name="colorSecondary">#1DE9B6</color>
+    <color name="colorSecondaryVariant">#00BFA5</color>
+
     <color name="colorAccent">#FF4081</color>
     <color name="icActive">#FFFFFFFF</color>
     <color name="icFocused">#DDFFFFFF</color>
@@ -12,10 +15,10 @@
     <color name="black">#000000</color>
 
     <!--Color palette-->
-    <color name="camerax_white_50">#ffffff</color>
+    <color name="white_50">#ffffff</color>
 
-    <color name="camerax_black_800">#121212</color>
-    <color name="camerax_black_900">#000000</color>
+    <color name="black_800">#121212</color>
+    <color name="black_900">#000000</color>
 
     <color name="camerax_blue_50">#eef0f2</color>
     <color name="camerax_blue_100">#d2dbe0</color>
