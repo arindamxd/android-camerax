@@ -18,6 +18,7 @@ android {
         versionCode rootProject.ext.versionCodeBase
         versionName rootProject.ext.versionNameBase
 
+        vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

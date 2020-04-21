@@ -11,6 +11,7 @@
             android:layout_marginStart="@dimen/pref_image_margin"
             android:contentDescription="@string/pref_title_developer"
             android:padding="@dimen/pref_image_padding"
+            android:src="@drawable/ic_google_play"
             app:layout_constraintLeft_toLeftOf="parent" />
 
     <androidx.constraintlayout.widget.Guideline
