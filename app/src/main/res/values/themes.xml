@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base Theme with ActionBar -->
+    <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight">
+
+        <!-- Color -->
+        <item name="colorPrimary">@color/camerax_blue_50</item>
+        <item name="colorPrimaryVariant">@color/camerax_blue_100</item>
+        <item name="colorSecondary">@color/camerax_red_400</item>
+        <item name="colorSecondaryVariant">@color/camerax_red_400</item>
+
+        <item name="android:colorBackground">@color/camerax_blue_50</item>
+        <item name="colorSurface">@color/white_50</item>
+        <item name="colorPrimarySurfaceVariant">?attr/colorSecondaryVariant</item>
+        <item name="colorError">@color/camerax_red_400</item>
+
+        <item name="colorOnPrimary">@color/camerax_black_900_alpha_060</item>
+        <item name="colorOnSecondary">@color/black_900</item>
+        <item name="colorOnBackground">@color/black_900</item>
+        <item name="colorOnSurface">@color/black_900</item>
+        <item name="colorOnError">@color/black_900</item>
+
+        <item name="scrimBackground">@color/camerax_white_50_alpha_060</item>
+        <item name="android:statusBarColor">@color/camerax_blue_50_alpha_060</item>
+        <item name="android:navigationBarColor">@color/camerax_blue_50</item>
+
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CameraX.SmallComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CameraX.MediumComponent</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.CameraX.LargeComponent</item>
+
+        <!-- Typography -->
+        <item name="android:fontFamily">@font/work_sans</item>
+        <item name="textAppearanceHeadline2">@style/TextAppearance.CameraX.Headline2</item>
+        <item name="textAppearanceHeadline3">@style/TextAppearance.CameraX.Headline3</item>
+        <item name="textAppearanceHeadline4">@style/TextAppearance.CameraX.Headline4</item>
+        <item name="textAppearanceHeadline5">@style/TextAppearance.CameraX.Headline5</item>
+        <item name="textAppearanceHeadline6">@style/TextAppearance.CameraX.Headline6</item>
+        <item name="textAppearanceSubtitle1">@style/TextAppearance.CameraX.Subtitle1</item>
+        <item name="textAppearanceSubtitle2">@style/TextAppearance.CameraX.Subtitle2</item>
+        <item name="textAppearanceBody1">@style/TextAppearance.CameraX.Body1</item>
+        <item name="textAppearanceBody2">@style/TextAppearance.CameraX.Body2</item>
+        <item name="textAppearanceButton">@style/TextAppearance.CameraX.Button</item>
+        <item name="textAppearanceCaption">@style/TextAppearance.CameraX.Caption</item>
+        <item name="textAppearanceOverline">@style/TextAppearance.CameraX.Overline</item>
+
+        <item name="emphasisHighAlpha">0.87</item>
+        <item name="emphasisMediumAlpha">0.60</item>
+        <item name="emphasisDisabledAlpha">0.38</item>
+
+        <item name="motionInterpolatorPersistent">@android:interpolator/fast_out_slow_in</item>
+        <item name="motionInterpolatorIncoming">@android:interpolator/decelerate_cubic</item>
+        <item name="motionInterpolatorOutgoing">@android:interpolator/accelerate_cubic</item>
+
+        <!-- Styles -->
+        <item name="bottomAppBarStyle">@style/Widget.MaterialComponents.BottomAppBar.PrimarySurface</item>
+        <item name="bottomSheetStyle">@style/Widget.MaterialComponents.BottomSheet.Modal</item>
+        <item name="navigationViewStyle">@style/Widget.CameraX.NavigationView</item>
+
+        <!-- System/Platform Attributes -->
+        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+
+    </style>
+
+    <!-- Base Theme with NoActionBar -->
+    <style name="Theme.CameraX.NoActionBar" parent="Theme.CameraX">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Final, Top-Level Themes -->
+    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX"/>
+    <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.NoActionBar"/>
+
+</resources>

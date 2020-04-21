@@ -1,4 +1,4 @@
-package com.arindam.camerax.analyzer
+package com.arindam.camerax.utils.analyzer
 
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy

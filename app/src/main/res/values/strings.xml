@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">CameraX</string>
 
     <string name="capture_button_alt">Capture</string>
     <string name="switch_camera_button_alt">Switch camera</string>
@@ -13,6 +12,47 @@
     <string name="delete_button_alt">Delete</string>
     <string name="delete_dialog">Delete current photo?</string>
     <string name="delete_title">Confirm</string>
-    <string name="title_editorx">EditorX</string>
     <string name="slider">Photo Slider</string>
+    <string name="shutter">Shutter</string>
+
+    <!-- BottomSheet Menus -->
+    <string name="menu_item_settings">Settings</string>
+
+    <!-- Preference Keys -->
+    <string name="pref_key_theme" translatable="false">key_theme</string>
+    <string name="pref_key_theme_default" translatable="false">on</string>
+    <string-array name="pref_key_theme_popup" translatable="false">
+        <item>Light</item>
+        <item>Dark</item>
+        <item>System default</item>
+    </string-array>
+    <string-array name="pref_key_theme_popup_values" translatable="false">
+        <item>off</item>
+        <item>on</item>
+        <item>system</item>
+    </string-array>
+
+    <!-- Preferences -->
+    <string name="pref_title_theme">Theme</string>
+    <string name="pref_title_links">Links</string>
+    <string name="pref_title_about">About</string>
+
+    <string name="pref_title_theme_mode">Theme</string>
+    <string name="pref_subtitle_theme_mode">Select a dark or light theme.</string>
+
+    <string name="pref_title_playstore">PlayStore</string>
+    <string name="pref_subtitle_playstore">com.arindam.camerax ↗</string>
+    <string name="pref_title_github">GitHub</string>
+    <string name="pref_subtitle_github">android-camerax ↗</string>
+
+    <string name="pref_title_developer">Developer</string>
+    <string name="pref_subtitle_developer">Arindam Karmakar (arindamxd.github.io) ↗</string>
+    <string name="pref_title_version">Version</string>
+    <string name="pref_subtitle_version">@string/app_version</string>
+
+    <!-- Links -->
+    <string name="link_playstore" translatable="false">https://play.google.com/store/apps/details?id=com.arindam.camerax</string>
+    <string name="link_repository" translatable="false">https://github.com/arindamxd/android-camerax</string>
+    <string name="link_developer" translatable="false">https://arindamxd.github.io/</string>
+
 </resources>

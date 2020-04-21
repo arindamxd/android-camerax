@@ -1,12 +1,11 @@
-package com.arindam.camerax.fragments
+package com.arindam.camerax.ui.home.photo
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.fragment.app.Fragment
 import com.arindam.camerax.R
+import com.arindam.camerax.ui.base.BaseFragment
+import com.arindam.camerax.utils.commons.Constants.FILE.FILE_NAME_KEY
 import com.bumptech.glide.Glide
 import java.io.File
 
@@ -16,9 +15,7 @@ import java.io.File
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-private const val FILE_NAME_KEY = "file_name"
-
-class PhotoFragment internal constructor() : Fragment() {
+class PhotoFragment internal constructor() : BaseFragment() {
 
     companion object {
 
@@ -29,15 +26,10 @@ class PhotoFragment internal constructor() : Fragment() {
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ) = ImageView(context)
+    override fun provideLayout(): Int = 0
+    override fun provideView(): View? = ImageView(context)
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    override fun setupView(view: View, savedInstanceState: Bundle?) {
         val args = arguments ?: return
         val resource = args.getString(FILE_NAME_KEY)?.let { File(it) } ?: R.drawable.ic_photo
         Glide.with(view).load(resource).into(view as ImageView)

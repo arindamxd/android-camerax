@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <androidx.preference.PreferenceCategory android:layout="@layout/preference_theme" />
+    <androidx.preference.Preference android:layout="@layout/preference_theme_mode" android:key="@string/pref_key_theme" />
+
+    <androidx.preference.PreferenceCategory android:layout="@layout/preference_link" />
+    <androidx.preference.Preference android:layout="@layout/preference_link_playstore">
+        <intent android:action="android.intent.action.VIEW" android:data="@string/link_playstore" />
+    </androidx.preference.Preference>
+    <androidx.preference.Preference android:layout="@layout/preference_link_github">
+        <intent android:action="android.intent.action.VIEW" android:data="@string/link_repository" />
+    </androidx.preference.Preference>
+
+    <androidx.preference.PreferenceCategory android:layout="@layout/preference_about" />
+    <androidx.preference.Preference android:layout="@layout/preference_about_developer">
+        <intent android:action="android.intent.action.VIEW" android:data="@string/link_developer" />
+    </androidx.preference.Preference>
+    <androidx.preference.Preference android:layout="@layout/preference_about_version" android:enabled="false" />
+    <androidx.preference.Preference android:layout="@layout/preference_about_app" android:enabled="false" />
+
+</androidx.preference.PreferenceScreen>

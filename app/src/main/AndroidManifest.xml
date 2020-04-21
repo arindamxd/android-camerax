@@ -14,17 +14,39 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
+            android:name=".CameraX"
+            android:allowBackup="false"
             android:hasCode="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
+            android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
             tools:replace="android:hasCode">
 
+        <!-- Fonts -->
+        <meta-data
+                android:name="preloaded_fonts"
+                android:resource="@array/preloaded_fonts" />
+
+        <!-- FileProvider used to share photos with other apps -->
+        <provider
+                android:name="androidx.core.content.FileProvider"
+                android:authorities="${applicationId}.provider"
+                android:exported="false"
+                android:grantUriPermissions="true">
+
+            <meta-data
+                    android:name="android.support.FILE_PROVIDER_PATHS"
+                    android:resource="@xml/file_paths" />
+
+        </provider>
+
         <activity
-                android:name=".activities.BaseActivity"
+                android:name=".ui.splash.SplashActivity"
                 android:clearTaskOnLaunch="true"
-                android:icon="@mipmap/ic_launcher"
-                android:theme="@style/AppTheme">
+                android:rotationAnimation="seamless"
+                android:screenOrientation="fullUser"
+                tools:targetApi="o">
 
             <!-- Main app intent filter -->
             <intent-filter>
@@ -32,6 +54,15 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+        </activity>
+
+        <activity
+                android:name=".ui.home.HomeActivity"
+                android:clearTaskOnLaunch="true"
+                android:rotationAnimation="seamless"
+                android:screenOrientation="fullUser"
+                tools:targetApi="o">
 
             <!-- Register as a system camera app -->
             <intent-filter>
@@ -62,18 +93,17 @@
 
         </activity>
 
-        <!-- FileProvider used to share photos with other apps -->
-        <provider
-                android:name="androidx.core.content.FileProvider"
-                android:authorities="${applicationId}.provider"
-                android:exported="false"
-                android:grantUriPermissions="true">
+        <activity
+                android:name=".ui.settings.SettingsActivity"
+                android:clearTaskOnLaunch="true"
+                android:label="@string/menu_item_settings"
+                android:parentActivityName=".ui.home.HomeActivity"
+                android:rotationAnimation="seamless"
+                android:screenOrientation="fullUser"
+                android:theme="@style/Theme.CameraX.DayNight"
+                tools:targetApi="o">
 
-            <meta-data
-                    android:name="android.support.FILE_PROVIDER_PATHS"
-                    android:resource="@xml/file_paths" />
-
-        </provider>
+        </activity>
 
     </application>
 

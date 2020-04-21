@@ -6,7 +6,7 @@
 
     <fragment
             android:id="@+id/permissionsFragment"
-            android:name="com.arindam.camerax.fragments.PermissionsFragment"
+            android:name="com.arindam.camerax.ui.home.permission.PermissionsFragment"
             android:label="PermissionsFragment">
         <action
                 android:id="@+id/action_permissions_to_camera"
@@ -17,7 +17,7 @@
 
     <fragment
             android:id="@+id/cameraFragment"
-            android:name="com.arindam.camerax.fragments.CameraFragment"
+            android:name="com.arindam.camerax.ui.home.camera.CameraFragment"
             android:label="CameraFragment">
         <action
                 android:id="@+id/action_camera_to_gallery"
@@ -27,15 +27,24 @@
                 app:destination="@id/permissionsFragment"
                 app:popUpTo="@id/cameraFragment"
                 app:popUpToInclusive="true" />
+        <action
+                android:id="@+id/action_camera_to_settings"
+                app:destination="@id/settingsFragment"
+                app:popUpTo="@id/cameraFragment" />
     </fragment>
 
     <fragment
             android:id="@+id/galleryFragment"
-            android:name="com.arindam.camerax.fragments.GalleryFragment"
+            android:name="com.arindam.camerax.ui.home.gallery.GalleryFragment"
             android:label="GalleryFragment">
         <argument
                 android:name="root_directory"
                 app:argType="string" />
     </fragment>
+
+    <fragment
+            android:id="@+id/settingsFragment"
+            android:name="com.arindam.camerax.ui.settings.SettingsFragment"
+            android:label="SettingsFragment" />
 
 </navigation>
