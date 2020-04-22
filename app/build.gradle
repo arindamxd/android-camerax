@@ -4,7 +4,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
-apply plugin: "androidx.navigation.safeargs"
+apply plugin: 'androidx.navigation.safeargs.kotlin'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -37,7 +37,7 @@ android {
             resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$versionNameSuffix)"
             resValue "string", "app_name", "CameraX"
 
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

@@ -10,7 +10,7 @@ buildscript {
     // App version
     ext.versionMajor = 1
     ext.versionMinor = 6
-    ext.versionPatch = 0
+    ext.versionPatch = 1
 
     // X.Y.Z; X = Major, Y = minor, Z = Patch
     // XYYZZM; M = Module (tv, mobile)
