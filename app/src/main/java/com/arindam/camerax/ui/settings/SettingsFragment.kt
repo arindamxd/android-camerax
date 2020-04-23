@@ -8,7 +8,6 @@ import androidx.appcompat.widget.ListPopupWindow
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.arindam.camerax.R
-import com.arindam.camerax.utils.display.Toaster
 import com.arindam.camerax.utils.theme.NightMode
 import java.util.*
 

@@ -19,6 +19,10 @@ object Logger {
         if (BuildConfig.DEBUG) Log.d(tag, text ?: "")
     }
 
+    fun warning(tag: String, text: String?) {
+        if (BuildConfig.DEBUG) Log.w(tag, text ?: "")
+    }
+
     fun error(tag: String, text: String?) {
         if (BuildConfig.DEBUG) Log.e(tag, text ?: "")
     }

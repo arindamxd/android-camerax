@@ -20,7 +20,12 @@
     <!-- Info -->
     <string name="splash_message">#StayHome</string>
 
+    <!-- BottomAppBar -->
+    <string name="bottom_app_bar_chevron_content_desc">Open or close bottom navigation drawer</string>
+    <string name="bottom_app_bar_extensions">Effects</string>
+
     <!-- BottomSheet Menus -->
+    <string name="menu_item_flash">Toggle Flash</string>
     <string name="menu_item_settings">Settings</string>
 
     <!-- Preference Keys -->

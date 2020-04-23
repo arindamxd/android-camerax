@@ -18,7 +18,6 @@ import java.io.File
 class PhotoFragment internal constructor() : BaseFragment() {
 
     companion object {
-
         fun create(image: File) = PhotoFragment().apply {
             arguments = Bundle().apply {
                 putString(FILE_NAME_KEY, image.absolutePath)
