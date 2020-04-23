@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <string name="capture_button_alt">Capture</string>
@@ -14,6 +15,9 @@
     <string name="delete_title">Confirm</string>
     <string name="slider">Photo Slider</string>
     <string name="shutter">Shutter</string>
+
+    <!-- Info -->
+    <string name="splash_message">#StayHome</string>
 
     <!-- BottomSheet Menus -->
     <string name="menu_item_settings">Settings</string>

@@ -27,14 +27,13 @@ android {
             applicationIdSuffix ".debug"
             versionNameSuffix applicationIdSuffix
             resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$applicationIdSuffix)"
-            resValue "string", "app_name", "CameraX [Debug]"
+            resValue "string", "app_name", "CameraX [D]"
 
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
-            versionNameSuffix ".release"
-            resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$versionNameSuffix)"
+            resValue "string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}.release)"
             resValue "string", "app_name", "CameraX"
 
             minifyEnabled false

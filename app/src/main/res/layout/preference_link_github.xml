@@ -11,8 +11,8 @@
             android:layout_marginStart="@dimen/pref_image_margin"
             android:contentDescription="@string/pref_title_developer"
             android:padding="@dimen/pref_image_padding"
-            android:src="@drawable/ic_github"
-            app:layout_constraintLeft_toLeftOf="parent" />
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:srcCompat="@drawable/ic_github" />
 
     <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline"
