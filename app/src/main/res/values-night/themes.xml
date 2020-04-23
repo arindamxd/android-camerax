@@ -5,23 +5,23 @@
     <style name="Theme.CameraX.Dark" parent="Theme.CameraX">
 
         <!-- Color -->
-        <item name="colorPrimary">@color/camerax_blue_200</item>
-        <item name="colorPrimaryVariant">@color/camerax_blue_300</item>
-        <item name="colorSecondary">@color/camerax_red_400</item>
-        <item name="colorSecondaryVariant">@color/camerax_red_400</item>
+        <item name="colorPrimary">@color/blue_200</item>
+        <item name="colorPrimaryVariant">@color/blue_300</item>
+        <item name="colorSecondary">@color/red_400</item>
+        <item name="colorSecondaryVariant">@color/red_400</item>
 
         <item name="android:colorBackground">@color/black_800</item>
         <item name="colorSurface">@color/black_800</item>
         <item name="colorPrimarySurfaceVariant">?attr/colorSurface</item>
-        <item name="colorError">@color/camerax_red_200</item>
+        <item name="colorError">@color/red_200</item>
 
         <item name="colorOnPrimary">@color/black_900</item>
         <item name="colorOnSecondary">@color/black_900</item>
         <item name="colorOnBackground">@color/black_800</item>
         <item name="colorOnSurface">@color/white_50</item>
-        <item name="colorOnError">@color/camerax_red_200</item>
+        <item name="colorOnError">@color/red_200</item>
 
-        <item name="scrimBackground">@color/camerax_black_900_alpha_087</item>
+        <item name="scrimBackground">@color/black_900_alpha_087</item>
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
 
@@ -30,6 +30,7 @@
         <!-- System/Platform attributes -->
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
 
     </style>
 
