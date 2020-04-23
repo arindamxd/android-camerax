@@ -43,11 +43,4 @@
     <color name="black_900_alpha_087">#de000000</color>
     <color name="black_900_alpha_060">#99000000</color>
 
-    <!-- Nav bar color protection for behavior differences between Android P and Q. All sdk -->
-    <!-- levels should draw fullscreen. P should color the nav bar with a translucent background -->
-    <!-- to guard for contrast. Q should have a transparent nav bar as Q will automatically -->
-    <!-- handles contrast by either dynamically coloring the nav bar handle (gesture nav) -->
-    <!-- or automatically applying a translucent background (3-button mode). -->
-    <color name="nav_bar">@color/black_900_alpha_020</color>
-
 </resources>

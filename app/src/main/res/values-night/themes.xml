@@ -22,8 +22,8 @@
         <item name="colorOnError">@color/red_200</item>
 
         <item name="scrimBackground">@color/black_900_alpha_087</item>
-        <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:statusBarColor">@color/black_800</item>
+        <item name="android:navigationBarColor">@color/black_800</item>
 
         <item name="elevationOverlayEnabled">false</item>
 
