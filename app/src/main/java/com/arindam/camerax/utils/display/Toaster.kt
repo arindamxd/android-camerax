@@ -6,7 +6,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import com.arindam.camerax.R
 import com.google.android.material.snackbar.Snackbar
@@ -16,16 +15,6 @@ import com.google.android.material.snackbar.Snackbar
  */
 
 object Toaster {
-
-    /**
-     * Show Custom [Toast]
-     *
-     * @param context [Context]
-     * @param resId String Resource Id
-     */
-    fun show(context: Context, @StringRes resId: Int) {
-        show(context, context.getString(resId))
-    }
 
     /**
      * Show Custom [Toast]

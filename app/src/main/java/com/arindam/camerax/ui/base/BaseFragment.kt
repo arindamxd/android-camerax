@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
+import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
@@ -69,6 +70,10 @@ abstract class BaseFragment : Fragment() {
     protected fun createFile(baseFolder: File, format: String, extension: String) = File(
         baseFolder, SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension
     )
+
+    protected fun showToast(@StringRes resId: Int) {
+        showToast(requireContext().getString(resId))
+    }
 
     protected fun showToast(message: String) {
         Toaster.show(requireContext(), message)

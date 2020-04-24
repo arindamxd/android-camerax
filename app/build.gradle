@@ -6,8 +6,20 @@ apply plugin: 'kotlin-kapt'
 
 apply plugin: 'androidx.navigation.safeargs.kotlin'
 
+def properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
+
+    signingConfigs {
+        release {
+            storeFile file(properties['storeFile'])
+            storePassword properties['storePassword']
+            keyAlias properties['keyAlias']
+            keyPassword properties['keyPassword']
+        }
+    }
 
     defaultConfig {
         applicationId "com.arindam.camerax"
@@ -19,6 +31,7 @@ android {
         versionName rootProject.ext.versionNameBase
 
         vectorDrawables.useSupportLibrary = true
+        signingConfig signingConfigs.release
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -113,6 +126,13 @@ dependencies {
     def lottie_version = "3.4.0"
     implementation "com.airbnb.android:lottie:$lottie_version"
 
+    // Firebase SDK
+    implementation 'com.google.firebase:firebase-analytics-ktx:17.3.0'
+    implementation 'com.google.firebase:firebase-firestore-ktx:21.4.2'
+
+    // [CONFLICT FIX] Guava
+    api 'com.google.guava:guava:28.1-android'
+
     // Unit testing
     testImplementation 'androidx.test.ext:junit:1.1.1'
     testImplementation 'androidx.test:rules:1.2.0'
@@ -126,3 +146,5 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }
+
+apply plugin: 'com.google.gms.google-services'

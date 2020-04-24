@@ -332,7 +332,7 @@ class CameraFragment : BaseFragment() {
 
         // Set up the BottomNavigationDrawer's open/close affordance
         controls.findViewById<LinearLayout>(R.id.bottom_app_bar_content_container).setOnClickListener {
-            showToast("Under development")
+            showToast(R.string.under_dev)
         }
     }
 
