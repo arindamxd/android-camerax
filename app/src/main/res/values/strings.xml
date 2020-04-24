@@ -16,9 +16,11 @@
     <string name="delete_button_cancel">Cancel</string>
     <string name="slider">Photo Slider</string>
     <string name="shutter">Shutter</string>
+    <string name="under_dev">Currently under development</string>
 
     <!-- Info -->
-    <string name="splash_message">#StayHome</string>
+    <string name="default_quote_message">#StayHome</string>
+    <string name="default_quote_author">CameraX</string>
 
     <!-- BottomAppBar -->
     <string name="bottom_app_bar_chevron_content_desc">Open or close bottom navigation drawer</string>
