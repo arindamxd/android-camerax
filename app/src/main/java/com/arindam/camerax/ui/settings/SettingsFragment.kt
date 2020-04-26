@@ -8,7 +8,7 @@ import androidx.appcompat.widget.ListPopupWindow
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.arindam.camerax.R
-import com.arindam.camerax.utils.theme.NightMode
+import com.arindam.camerax.util.theme.NightMode
 import java.util.*
 
 /**
@@ -41,8 +41,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
             setAdapter(adapter)
             anchorView = view
             setOnItemClickListener { parent, view, position, id ->
+                this.dismiss()
                 updateTheme(values[position])
-                dismiss()
             }
         }
     }

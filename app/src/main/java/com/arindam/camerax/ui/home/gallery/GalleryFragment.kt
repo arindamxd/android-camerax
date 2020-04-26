@@ -21,8 +21,8 @@ import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.ui.home.photo.PhotoFragment
-import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
-import com.arindam.camerax.utils.padWithDisplayCutout
+import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
+import com.arindam.camerax.util.padWithDisplayCutout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.util.*

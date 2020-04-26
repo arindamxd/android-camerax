@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils
+package com.arindam.camerax.util
 
 import android.content.Context
 import android.graphics.Matrix
@@ -10,7 +10,7 @@ import android.view.TextureView
 import android.view.View
 import androidx.camera.core.Preview
 import androidx.camera.core.impl.PreviewConfig
-import com.arindam.camerax.utils.log.Logger
+import com.arindam.camerax.util.log.Logger
 import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.math.roundToInt

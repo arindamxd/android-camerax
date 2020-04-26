@@ -13,8 +13,8 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
 import androidx.navigation.Navigation
 import com.arindam.camerax.R
-import com.arindam.camerax.utils.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
-import com.arindam.camerax.utils.display.Toaster
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
+import com.arindam.camerax.util.display.Toaster
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*

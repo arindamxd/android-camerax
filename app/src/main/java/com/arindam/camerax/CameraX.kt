@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.data.local.Preferences
-import com.arindam.camerax.utils.commons.Constants
-import com.arindam.camerax.utils.theme.NightMode
+import com.arindam.camerax.util.commons.Constants
+import com.arindam.camerax.util.theme.NightMode
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase

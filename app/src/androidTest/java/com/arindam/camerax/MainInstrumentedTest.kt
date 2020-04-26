@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.ActivityTestRule
 import androidx.test.rule.GrantPermissionRule
-import com.arindam.camerax.activities.BaseActivity
+import com.arindam.camerax.ui.home.HomeActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -25,12 +25,12 @@ class MainInstrumentedTest {
     )
 
     @get:Rule
-    val activityRule: ActivityTestRule<BaseActivity> = ActivityTestRule(BaseActivity::class.java)
+    val activityRule: ActivityTestRule<HomeActivity> = ActivityTestRule(HomeActivity::class.java)
 
     @Test
     fun useAppContext() {
         // Context of the app under test
         val context = ApplicationProvider.getApplicationContext() as Context
-        assertEquals("com.arindam.camerax", context.packageName)
+        assertEquals("com.arindam.camerax.debug", context.packageName)
     }
 }

@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils
+package com.arindam.camerax.util
 
 import android.os.Build
 import android.view.DisplayCutout

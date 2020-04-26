@@ -32,19 +32,19 @@ import androidx.core.net.toFile
 import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import coil.api.load
+import coil.transform.CircleCropTransformation
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.ui.settings.SettingsActivity
-import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
-import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
-import com.arindam.camerax.utils.analyzer.LuminosityAnalyzer
-import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_ACTION
-import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
-import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
-import com.arindam.camerax.utils.log.Logger
-import com.arindam.camerax.utils.simulateClick
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
+import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
+import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.util.analyzer.LuminosityAnalyzer
+import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_ACTION
+import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
+import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
+import com.arindam.camerax.util.log.Logger
+import com.arindam.camerax.util.simulateClick
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
@@ -508,10 +508,10 @@ class CameraFragment : BaseFragment() {
             thumbnail.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
 
             // Load thumbnail into circular button using Glide
-            Glide.with(thumbnail)
-                .load(uri)
-                .apply(RequestOptions.circleCropTransform())
-                .into(thumbnail)
+            thumbnail.load(uri) {
+                crossfade(true)
+                transformations(CircleCropTransformation())
+            }
         }
     }
 }

@@ -2,7 +2,7 @@ package com.arindam.camerax.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.arindam.camerax.utils.commons.Constants
+import com.arindam.camerax.util.commons.Constants
 
 /**
  * Created by Arindam Karmakar on 24/04/20.

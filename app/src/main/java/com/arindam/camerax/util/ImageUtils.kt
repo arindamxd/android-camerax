@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils
+package com.arindam.camerax.util
 
 import android.graphics.*
 import android.media.ThumbnailUtils
