@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <string name="capture_button_alt">Capture</string>
@@ -9,13 +10,24 @@
     <string name="capture_mode_camera">Camera</string>
     <string name="capture_mode_hdr">HDR</string>
     <string name="capture_mode_night">Night</string>
-    <string name="delete_button_alt">Delete</string>
-    <string name="delete_dialog">Delete current photo?</string>
     <string name="delete_title">Confirm</string>
+    <string name="delete_subtitle">Delete current photo?</string>
+    <string name="delete_button_alt">Delete</string>
+    <string name="delete_button_cancel">Cancel</string>
     <string name="slider">Photo Slider</string>
     <string name="shutter">Shutter</string>
+    <string name="under_dev">Currently under development</string>
+
+    <!-- Info -->
+    <string name="default_quote_message">#StayHome</string>
+    <string name="default_quote_author">CameraX</string>
+
+    <!-- BottomAppBar -->
+    <string name="bottom_app_bar_chevron_content_desc">Open or close bottom navigation drawer</string>
+    <string name="bottom_app_bar_extensions">Effects</string>
 
     <!-- BottomSheet Menus -->
+    <string name="menu_item_flash">Toggle Flash</string>
     <string name="menu_item_settings">Settings</string>
 
     <!-- Preference Keys -->

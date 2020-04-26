@@ -6,7 +6,7 @@ import android.view.KeyEvent
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseActivity
-import com.arindam.camerax.utils.commons.Constants
+import com.arindam.camerax.util.commons.Constants
 
 /**
  * Main entry point into our app. This app follows the single-activity pattern, and all

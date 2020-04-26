@@ -2,7 +2,7 @@
 <resources>
 
     <dimen name="margin_xsmall">16dp</dimen>
-    <dimen name="margin_xsmall_x">26dp</dimen>
+    <dimen name="margin_small_x">26dp</dimen>
     <dimen name="margin_small">32dp</dimen>
     <dimen name="margin_medium">48dp</dimen>
     <dimen name="margin_large">64dp</dimen>
@@ -44,5 +44,19 @@
     <dimen name="pref_image_width">60dp</dimen>
     <dimen name="pref_image_margin">10dp</dimen>
     <dimen name="pref_image_padding">18dp</dimen>
+
+    <!-- 2dp sub grid -->
+    <dimen name="grid_0_25">2dp</dimen>
+    <dimen name="grid_0_5">4dp</dimen>
+
+    <!-- 5dp grid -->
+    <dimen name="grid_1_5">5dp</dimen>
+    <dimen name="grid_2_10">10dp</dimen>
+
+    <!-- 8dp grid -->
+    <dimen name="grid_1">8dp</dimen>
+    <dimen name="grid_2">16dp</dimen>
+    <dimen name="grid_3">24dp</dimen>
+    <dimen name="grid_4">32dp</dimen>
 
 </resources>

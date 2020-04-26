@@ -3,10 +3,10 @@ package com.arindam.camerax.ui.home.photo
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import coil.api.load
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.utils.commons.Constants.FILE.FILE_NAME_KEY
-import com.bumptech.glide.Glide
+import com.arindam.camerax.util.commons.Constants.FILE.FILE_NAME_KEY
 import java.io.File
 
 /**
@@ -18,7 +18,6 @@ import java.io.File
 class PhotoFragment internal constructor() : BaseFragment() {
 
     companion object {
-
         fun create(image: File) = PhotoFragment().apply {
             arguments = Bundle().apply {
                 putString(FILE_NAME_KEY, image.absolutePath)
@@ -31,7 +30,7 @@ class PhotoFragment internal constructor() : BaseFragment() {
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {
         val args = arguments ?: return
-        val resource = args.getString(FILE_NAME_KEY)?.let { File(it) } ?: R.drawable.ic_photo
-        Glide.with(view).load(resource).into(view as ImageView)
+        val resource = args.getString(FILE_NAME_KEY)?.let { File(it) }
+        (view as? ImageView)?.load(resource)
     }
 }

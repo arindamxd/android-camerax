@@ -11,11 +11,14 @@
     <uses-feature android:name="android.hardware.camera" />
 
     <!-- Declare permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
             android:name=".CameraX"
             android:allowBackup="false"
+            android:fullBackupContent="false"
+            android:hardwareAccelerated="true"
             android:hasCode="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
@@ -95,12 +98,8 @@
 
         <activity
                 android:name=".ui.settings.SettingsActivity"
-                android:clearTaskOnLaunch="true"
-                android:label="@string/menu_item_settings"
-                android:parentActivityName=".ui.home.HomeActivity"
                 android:rotationAnimation="seamless"
                 android:screenOrientation="fullUser"
-                android:theme="@style/Theme.CameraX.DayNight"
                 tools:targetApi="o">
 
         </activity>

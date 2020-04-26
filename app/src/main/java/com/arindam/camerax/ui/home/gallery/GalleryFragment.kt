@@ -1,5 +1,6 @@
 package com.arindam.camerax.ui.home.gallery
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.media.MediaScannerConnection
 import android.os.Build
@@ -7,6 +8,7 @@ import android.os.Bundle
 import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import androidx.annotation.StyleRes
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -19,12 +21,9 @@ import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.ui.home.photo.PhotoFragment
-import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
-import com.arindam.camerax.utils.dialog.AlertDialogX
-import com.arindam.camerax.utils.dialog.AlertDialogXListener
-import com.arindam.camerax.utils.dialog.Animation
-import com.arindam.camerax.utils.dialog.Icon
-import com.arindam.camerax.utils.padWithDisplayCutout
+import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
+import com.arindam.camerax.util.padWithDisplayCutout
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.util.*
 
@@ -119,36 +118,40 @@ class GalleryFragment internal constructor() : BaseFragment() {
         // Handle delete button press
         view.findViewById<ImageButton>(R.id.delete_button).setOnClickListener {
 
+            // Make sure that we have a file to delete
             mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
 
-                AlertDialogX.Builder(view.context)
-                    .setTitle(getString(R.string.delete_title))
-                    .setMessage(getString(R.string.delete_dialog))
-                    .setNegativeBtnText("Cancel")
-                    .setPositiveBtnText("Ok")
-                    .setAnimation(Animation.POP)
-                    .isCancellable(true)
-                    .setIcon(R.drawable.ic_delete, Icon.VISIBLE)
-                    .onPositiveClicked(object : AlertDialogXListener {
-                        override fun onClick() {
+                val listener = DialogInterface.OnClickListener { dialog, which ->
+                    if (which == DialogInterface.BUTTON_POSITIVE) {
+                        // Delete current photo
+                        mediaFile.delete()
 
-                            // Delete current photo
-                            mediaFile.delete()
+                        // Send relevant broadcast to notify other apps of deletion
+                        MediaScannerConnection.scanFile(view.context, arrayOf(mediaFile.absolutePath), null, null)
 
-                            // Send relevant broadcast to notify other apps of deletion
-                            MediaScannerConnection.scanFile(view.context, arrayOf(mediaFile.absolutePath), null, null)
+                        // Notify our view pager
+                        mediaList.removeAt(mediaViewPager.currentItem)
+                        mediaViewPager.adapter?.notifyDataSetChanged()
 
-                            // Notify our view pager
-                            mediaList.removeAt(mediaViewPager.currentItem)
-                            mediaViewPager.adapter?.notifyDataSetChanged()
+                        // If all photos have been deleted, return to camera
+                        if (mediaList.isEmpty()) Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+                    } else {
+                        dialog.dismiss()
+                    }
+                }
 
-                            // If all photos have been deleted, return to camera
-                            if (mediaList.isEmpty()) Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
-                        }
-                    }).onNegativeClicked(object : AlertDialogXListener {
-                        override fun onClick() { }
-                    }).build()
+                MaterialAlertDialogBuilder(requireContext(), getAlertDialogButtonStyle())
+                    .setTitle(R.string.delete_title)
+                    .setMessage(R.string.delete_subtitle)
+                    .setPositiveButton(R.string.delete_button_alt, listener)
+                    .setNegativeButton(R.string.delete_button_cancel, listener)
+                    .show()
             }
         }
+    }
+
+    @StyleRes
+    private fun getAlertDialogButtonStyle(): Int {
+        return R.style.MaterialAlertDialogButton_DayNight
     }
 }

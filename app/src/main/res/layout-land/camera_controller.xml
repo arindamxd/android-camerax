@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/camera_controller"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -12,32 +13,36 @@
         <!-- Camera control and gallery buttons -->
 
         <ImageButton
-                android:id="@+id/view_button"
-                android:layout_width="@dimen/round_button_medium"
-                android:layout_height="@dimen/round_button_medium"
-                android:layout_marginTop="@dimen/margin_small"
-                android:layout_marginEnd="@dimen/margin_xsmall_x"
-                android:background="@drawable/ic_outer_circle"
-                android:contentDescription="@string/gallery_button_alt"
-                android:padding="@dimen/spacing_large"
-                android:scaleType="fitCenter"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_photo" />
-
-        <ImageButton
                 android:id="@+id/switch_button"
                 android:layout_width="@dimen/round_button_medium"
                 android:layout_height="@dimen/round_button_medium"
-                android:layout_marginTop="@dimen/margin_small"
-                android:layout_marginEnd="@dimen/margin_xsmall_x"
+                android:layout_marginBottom="@dimen/margin_small"
+                android:layout_marginEnd="@dimen/margin_medium"
                 android:background="@android:color/transparent"
+                android:clickable="true"
                 android:contentDescription="@string/switch_camera_button_alt"
+                android:focusable="true"
                 android:padding="@dimen/spacing_small"
                 android:scaleType="fitCenter"
                 app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/view_button"
+                app:layout_constraintBottom_toTopOf="@+id/view_button"
                 app:srcCompat="@drawable/ic_switch" />
+
+        <ImageButton
+                android:id="@+id/view_button"
+                android:layout_width="@dimen/round_button_medium"
+                android:layout_height="@dimen/round_button_medium"
+                android:layout_marginEnd="@dimen/margin_medium"
+                android:layout_marginBottom="@dimen/margin_xlarge"
+                android:background="@drawable/ic_outer_circle"
+                android:clickable="true"
+                android:contentDescription="@string/gallery_button_alt"
+                android:focusable="true"
+                android:padding="@dimen/spacing_large"
+                android:scaleType="fitCenter"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:srcCompat="@drawable/ic_photo" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -46,10 +51,44 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            app:fabAlignmentMode="end"
+            app:fabAlignmentMode="center"
             app:fabCradleMargin="@dimen/bottom_app_bar_fab_cradle_margin"
             app:fabCradleRoundedCornerRadius="@dimen/bottom_app_bar_fab_cradle_corner_radius"
             app:fabCradleVerticalOffset="10dp">
+
+        <LinearLayout
+                android:id="@+id/bottom_app_bar_content_container"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/navigation_drawer_profile_image_size"
+                android:layout_marginVertical="@dimen/grid_0_5"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/bottom_app_bar_title_foreground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/grid_0_5"
+                tools:ignore="UnusedAttribute,UseCompoundDrawables">
+
+            <ImageView
+                    android:id="@+id/bottom_app_bar_chevron"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:contentDescription="@string/bottom_app_bar_chevron_content_desc"
+                    app:srcCompat="@drawable/ic_arrow_drop_up"
+                    app:tint="?attr/colorOnPrimarySurface" />
+
+            <TextView
+                    android:id="@+id/bottom_app_bar_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginHorizontal="@dimen/grid_1"
+                    android:text="@string/bottom_app_bar_extensions"
+                    android:textAppearance="?attr/textAppearanceBody1"
+                    android:textColor="?attr/colorControlNormal" />
+
+        </LinearLayout>
 
     </com.google.android.material.bottomappbar.BottomAppBar>
 
@@ -57,7 +96,9 @@
             android:id="@+id/capture_button"
             android:layout_width="@dimen/rect_button_width"
             android:layout_height="@dimen/rect_button_width"
+            android:clickable="true"
             android:contentDescription="@string/shutter"
+            android:focusable="true"
             android:soundEffectsEnabled="true"
             app:layout_anchor="@id/bottom_app_bar" />
 

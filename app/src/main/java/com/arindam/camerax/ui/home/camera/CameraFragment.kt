@@ -16,12 +16,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.HandlerThread
 import android.util.DisplayMetrics
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.ScaleGestureDetector
-import android.view.View
+import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
 import androidx.camera.extensions.BeautyImageCaptureExtender
@@ -34,19 +32,19 @@ import androidx.core.net.toFile
 import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import coil.api.load
+import coil.transform.CircleCropTransformation
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.ui.settings.SettingsActivity
-import com.arindam.camerax.utils.ANIMATION_FAST_MILLIS
-import com.arindam.camerax.utils.ANIMATION_SLOW_MILLIS
-import com.arindam.camerax.utils.analyzer.LuminosityAnalyzer
-import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_ACTION
-import com.arindam.camerax.utils.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
-import com.arindam.camerax.utils.commons.Constants.FILE.EXTENSION_WHITELIST
-import com.arindam.camerax.utils.log.Logger
-import com.arindam.camerax.utils.simulateClick
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
+import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
+import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.util.analyzer.LuminosityAnalyzer
+import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_ACTION
+import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
+import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
+import com.arindam.camerax.util.log.Logger
+import com.arindam.camerax.util.simulateClick
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +72,7 @@ class CameraFragment : BaseFragment() {
     private lateinit var viewFinder: PreviewView
     private lateinit var outputDirectory: File
     private lateinit var broadcastManager: LocalBroadcastManager
+    private lateinit var bottomAppBar: BottomAppBar
 
     private var displayId = -1
     private var lensFacing = CameraSelector.LENS_FACING_BACK
@@ -130,7 +129,6 @@ class CameraFragment : BaseFragment() {
     }
 
     companion object {
-
         private const val TAG = "CameraX"
 
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
@@ -321,11 +319,20 @@ class CameraFragment : BaseFragment() {
         }
 
         controls.findViewById<BottomAppBar>(R.id.bottom_app_bar).apply {
+            bottomAppBar = this
             inflateMenu(R.menu.menu_home)
             setOnMenuItemClickListener {
-                startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                when (it.itemId) {
+                    R.id.menu_flash -> toggleFlash(it)
+                    R.id.menu_settings -> startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                }
                 return@setOnMenuItemClickListener true
             }
+        }
+
+        // Set up the BottomNavigationDrawer's open/close affordance
+        controls.findViewById<LinearLayout>(R.id.bottom_app_bar_content_container).setOnClickListener {
+            showToast(R.string.under_dev)
         }
     }
 
@@ -405,13 +412,28 @@ class CameraFragment : BaseFragment() {
                     cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture,  imageAnalyzer)
                 } else*/ cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
 
+                checkForFlashAvailability()
                 enableZoomFeature()
-                enableFocusFeature(cameraSelector)
 
             } catch (exception: Exception) {
                 Logger.debug(TAG, "Use case binding failed: ${exception.message}")
             }
         }, ContextCompat.getMainExecutor(requireContext()))
+    }
+
+    private fun checkForFlashAvailability() {
+        try {
+            val isFlashAvailable = camera?.cameraInfo?.hasFlashUnit() ?: false
+            bottomAppBar.menu.findItem(R.id.menu_flash).isVisible = isFlashAvailable
+        } catch (e: CameraInfoUnavailableException) {
+            Logger.warning(TAG, "Cannot get flash available information: ${e.message}")
+        }
+    }
+
+    private fun toggleFlash(menuItem: MenuItem) {
+        val enable = camera?.cameraInfo?.torchState?.value == TorchState.OFF
+        camera?.cameraControl?.enableTorch(enable)
+        menuItem.icon = requireContext().getDrawable(if (enable) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
     }
 
     private fun enableExtensionFeature(cameraSelector: CameraSelector) {
@@ -486,10 +508,10 @@ class CameraFragment : BaseFragment() {
             thumbnail.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
 
             // Load thumbnail into circular button using Glide
-            Glide.with(thumbnail)
-                .load(uri)
-                .apply(RequestOptions.circleCropTransform())
-                .into(thumbnail)
+            thumbnail.load(uri) {
+                crossfade(true)
+                transformations(CircleCropTransformation())
+            }
         }
     }
 }

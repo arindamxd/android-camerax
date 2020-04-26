@@ -5,29 +5,25 @@
     <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight">
 
         <!-- Color -->
-        <item name="colorPrimary">@color/camerax_blue_50</item>
-        <item name="colorPrimaryVariant">@color/camerax_blue_100</item>
-        <item name="colorSecondary">@color/camerax_red_400</item>
-        <item name="colorSecondaryVariant">@color/camerax_red_400</item>
+        <item name="colorPrimary">@color/blue_50</item>
+        <item name="colorPrimaryVariant">@color/blue_100</item>
+        <item name="colorSecondary">@color/red_400</item>
+        <item name="colorSecondaryVariant">@color/red_400</item>
 
-        <item name="android:colorBackground">@color/camerax_blue_50</item>
+        <item name="android:colorBackground">@color/blue_50</item>
         <item name="colorSurface">@color/white_50</item>
         <item name="colorPrimarySurfaceVariant">?attr/colorSecondaryVariant</item>
-        <item name="colorError">@color/camerax_red_400</item>
+        <item name="colorError">@color/red_400</item>
 
-        <item name="colorOnPrimary">@color/camerax_black_900_alpha_060</item>
+        <item name="colorOnPrimary">@color/black_900_alpha_060</item>
         <item name="colorOnSecondary">@color/black_900</item>
         <item name="colorOnBackground">@color/black_900</item>
         <item name="colorOnSurface">@color/black_900</item>
         <item name="colorOnError">@color/black_900</item>
 
-        <item name="scrimBackground">@color/camerax_white_50_alpha_060</item>
-        <item name="android:statusBarColor">@color/camerax_blue_50_alpha_060</item>
-        <item name="android:navigationBarColor">@color/camerax_blue_50</item>
-
-        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CameraX.SmallComponent</item>
-        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CameraX.MediumComponent</item>
-        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.CameraX.LargeComponent</item>
+        <item name="scrimBackground">@color/white_50_alpha_060</item>
+        <item name="android:statusBarColor">@color/blue_50</item>
+        <item name="android:navigationBarColor">@color/blue_50</item>
 
         <!-- Typography -->
         <item name="android:fontFamily">@font/work_sans</item>
@@ -60,6 +56,12 @@
         <!-- System/Platform Attributes -->
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+
+        <!--<item name="buttonBarButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Catalog.Button.Dialog</item>-->
 
     </style>
 
@@ -72,5 +74,13 @@
     <!-- Final, Top-Level Themes -->
     <style name="Theme.CameraX.DayNight" parent="Theme.CameraX"/>
     <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.NoActionBar"/>
+
+    <!-- A theme overlay for Alert Dialog panels with filled buttons. -->
+    <style name="MaterialAlertDialogButton.DayNight" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="buttonBarButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
+    </style>
 
 </resources>

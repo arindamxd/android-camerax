@@ -6,8 +6,8 @@ import android.view.View
 import androidx.navigation.Navigation
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.utils.commons.Constants.PERMISSIONS.PERMISSIONS_REQUEST_CODE
-import com.arindam.camerax.utils.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUEST_CODE
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
 
 /**
  * The sole purpose of this fragment is to request permissions and, once granted, display the
