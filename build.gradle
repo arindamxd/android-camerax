@@ -7,6 +7,7 @@ buildscript {
     ext.gradle_version = '3.6.3'
     ext.navigation_version = '2.1.0'
     ext.google_services_version = '4.3.3'
+    ext.crashlytics_version = '2.0.0'
 
     // App version
     ext.versionMajor = 1
@@ -34,7 +35,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navigation_version"
         classpath "com.google.gms:google-services:$google_services_version"
-        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.0.0'
+        classpath "com.google.firebase:firebase-crashlytics-gradle:$crashlytics_version"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
