@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils.theme
+package com.arindam.camerax.util.theme
 
 import androidx.appcompat.app.AppCompatDelegate
 

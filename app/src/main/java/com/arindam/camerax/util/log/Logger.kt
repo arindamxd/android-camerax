@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils.log
+package com.arindam.camerax.util.log
 
 import android.util.Log
 import com.arindam.camerax.BuildConfig

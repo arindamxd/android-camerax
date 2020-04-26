@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils.display
+package com.arindam.camerax.util.display
 
 import android.content.Context
 import android.graphics.PorterDuff

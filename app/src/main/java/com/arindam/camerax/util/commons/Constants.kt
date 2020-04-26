@@ -1,4 +1,4 @@
-package com.arindam.camerax.utils.commons
+package com.arindam.camerax.util.commons
 
 import android.Manifest
 
