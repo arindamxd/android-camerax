@@ -5,7 +5,6 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arindam.camerax.ui.home.HomeActivity
-import com.arindam.camerax.ui.splash.SplashActivity
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
