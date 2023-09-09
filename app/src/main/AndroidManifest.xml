@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:dist="http://schemas.android.com/apk/distribution"
-        xmlns:tools="http://schemas.android.com/tools"
-        package="com.arindam.camerax">
+    xmlns:dist="http://schemas.android.com/apk/distribution"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Enable instant app support -->
     <dist:module dist:instant="true" />
@@ -15,57 +14,66 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-            android:name=".CameraX"
-            android:allowBackup="false"
-            android:fullBackupContent="false"
-            android:hardwareAccelerated="true"
-            android:hasCode="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher_round"
-            android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
-            tools:replace="android:hasCode">
+        android:name=".CameraX"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:hardwareAccelerated="true"
+        android:hasCode="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
+        tools:replace="android:hasCode">
 
         <!-- Fonts -->
         <meta-data
-                android:name="preloaded_fonts"
-                android:resource="@array/preloaded_fonts" />
+            android:name="preloaded_fonts"
+            android:resource="@array/preloaded_fonts" />
 
         <!-- FileProvider used to share photos with other apps -->
         <provider
-                android:name="androidx.core.content.FileProvider"
-                android:authorities="${applicationId}.provider"
-                android:exported="false"
-                android:grantUriPermissions="true">
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
 
             <meta-data
-                    android:name="android.support.FILE_PROVIDER_PATHS"
-                    android:resource="@xml/file_paths" />
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
 
         </provider>
 
         <activity
-                android:name=".ui.splash.SplashActivity"
-                android:clearTaskOnLaunch="true"
-                android:rotationAnimation="seamless"
-                android:screenOrientation="fullUser"
-                tools:targetApi="o">
+            android:name=".ui.splash.SplashActivity"
+            android:clearTaskOnLaunch="true"
+            android:exported="true"
+            android:rotationAnimation="seamless"
+            android:screenOrientation="fullUser"
+            tools:targetApi="o">
 
             <!-- Main app intent filter -->
+            <!--<intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>-->
+
+        </activity>
+
+        <activity
+            android:name=".ui.home.HomeActivity"
+            android:clearTaskOnLaunch="true"
+            android:exported="true"
+            android:rotationAnimation="seamless"
+            android:screenOrientation="fullUser"
+            android:theme="@style/Theme.Starting"
+            tools:targetApi="o">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-        </activity>
-
-        <activity
-                android:name=".ui.home.HomeActivity"
-                android:clearTaskOnLaunch="true"
-                android:rotationAnimation="seamless"
-                android:screenOrientation="fullUser"
-                tools:targetApi="o">
 
             <!-- Register as a system camera app -->
             <intent-filter>
@@ -91,16 +99,16 @@
 
             <!-- Declare notch support -->
             <meta-data
-                    android:name="android.notch_support"
-                    android:value="true" />
+                android:name="android.notch_support"
+                android:value="true" />
 
         </activity>
 
         <activity
-                android:name=".ui.settings.SettingsActivity"
-                android:rotationAnimation="seamless"
-                android:screenOrientation="fullUser"
-                tools:targetApi="o">
+            android:name=".ui.settings.SettingsActivity"
+            android:rotationAnimation="seamless"
+            android:screenOrientation="fullUser"
+            tools:targetApi="o">
 
         </activity>
 

@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
 import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.arindam.camerax.R
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
 import com.arindam.camerax.util.display.Toaster
@@ -46,8 +47,8 @@ abstract class BaseFragment : Fragment() {
         Navigation.findNavController(requireActivity(), viewId).navigateUp()
     }
 
-    protected fun navigate(@IdRes viewId: Int, navDirections: NavDirections) {
-        Navigation.findNavController(requireActivity(), viewId).navigate(navDirections)
+    protected fun navigate(navDirections: NavDirections) {
+        findNavController().navigate(navDirections)
     }
 
     /** Convenience method used to check if all permissions required by this app are granted */

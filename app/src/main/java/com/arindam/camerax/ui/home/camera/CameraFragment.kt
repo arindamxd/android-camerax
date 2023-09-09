@@ -176,7 +176,7 @@ class CameraFragment : BaseFragment() {
         // Make sure that all permissions are still present, since user could have removed them
         // while the app was on paused state
         if (!hasPermissions()) {
-            navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToPermissions())
+            navigate(CameraFragmentDirections.actionCameraToPermissions())
         }
     }
 
@@ -219,11 +219,11 @@ class CameraFragment : BaseFragment() {
 
         // In the background, load latest photo taken (if any) for gallery thumbnail
         lifecycleScope.launch(Dispatchers.IO) {
-            outputDirectory.listFiles { file ->
-                EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.ROOT))
+            /*outputDirectory.listFiles { file ->
+                EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.US))
             }?.max()?.let {
                 setGalleryThumbnail(Uri.fromFile(it))
-            }
+            }*/
         }
 
         // Listener for button used to capture photo
@@ -313,7 +313,7 @@ class CameraFragment : BaseFragment() {
         controls.findViewById<ImageButton>(R.id.view_button).apply {
             setOnClickListener {
                 if (isDirectoryNotEmpty()) {
-                    navigate(R.id.fragment_container, CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+                    navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
                 }
             }
         }
@@ -459,7 +459,7 @@ class CameraFragment : BaseFragment() {
                 return true
             }
         }
-        val scaleGestureDetector = ScaleGestureDetector(context, listener)
+        val scaleGestureDetector = ScaleGestureDetector(requireContext(), listener)
 
         viewFinder.setOnTouchListener { _, event ->
             scaleGestureDetector.onTouchEvent(event)

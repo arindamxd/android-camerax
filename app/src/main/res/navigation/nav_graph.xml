@@ -1,50 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/nav_graph"
-        app:startDestination="@id/permissionsFragment">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/permissionsFragment">
 
     <fragment
-            android:id="@+id/permissionsFragment"
-            android:name="com.arindam.camerax.ui.home.permission.PermissionsFragment"
-            android:label="PermissionsFragment">
+        android:id="@+id/permissionsFragment"
+        android:name="com.arindam.camerax.ui.home.permission.PermissionsFragment"
+        android:label="PermissionsFragment">
+
         <action
-                android:id="@+id/action_permissions_to_camera"
-                app:destination="@id/cameraFragment"
-                app:popUpTo="@id/permissionsFragment"
-                app:popUpToInclusive="true" />
+            android:id="@+id/action_permissions_to_camera"
+            app:destination="@id/cameraFragment"
+            app:popUpTo="@id/permissionsFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
     <fragment
-            android:id="@+id/cameraFragment"
-            android:name="com.arindam.camerax.ui.home.camera.CameraFragment"
-            android:label="CameraFragment">
+        android:id="@+id/cameraFragment"
+        android:name="com.arindam.camerax.ui.home.camera.CameraFragment"
+        android:label="CameraFragment">
+
         <action
-                android:id="@+id/action_camera_to_gallery"
-                app:destination="@id/galleryFragment" />
+            android:id="@+id/action_camera_to_gallery"
+            app:destination="@id/galleryFragment" />
+
         <action
-                android:id="@+id/action_camera_to_permissions"
-                app:destination="@id/permissionsFragment"
-                app:popUpTo="@id/cameraFragment"
-                app:popUpToInclusive="true" />
+            android:id="@+id/action_camera_to_permissions"
+            app:destination="@id/permissionsFragment"
+            app:popUpTo="@id/cameraFragment"
+            app:popUpToInclusive="true" />
+
         <action
-                android:id="@+id/action_camera_to_settings"
-                app:destination="@id/settingsFragment"
-                app:popUpTo="@id/cameraFragment" />
+            android:id="@+id/action_camera_to_settings"
+            app:destination="@id/settingsFragment"
+            app:popUpTo="@id/cameraFragment" />
+
     </fragment>
 
     <fragment
-            android:id="@+id/galleryFragment"
-            android:name="com.arindam.camerax.ui.home.gallery.GalleryFragment"
-            android:label="GalleryFragment">
+        android:id="@+id/galleryFragment"
+        android:name="com.arindam.camerax.ui.home.gallery.GalleryFragment"
+        android:label="GalleryFragment">
+
         <argument
-                android:name="root_directory"
-                app:argType="string" />
+            android:name="root_directory"
+            android:defaultValue="root"
+            app:argType="string" />
+
     </fragment>
 
     <fragment
-            android:id="@+id/settingsFragment"
-            android:name="com.arindam.camerax.ui.settings.SettingsFragment"
-            android:label="SettingsFragment" />
+        android:id="@+id/settingsFragment"
+        android:name="com.arindam.camerax.ui.settings.SettingsFragment"
+        android:label="SettingsFragment" />
 
 </navigation>

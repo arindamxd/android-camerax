@@ -14,7 +14,9 @@ object Preferences {
     private const val KEY_QUOTE_AUTHOR = "key_quote_author"
 
     private var pref: SharedPreferences? = null
-    fun init(context: Context) = context.getSharedPreferences(Constants.INTERNAL.PREF_NAME, Context.MODE_PRIVATE).also { pref = it }
+    fun init(context: Context): SharedPreferences = context.getSharedPreferences(
+        Constants.INTERNAL.PREF_NAME, Context.MODE_PRIVATE
+    ).also { pref = it }
 
     internal fun getQuoteMessage(): String = pref?.getString(KEY_QUOTE_MESSAGE, "#StayHome") ?: "#StayHome"
     internal fun setQuoteMessage(message: String?) = pref?.edit()?.apply { putString(KEY_QUOTE_MESSAGE, message).apply() }

@@ -31,9 +31,7 @@ class PermissionsFragment : BaseFragment() {
             requestPermissions(PERMISSIONS_REQUIRED, PERMISSIONS_REQUEST_CODE)
         } else {
             // If permissions have already been granted, proceed
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                PermissionsFragmentDirections.actionPermissionsToCamera()
-            )
+            navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
         }
     }
 
