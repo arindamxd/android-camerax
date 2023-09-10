@@ -7,11 +7,13 @@
     <dist:module dist:instant="true" />
 
     <!-- Declare features -->
-    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.any" />
 
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <application
         android:name=".CameraX"
@@ -42,23 +44,6 @@
                 android:resource="@xml/file_paths" />
 
         </provider>
-
-        <activity
-            android:name=".ui.splash.SplashActivity"
-            android:clearTaskOnLaunch="true"
-            android:exported="true"
-            android:rotationAnimation="seamless"
-            android:screenOrientation="fullUser"
-            tools:targetApi="o">
-
-            <!-- Main app intent filter -->
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>-->
-
-        </activity>
 
         <activity
             android:name=".ui.home.HomeActivity"
