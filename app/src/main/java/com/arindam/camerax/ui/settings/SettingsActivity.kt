@@ -1,9 +1,10 @@
 package com.arindam.camerax.ui.settings
 
 import android.os.Bundle
+import android.view.View
 import com.arindam.camerax.R
+import com.arindam.camerax.databinding.ActivitySettingsBinding
 import com.arindam.camerax.ui.base.BaseActivity
-import kotlinx.android.synthetic.main.activity_settings.*
 
 /**
  * Created by Arindam Karmakar on 18/04/20.
@@ -11,7 +12,9 @@ import kotlinx.android.synthetic.main.activity_settings.*
 
 class SettingsActivity : BaseActivity() {
 
-    override fun provideLayout(): Int = R.layout.activity_settings
+    val binding by lazy { ActivitySettingsBinding.inflate(layoutInflater) }
+
+    override fun provideLayout(): View = binding.root
 
     override fun setupView(savedInstanceState: Bundle?) {
         setupToolBar()
@@ -19,8 +22,8 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun setupToolBar() {
-        setSupportActionBar(toolbar)
-        toolbar.setNavigationOnClickListener { finish() }
+        setSupportActionBar(binding.toolbar)
+        binding.toolbar.setNavigationOnClickListener { finish() }
         supportActionBar?.setHomeButtonEnabled(true)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }

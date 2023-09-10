@@ -84,13 +84,10 @@ internal class LuminosityAnalyzer(listener: LumaListener? = null) : ImageAnalysi
 
         // Since format in ImageAnalysis is YUV, image.planes[0] contains the luminance plane
         val buffer = image.planes[0].buffer
-
         // Extract image data from callback object
         val data = buffer.toByteArray()
-
         // Convert the data into an array of pixel values ranging 0-255
         val pixels = data.map { it.toInt() and 0xFF }
-
         // Compute average luminance for the image
         val luma = pixels.average()
 

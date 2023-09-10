@@ -12,8 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
 import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.arindam.camerax.R
-import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 import com.arindam.camerax.util.display.Toaster
 import java.io.File
 import java.text.SimpleDateFormat
@@ -46,12 +47,12 @@ abstract class BaseFragment : Fragment() {
         Navigation.findNavController(requireActivity(), viewId).navigateUp()
     }
 
-    protected fun navigate(@IdRes viewId: Int, navDirections: NavDirections) {
-        Navigation.findNavController(requireActivity(), viewId).navigate(navDirections)
+    protected fun navigate(navDirections: NavDirections) {
+        findNavController().navigate(navDirections)
     }
 
     /** Convenience method used to check if all permissions required by this app are granted */
-    protected fun hasPermissions() = PERMISSIONS_REQUIRED.all {
+    protected fun hasPermissions() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -70,6 +71,10 @@ abstract class BaseFragment : Fragment() {
     protected fun createFile(baseFolder: File, format: String, extension: String) = File(
         baseFolder, SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension
     )
+
+    protected fun createFileName(format: String): String {
+        return SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis())
+    }
 
     protected fun showToast(@StringRes resId: Int) {
         showToast(requireContext().getString(resId))

@@ -72,8 +72,8 @@
     </style>
 
     <!-- Final, Top-Level Themes -->
-    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX"/>
-    <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.NoActionBar"/>
+    <style name="Theme.CameraX.DayNight" parent="Theme.CameraX" />
+    <style name="Theme.CameraX.DayNight.NoActionBar" parent="Theme.CameraX.NoActionBar" />
 
     <!-- A theme overlay for Alert Dialog panels with filled buttons. -->
     <style name="MaterialAlertDialogButton.DayNight" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">

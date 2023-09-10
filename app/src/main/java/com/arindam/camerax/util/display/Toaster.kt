@@ -24,10 +24,10 @@ object Toaster {
      */
     fun show(context: Context, text: CharSequence?) {
         val toast = Toast.makeText(context, text ?: "", Toast.LENGTH_SHORT)
-        toast.view.background.setColorFilter(ContextCompat.getColor(context, R.color.black), PorterDuff.Mode.SRC_IN)
+        toast.view?.background?.setColorFilter(ContextCompat.getColor(context, R.color.black), PorterDuff.Mode.SRC_IN)
         toast.setGravity(Gravity.CENTER, 0, 0)
-        val textView = toast.view.findViewById<TextView>(android.R.id.message)
-        textView.setTextColor(ContextCompat.getColor(context, R.color.white))
+        val textView = toast.view?.findViewById<TextView>(android.R.id.message)
+        textView?.setTextColor(ContextCompat.getColor(context, R.color.white))
         toast.show()
     }
 

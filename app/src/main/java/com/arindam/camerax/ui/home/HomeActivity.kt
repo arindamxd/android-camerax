@@ -3,8 +3,9 @@ package com.arindam.camerax.ui.home
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.View
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.arindam.camerax.R
+import com.arindam.camerax.databinding.ActivityHomeBinding
 import com.arindam.camerax.ui.base.BaseActivity
 import com.arindam.camerax.util.commons.Constants
 
@@ -16,10 +17,12 @@ import com.arindam.camerax.util.commons.Constants
 
 class HomeActivity : BaseActivity() {
 
-    override fun provideLayout(): Int = R.layout.activity_home
+    val binding by lazy { ActivityHomeBinding.inflate(layoutInflater) }
+
+    override fun provideLayout(): View = binding.root
 
     override fun setupView(savedInstanceState: Bundle?) {
-
+        // Empty
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

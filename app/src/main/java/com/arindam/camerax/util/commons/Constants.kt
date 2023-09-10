@@ -1,6 +1,7 @@
 package com.arindam.camerax.util.commons
 
 import android.Manifest
+import android.os.Build
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
@@ -18,8 +19,14 @@ object Constants {
     }
 
     object PERMISSIONS {
-        internal const val PERMISSIONS_REQUEST_CODE = 10
-        internal val PERMISSIONS_REQUIRED = arrayOf(Manifest.permission.CAMERA)
+        internal val REQUIRED_PERMISSIONS = mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        ).apply {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }.toTypedArray()
     }
 
     object FILE {

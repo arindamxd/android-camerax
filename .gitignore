@@ -36,6 +36,7 @@ captures/
 # IntelliJ
 *.iml
 .idea/*
+.idea/
 !.idea/runConfigurations
 
 # Keystore files
@@ -60,3 +61,4 @@ fastlane/test_output
 fastlane/readme.md
 
 .DS_Store
+*.DS_Store

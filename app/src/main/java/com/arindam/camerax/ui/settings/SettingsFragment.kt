@@ -22,8 +22,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         rootKey: String?
     ) = setPreferencesFromResource(R.xml.preferences, rootKey)
 
-    override fun onPreferenceTreeClick(preference: Preference?): Boolean {
-        return when (preference?.key) {
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
+        return when (preference.key) {
             resources.getString(R.string.pref_key_theme) -> {
                 themePopupMenu(listView.getChildAt(preference.order)).also { it.show() }
                 true
@@ -37,7 +37,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val values = resources.getStringArray(R.array.pref_key_theme_popup_values)
         val adapter: ArrayAdapter<CharSequence> = ArrayAdapter<CharSequence>(requireContext(), R.layout.preference_theme_item, keys)
 
-        return ListPopupWindow(requireContext(), null, R.attr.listPopupWindowStyle).apply {
+        return ListPopupWindow(requireContext(), null, com.google.android.material.R.attr.listPopupWindowStyle).apply {
             setAdapter(adapter)
             anchorView = view
             setOnItemClickListener { parent, view, position, id ->
@@ -48,7 +48,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun updateTheme(theme: String) {
-        preferenceManager.sharedPreferences.edit().putString(getString(R.string.pref_key_theme), theme).apply()
+        preferenceManager.sharedPreferences?.edit()?.putString(getString(R.string.pref_key_theme), theme)?.apply()
         val mode = NightMode.valueOf(theme.toUpperCase(Locale.US))
         AppCompatDelegate.setDefaultNightMode(mode.value)
         requireActivity().recreate()

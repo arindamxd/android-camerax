@@ -19,6 +19,7 @@ import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
+import com.arindam.camerax.databinding.FragmentGalleryBinding
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.ui.home.photo.PhotoFragment
 import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
@@ -59,7 +60,7 @@ class GalleryFragment internal constructor() : BaseFragment() {
         // Walk through all files in the root directory
         // We reverse the order of the list to present the last photos first
         mediaList = rootDirectory.listFiles { file ->
-            EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.ROOT))
+            EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.US))
         }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     }
 

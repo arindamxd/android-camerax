@@ -1,13 +1,10 @@
 package com.arindam.camerax.ui.home.permission
 
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
-import androidx.navigation.Navigation
-import com.arindam.camerax.R
+import androidx.activity.result.contract.ActivityResultContracts
 import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUEST_CODE
-import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIRED
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 
 /**
  * The sole purpose of this fragment is to request permissions and, once granted, display the
@@ -18,8 +15,25 @@ import com.arindam.camerax.util.commons.Constants.PERMISSIONS.PERMISSIONS_REQUIR
 
 class PermissionsFragment : BaseFragment() {
 
+    private val activityResultLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        // Handle Permission granted/rejected
+        var permissionGranted = true
+        permissions.entries.forEach {
+            if (it.key in REQUIRED_PERMISSIONS && !it.value) permissionGranted = false
+        }
+        if (!permissionGranted) {
+            showToast("Permission request denied")
+        } else {
+            showToast("Permission request granted")
+            // Take the user to the success fragment when permission is granted
+            navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
+        }
+    }
+
     override fun provideLayout(): Int = 0
-    override fun provideView(): View? = View(context)
+    override fun provideView(): View = View(context)
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {}
 
@@ -28,29 +42,10 @@ class PermissionsFragment : BaseFragment() {
 
         if (!hasPermissions()) {
             // Request camera-related permissions
-            requestPermissions(PERMISSIONS_REQUIRED, PERMISSIONS_REQUEST_CODE)
+            activityResultLauncher.launch(REQUIRED_PERMISSIONS)
         } else {
             // If permissions have already been granted, proceed
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                PermissionsFragmentDirections.actionPermissionsToCamera()
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSIONS_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showToast("Permission request granted")
-
-                // Take the user to the success fragment when permission is granted
-                Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    PermissionsFragmentDirections.actionPermissionsToCamera()
-                )
-            } else {
-                showToast("Permission request denied")
-            }
+            navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
         }
     }
 }
