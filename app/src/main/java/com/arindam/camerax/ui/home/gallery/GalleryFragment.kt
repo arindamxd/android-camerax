@@ -7,16 +7,13 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.webkit.MimeTypeMap
-import android.widget.ImageButton
 import androidx.annotation.StyleRes
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
-import androidx.viewpager.widget.ViewPager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.databinding.FragmentGalleryBinding
@@ -34,7 +31,7 @@ import java.util.*
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class GalleryFragment internal constructor() : BaseFragment() {
+class GalleryFragment : BaseFragment<FragmentGalleryBinding>() {
 
     /** AndroidX navigation arguments */
     private val args: GalleryFragmentArgs by navArgs()
@@ -60,21 +57,21 @@ class GalleryFragment internal constructor() : BaseFragment() {
         // Walk through all files in the root directory
         // We reverse the order of the list to present the last photos first
         mediaList = rootDirectory.listFiles { file ->
-            EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.US))
+            EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
         }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     }
 
-    override fun provideLayout(): Int = R.layout.fragment_gallery
+    override fun provideBinding(): FragmentGalleryBinding = FragmentGalleryBinding.inflate(layoutInflater)
 
     override fun setupView(view: View, savedInstanceState: Bundle?) {
 
         // Checking media files list
         if (mediaList.isEmpty()) {
-            view.findViewById<ImageButton>(R.id.delete_button).isEnabled = false
-            view.findViewById<ImageButton>(R.id.share_button).isEnabled = false
+            binding.deleteButton.isEnabled = false
+            binding.shareButton.isEnabled = false
         }
         // Populate the ViewPager and implement a cache of two media items
-        val mediaViewPager = view.findViewById<ViewPager>(R.id.photo_view_pager).apply {
+        val mediaViewPager = binding.photoViewPager.apply {
             offscreenPageLimit = 2
             adapter = MediaPagerAdapter(childFragmentManager)
         }
@@ -82,16 +79,16 @@ class GalleryFragment internal constructor() : BaseFragment() {
         // Make sure that the cutout "safe area" avoids the screen notch if any
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // Use extension method to pad "inside" view containing UI using display cutout's bounds
-            view.findViewById<ConstraintLayout>(R.id.cutout_safe_area).padWithDisplayCutout()
+            binding.cutoutSafeArea.padWithDisplayCutout()
         }
 
         // Handle back button press
-        view.findViewById<ImageButton>(R.id.back_button).setOnClickListener {
-            navigateBack(R.id.fragment_container)
+        binding.backButton.setOnClickListener {
+            navigateBack()
         }
 
         // Handle share button press
-        view.findViewById<ImageButton>(R.id.share_button).setOnClickListener {
+        binding.shareButton.setOnClickListener {
 
             // Make sure that we have a file to share
             mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
@@ -117,7 +114,7 @@ class GalleryFragment internal constructor() : BaseFragment() {
         }
 
         // Handle delete button press
-        view.findViewById<ImageButton>(R.id.delete_button).setOnClickListener {
+        binding.deleteButton.setOnClickListener {
 
             // Make sure that we have a file to delete
             mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
@@ -152,7 +149,5 @@ class GalleryFragment internal constructor() : BaseFragment() {
     }
 
     @StyleRes
-    private fun getAlertDialogButtonStyle(): Int {
-        return R.style.MaterialAlertDialogButton_DayNight
-    }
+    private fun getAlertDialogButtonStyle(): Int = R.style.MaterialAlertDialogButton_DayNight
 }

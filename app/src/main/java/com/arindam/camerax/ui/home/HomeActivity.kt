@@ -3,7 +3,6 @@ package com.arindam.camerax.ui.home
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.View
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.databinding.ActivityHomeBinding
 import com.arindam.camerax.ui.base.BaseActivity
@@ -15,11 +14,9 @@ import com.arindam.camerax.util.commons.Constants
  * Created by Arindam Karmakar on 17/04/20.
  */
 
-class HomeActivity : BaseActivity() {
+class HomeActivity : BaseActivity<ActivityHomeBinding>() {
 
-    val binding by lazy { ActivityHomeBinding.inflate(layoutInflater) }
-
-    override fun provideLayout(): View = binding.root
+    override fun provideBinding(): ActivityHomeBinding = ActivityHomeBinding.inflate(layoutInflater)
 
     override fun setupView(savedInstanceState: Bundle?) {
         // Empty
