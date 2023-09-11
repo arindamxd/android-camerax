@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import androidx.viewbinding.ViewBinding
-import coil.api.load
+import coil.load
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.util.commons.Constants.FILE.FILE_NAME_KEY
 import java.io.File

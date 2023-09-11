@@ -48,7 +48,7 @@ abstract class BaseFragment<T : ViewBinding> : Fragment() {
 
     abstract fun setupView(view: View, savedInstanceState: Bundle?)
 
-    protected fun navigate(navDirections: NavDirections) = findNavController().navigate(navDirections)
+    protected fun navigate(directions: NavDirections) = findNavController().navigate(directions)
     protected fun navigateBack() = findNavController().navigateUp()
 
     /** Convenience method used to check if all permissions required by this app are granted */

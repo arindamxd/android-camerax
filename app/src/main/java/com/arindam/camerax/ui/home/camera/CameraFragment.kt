@@ -32,7 +32,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import coil.api.load
+import coil.load
 import coil.transform.CircleCropTransformation
 import com.arindam.camerax.R
 import com.arindam.camerax.databinding.CameraControllerBinding
