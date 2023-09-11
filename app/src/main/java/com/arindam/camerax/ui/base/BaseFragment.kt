@@ -5,14 +5,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.IdRes
-import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
-import androidx.navigation.Navigation
 import androidx.navigation.fragment.findNavController
+import androidx.viewbinding.ViewBinding
 import com.arindam.camerax.R
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 import com.arindam.camerax.util.display.Toaster
@@ -24,32 +22,34 @@ import java.util.*
  * Created by Arindam Karmakar on 17/04/20.
  */
 
-abstract class BaseFragment : Fragment() {
+abstract class BaseFragment<T : ViewBinding> : Fragment() {
+
+    protected lateinit var binding: T
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? = provideView() ?: inflater.inflate(provideLayout(), container, false)
+    ): View? = provideBinding().let {
+        return if (it == null) provideView()
+        else {
+            binding = it
+            binding.root
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupView(view, savedInstanceState)
     }
 
-    @LayoutRes
-    abstract fun provideLayout(): Int
+    open fun provideBinding(): T? = null
+    open fun provideView(): View? = View(context)
+
     abstract fun setupView(view: View, savedInstanceState: Bundle?)
 
-    open fun provideView(): View? = null
-
-    protected fun navigateBack(@IdRes viewId: Int) {
-        Navigation.findNavController(requireActivity(), viewId).navigateUp()
-    }
-
-    protected fun navigate(navDirections: NavDirections) {
-        findNavController().navigate(navDirections)
-    }
+    protected fun navigate(directions: NavDirections) = findNavController().navigate(directions)
+    protected fun navigateBack() = findNavController().navigateUp()
 
     /** Convenience method used to check if all permissions required by this app are granted */
     protected fun hasPermissions() = REQUIRED_PERMISSIONS.all {

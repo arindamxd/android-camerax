@@ -3,6 +3,7 @@ package com.arindam.camerax.ui.home.permission
 import android.os.Bundle
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.viewbinding.ViewBinding
 import com.arindam.camerax.ui.base.BaseFragment
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 
@@ -13,7 +14,7 @@ import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIO
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class PermissionsFragment : BaseFragment() {
+class PermissionsFragment : BaseFragment<ViewBinding>() {
 
     private val activityResultLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -32,11 +33,6 @@ class PermissionsFragment : BaseFragment() {
         }
     }
 
-    override fun provideLayout(): Int = 0
-    override fun provideView(): View = View(context)
-
-    override fun setupView(view: View, savedInstanceState: Bundle?) {}
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -47,5 +43,9 @@ class PermissionsFragment : BaseFragment() {
             // If permissions have already been granted, proceed
             navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
         }
+    }
+
+    override fun setupView(view: View, savedInstanceState: Bundle?) {
+        // Empty
     }
 }

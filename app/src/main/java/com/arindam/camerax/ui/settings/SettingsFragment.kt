@@ -9,7 +9,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.arindam.camerax.R
 import com.arindam.camerax.util.theme.NightMode
-import java.util.*
+import java.util.Locale
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
@@ -37,7 +37,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val values = resources.getStringArray(R.array.pref_key_theme_popup_values)
         val adapter: ArrayAdapter<CharSequence> = ArrayAdapter<CharSequence>(requireContext(), R.layout.preference_theme_item, keys)
 
-        return ListPopupWindow(requireContext(), null, com.google.android.material.R.attr.listPopupWindowStyle).apply {
+        return ListPopupWindow(requireContext(), null, androidx.appcompat.R.attr.listPopupWindowStyle).apply {
             setAdapter(adapter)
             anchorView = view
             setOnItemClickListener { parent, view, position, id ->
@@ -49,7 +49,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun updateTheme(theme: String) {
         preferenceManager.sharedPreferences?.edit()?.putString(getString(R.string.pref_key_theme), theme)?.apply()
-        val mode = NightMode.valueOf(theme.toUpperCase(Locale.US))
+        val mode = NightMode.valueOf(theme.uppercase(Locale.US))
         AppCompatDelegate.setDefaultNightMode(mode.value)
         requireActivity().recreate()
     }
