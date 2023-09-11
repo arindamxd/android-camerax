@@ -19,8 +19,8 @@ ext.versionCodeBase = versionMajor * 10000 + versionMinor * 100 + versionPatch
 
 // SDK and tools
 ext.compileSdk = 34
-ext.minSdkVersion = 24
-ext.minTvSdkVersion = 24 // TV was introduced with Lollipop, min SDK should be 21.
+ext.minSdkVersion = 21
+ext.minTvSdkVersion = 21 // TV was introduced with Lollipop, min SDK should be 21.
 ext.targetSdkVersion = 34
 
 tasks.register('clean', Delete) {
