@@ -11,7 +11,7 @@ plugins {
 // App version
 ext.versionMajor = 1
 ext.versionMinor = 6
-ext.versionPatch = 4
+ext.versionPatch = 5
 
 // X.Y.Z; X = Major, Y = minor, Z = Patch / XYYZZM; M = Module (tv, mobile)
 ext.versionNameBase = "${versionMajor}.${versionMinor}.${versionPatch}"
