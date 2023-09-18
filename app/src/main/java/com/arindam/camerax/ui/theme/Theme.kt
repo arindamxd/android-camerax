@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
  * Created by Arindam Karmakar on 12/09/23.
  */
 
-private val LightColors = lightColorScheme(
+private val lightColors = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
     primaryContainer = md_theme_light_primaryContainer,
@@ -56,7 +56,7 @@ private val LightColors = lightColorScheme(
     scrim = md_theme_light_scrim
 )
 
-private val DarkColors = darkColorScheme(
+private val darkColors = darkColorScheme(
     primary = md_theme_dark_primary,
     onPrimary = md_theme_dark_onPrimary,
     primaryContainer = md_theme_dark_primaryContainer,
@@ -95,11 +95,11 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val dynamicColor = isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val colorScheme = when {
+    val colors = when {
         dynamicColor && isDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
         dynamicColor && !isDarkTheme -> dynamicLightColorScheme(LocalContext.current)
-        isDarkTheme -> DarkColors
-        else -> LightColors
+        isDarkTheme -> darkColors
+        else -> lightColors
     }
     val typography = Typography(
         titleLarge = TextStyle(
@@ -133,7 +133,7 @@ fun AppTheme(
     )
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = colors,
         typography = typography,
         shapes = shapes,
         content = content
