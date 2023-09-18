@@ -1,10 +1,9 @@
 package com.arindam.camerax.ui.home.permission
 
 import android.os.Bundle
-import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.viewbinding.ViewBinding
-import com.arindam.camerax.ui.base.BaseFragment
+import androidx.compose.ui.platform.ComposeView
+import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 
 /**
@@ -14,7 +13,7 @@ import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIO
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class PermissionsFragment : BaseFragment<ViewBinding>() {
+class PermissionsFragment : BaseFragmentCompose() {
 
     private val activityResultLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -45,11 +44,7 @@ class PermissionsFragment : BaseFragment<ViewBinding>() {
         }
     }
 
-    override fun setComposeView() {
-        // Empty
-    }
-
-    override fun setupView(view: View, savedInstanceState: Bundle?) {
+    override fun setComposeView(view: ComposeView) {
         // Empty
     }
 }

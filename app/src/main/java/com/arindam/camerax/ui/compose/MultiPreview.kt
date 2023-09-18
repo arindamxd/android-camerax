@@ -23,12 +23,14 @@ annotation class FontScalePreviews
     name = "Light mode",
     group = "UI mode",
     uiMode = Configuration.UI_MODE_NIGHT_NO or Configuration.UI_MODE_TYPE_NORMAL,
-    showBackground = true
+    showBackground = true,
+    showSystemUi = true
 )
 @Preview(
     name = "Dark mode",
     group = "UI mode",
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
-    showBackground = true
+    showBackground = true,
+    showSystemUi = true
 )
 annotation class LightDarkPreviews

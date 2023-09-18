@@ -27,7 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/pref_height"
         android:text="@string/pref_title_developer"
-        android:textAppearance="?attr/textAppearanceBody1"
+        android:textAppearance="?attr/textAppearanceBody2"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@+id/guideline"
         app:layout_constraintLeft_toLeftOf="parent" />
@@ -38,7 +38,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/pref_height"
         android:text="@string/pref_subtitle_developer"
-        android:textAppearance="?attr/textAppearanceBody2"
+        android:textAppearance="?attr/textAppearanceCaption"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/guideline" />
 

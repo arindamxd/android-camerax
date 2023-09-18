@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -96,7 +95,7 @@ private fun GalleryHeader(
 @Composable
 private fun GalleryFooter(
     pagerState: PagerState,
-    isDisabled: Boolean = true,
+    isDisabled: Boolean,
     onShareClicked: (Int) -> Unit,
     onDeleteClicked: (PagerState) -> Unit
 ) {
@@ -112,7 +111,7 @@ private fun GalleryFooter(
                 .weight(1F)
                 .padding(start = 100.dp, bottom = 20.dp)
         ) {
-            //if (isDisabled) return@Column
+            if (isDisabled) return@Column
             Icon(
                 painter = painterResource(id = R.drawable.ic_share),
                 modifier = Modifier
@@ -164,7 +163,7 @@ private fun GalleryPager(
         state = pagerState,
         pageSize = PageSize.Fill,
         beyondBoundsPageCount = 2,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxSize()
     ) { page ->
         data[page]?.let {
             Image(
