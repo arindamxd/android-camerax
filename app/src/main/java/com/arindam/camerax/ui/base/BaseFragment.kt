@@ -34,6 +34,7 @@ abstract class BaseFragment<T : ViewBinding> : Fragment() {
         return if (it == null) provideView()
         else {
             binding = it
+            setComposeView()
             binding.root
         }
     }
@@ -45,6 +46,8 @@ abstract class BaseFragment<T : ViewBinding> : Fragment() {
 
     open fun provideBinding(): T? = null
     open fun provideView(): View? = View(context)
+
+    abstract fun setComposeView()
 
     abstract fun setupView(view: View, savedInstanceState: Bundle?)
 

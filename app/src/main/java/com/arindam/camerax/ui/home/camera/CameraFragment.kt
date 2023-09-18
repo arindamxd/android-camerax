@@ -140,6 +140,10 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
 
     override fun provideBinding(): FragmentCameraBinding = FragmentCameraBinding.inflate(layoutInflater)
 
+    override fun setComposeView() {
+        // Empty
+    }
+
     override fun setupView(view: View, savedInstanceState: Bundle?) {
         // Initialize our background executor
         cameraExecutor = Executors.newSingleThreadExecutor()

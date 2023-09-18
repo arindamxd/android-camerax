@@ -8,17 +8,14 @@ import android.os.Bundle
 import android.view.View
 import android.webkit.MimeTypeMap
 import androidx.annotation.StyleRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.core.content.FileProvider
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentStatePagerAdapter
-import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.databinding.FragmentGalleryBinding
 import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.ui.home.photo.PhotoFragment
+import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
 import com.arindam.camerax.util.padWithDisplayCutout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -38,13 +35,6 @@ class GalleryFragment : BaseFragment<FragmentGalleryBinding>() {
 
     private lateinit var mediaList: MutableList<File>
 
-    /** Adapter class used to present a fragment containing one photo or video as a page */
-    inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
-        override fun getCount(): Int = mediaList.size
-        override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
-        override fun getItemPosition(obj: Any): Int = POSITION_NONE
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -63,88 +53,79 @@ class GalleryFragment : BaseFragment<FragmentGalleryBinding>() {
 
     override fun provideBinding(): FragmentGalleryBinding = FragmentGalleryBinding.inflate(layoutInflater)
 
+    @OptIn(ExperimentalFoundationApi::class)
+    override fun setComposeView() {
+        binding.galleryComposeView.apply {
+            setContent {
+                AppTheme {
+                    GalleryScreen(
+                        mediaList,
+                        onBackClicked = { // Handle back button press
+                            navigateBack()
+                        },
+                        onShareClicked = { currentItem -> // Handle share button press
+                            // Make sure that we have a file to share
+                            mediaList.getOrNull(currentItem)?.let { mediaFile ->
+
+                                // Create a sharing intent
+                                val intent = Intent().apply {
+                                    // Infer media type from file extension
+                                    val mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mediaFile.extension)
+                                    // Get URI from our FileProvider implementation
+                                    val uri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", mediaFile)
+                                    // Set the appropriate intent extra, type, action and flags
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+
+                                    type = mediaType
+                                    action = Intent.ACTION_SEND
+                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                }
+
+                                // Launch the intent letting the user choose which app to share with
+                                startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
+                            }
+                        },
+                        onDeleteClicked = { pager -> // Handle delete button press
+                            // Make sure that we have a file to delete
+                            mediaList.getOrNull(pager.currentPage)?.let { mediaFile ->
+                                val listener = DialogInterface.OnClickListener { dialog, which ->
+                                    if (which == DialogInterface.BUTTON_POSITIVE) {
+                                        // Delete current photo
+                                        mediaFile.delete()
+
+                                        // Send relevant broadcast to notify other apps of deletion
+                                        MediaScannerConnection.scanFile(context, arrayOf(mediaFile.absolutePath), null, null)
+
+                                        // Notify our view pager
+                                        mediaList.removeAt(pager.currentPage)
+
+                                        // If all photos have been deleted, return to camera
+                                        //if (mediaList.isEmpty()) navigateBack()
+                                        navigateBack()
+                                    } else {
+                                        dialog.dismiss()
+                                    }
+                                }
+
+                                MaterialAlertDialogBuilder(requireContext(), getAlertDialogButtonStyle())
+                                    .setTitle(R.string.delete_title)
+                                    .setMessage(R.string.delete_subtitle)
+                                    .setPositiveButton(R.string.delete_button_alt, listener)
+                                    .setNegativeButton(R.string.delete_button_cancel, listener)
+                                    .show()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     override fun setupView(view: View, savedInstanceState: Bundle?) {
-
-        // Checking media files list
-        if (mediaList.isEmpty()) {
-            binding.deleteButton.isEnabled = false
-            binding.shareButton.isEnabled = false
-        }
-        // Populate the ViewPager and implement a cache of two media items
-        val mediaViewPager = binding.photoViewPager.apply {
-            offscreenPageLimit = 2
-            adapter = MediaPagerAdapter(childFragmentManager)
-        }
-
         // Make sure that the cutout "safe area" avoids the screen notch if any
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // Use extension method to pad "inside" view containing UI using display cutout's bounds
-            binding.cutoutSafeArea.padWithDisplayCutout()
-        }
-
-        // Handle back button press
-        binding.backButton.setOnClickListener {
-            navigateBack()
-        }
-
-        // Handle share button press
-        binding.shareButton.setOnClickListener {
-
-            // Make sure that we have a file to share
-            mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
-
-                // Create a sharing intent
-                val intent = Intent().apply {
-
-                    // Infer media type from file extension
-                    val mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mediaFile.extension)
-                    // Get URI from our FileProvider implementation
-                    val uri = FileProvider.getUriForFile(view.context, BuildConfig.APPLICATION_ID + ".provider", mediaFile)
-                    // Set the appropriate intent extra, type, action and flags
-                    putExtra(Intent.EXTRA_STREAM, uri)
-
-                    type = mediaType
-                    action = Intent.ACTION_SEND
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                }
-
-                // Launch the intent letting the user choose which app to share with
-                startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
-            }
-        }
-
-        // Handle delete button press
-        binding.deleteButton.setOnClickListener {
-
-            // Make sure that we have a file to delete
-            mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
-
-                val listener = DialogInterface.OnClickListener { dialog, which ->
-                    if (which == DialogInterface.BUTTON_POSITIVE) {
-                        // Delete current photo
-                        mediaFile.delete()
-
-                        // Send relevant broadcast to notify other apps of deletion
-                        MediaScannerConnection.scanFile(view.context, arrayOf(mediaFile.absolutePath), null, null)
-
-                        // Notify our view pager
-                        mediaList.removeAt(mediaViewPager.currentItem)
-                        mediaViewPager.adapter?.notifyDataSetChanged()
-
-                        // If all photos have been deleted, return to camera
-                        if (mediaList.isEmpty()) Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
-                    } else {
-                        dialog.dismiss()
-                    }
-                }
-
-                MaterialAlertDialogBuilder(requireContext(), getAlertDialogButtonStyle())
-                    .setTitle(R.string.delete_title)
-                    .setMessage(R.string.delete_subtitle)
-                    .setPositiveButton(R.string.delete_button_alt, listener)
-                    .setNegativeButton(R.string.delete_button_cancel, listener)
-                    .show()
-            }
+            binding.root.padWithDisplayCutout()
         }
     }
 

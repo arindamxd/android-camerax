@@ -45,6 +45,10 @@ class PermissionsFragment : BaseFragment<ViewBinding>() {
         }
     }
 
+    override fun setComposeView() {
+        // Empty
+    }
+
     override fun setupView(view: View, savedInstanceState: Bundle?) {
         // Empty
     }

@@ -93,9 +93,7 @@
             android:name=".ui.settings.SettingsActivity"
             android:rotationAnimation="seamless"
             android:screenOrientation="fullUser"
-            tools:targetApi="o">
-
-        </activity>
+            tools:targetApi="o" />
 
     </application>
 
