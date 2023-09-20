@@ -31,7 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
-import com.arindam.camerax.ui.compose.LightDarkPreviews
+import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import java.io.File
 
@@ -175,7 +175,7 @@ private fun GalleryPager(
     }
 }
 
-@LightDarkPreviews
+@DarkLightPreviews
 @Composable
 private fun GalleryScreenPreview() {
     AppTheme {
