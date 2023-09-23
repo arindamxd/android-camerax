@@ -1,6 +1,10 @@
 package com.arindam.camerax.ui.home.camera
 
 import androidx.annotation.FloatRange
+import androidx.camera.core.CameraSelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.VideoCapture
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
@@ -14,16 +18,19 @@ import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,12 +47,15 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
@@ -70,34 +80,84 @@ enum class CameraMode {
 fun CameraScreen(
     onModeChanged: (CameraMode) -> Unit
 ) {
-    Surface {
-        Column {
-            Spacer(modifier = Modifier.height(32.dp))
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
+    val previewView: PreviewView = remember { PreviewView(context) }
+
+    val videoCapture: MutableState<VideoCapture<Recorder>?> = remember { mutableStateOf(null) }
+    val cameraSelector: MutableState<CameraSelector> = remember {
+        mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
+    }
+
+    LaunchedEffect(previewView) {
+        context.createVideoCaptureUseCase(
+            lifecycleOwner = lifecycleOwner,
+            cameraSelector = cameraSelector.value,
+            previewView = previewView
+        )
+    }
+
+    AndroidView(
+        factory = { previewView },
+        modifier = Modifier.fillMaxSize()
+    )
+    Box(
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .height(120.dp)
+                .background(color = colorResource(id = R.color.black_900_alpha_020))
+        ) {
             DiscretePager(
                 items = CameraMode.entries,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(30.dp),
-                itemFraction = .25f,
+                itemFraction = .20f,
                 overshootFraction = .75f,
                 initialIndex = 0,
-                itemSpacing = 20.dp,
+                itemSpacing = 15.dp,
                 onItemSelected = onModeChanged,
                 contentFactory = { item ->
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color = colorResource(id = R.color.colorAccent)),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = item.name,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorResource(id = R.color.orange_500)
                         )
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+            ) {
+                repeat(3) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                    ) {
+                        Button(
+                            modifier = Modifier
+                                .size(if (it == 1) 60.dp else 40.dp)
+                                .align(Alignment.Center),
+                            onClick = { /*TODO*/ }
+                        ) {
+
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
