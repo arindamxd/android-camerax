@@ -7,8 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.hardware.Camera.ACTION_NEW_PICTURE
 import android.hardware.display.DisplayManager
 import android.net.Uri
@@ -16,10 +14,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.HandlerThread
 import android.provider.MediaStore
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
-import android.widget.ImageButton
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
@@ -27,28 +23,19 @@ import androidx.camera.core.ImageCapture.OnImageSavedCallback
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoOutput
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
-import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import coil.load
-import coil.transform.CircleCropTransformation
 import com.arindam.camerax.R
-import com.arindam.camerax.databinding.CameraControllerBinding
-import com.arindam.camerax.databinding.FragmentCameraBinding
-import com.arindam.camerax.ui.base.BaseFragment
-import com.arindam.camerax.ui.settings.SettingsActivity
-import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
-import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.ui.base.BaseFragmentCompose
+import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.util.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_ACTION
 import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_EXTRA
 import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
 import com.arindam.camerax.util.log.Logger
-import com.arindam.camerax.util.simulateClick
 import com.google.android.material.bottomappbar.BottomAppBar
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -68,7 +55,7 @@ import kotlin.math.min
  * Created by Arindam Karmakar on 9/5/19.
  */
 
-class CameraFragment : BaseFragment<FragmentCameraBinding>() {
+class CameraFragment : BaseFragmentCompose() {
 
     private lateinit var outputDirectory: File
     private lateinit var broadcastManager: LocalBroadcastManager
@@ -104,8 +91,8 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
 
                 // When the volume down button is pressed, simulate a shutter button click
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    val shutter = binding.root.findViewById<FloatingActionButton>(R.id.capture_button)
-                    shutter.simulateClick()
+//                    val shutter = binding.root.findViewById<FloatingActionButton>(R.id.capture_button)
+//                    shutter.simulateClick()
                 }
             }
         }
@@ -129,6 +116,8 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         } ?: Unit
     }
 
+    private var thumb: File? = null
+
     companion object {
         private const val TAG = "CameraX"
 
@@ -138,13 +127,34 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         private const val RATIO_16_9_VALUE = 16.0 / 9.0
     }
 
-    override fun provideBinding(): FragmentCameraBinding = FragmentCameraBinding.inflate(layoutInflater)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-    override fun setComposeView() {
-        // Empty
+        outputDirectory = getOutputFileDirectory()
+        outputDirectory.listFiles { file ->
+            EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
+        }?.maxOrNull()?.let { thumb = it }
     }
 
-    override fun setupView(view: View, savedInstanceState: Bundle?) {
+    override fun setComposeView(view: ComposeView) = view.setContent {
+        AppTheme {
+            CameraScreen(
+                createFile(outputDirectory, FILENAME, PHOTO_EXTENSION),
+                thumb,
+                onSwitch = {
+
+                },
+                onGallery = {
+                    if (isDirectoryNotEmpty()) {
+                        navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+                    }
+                }) {
+                Log.e("XX", "setComposeView: ${it.name}")
+            }
+        }
+    }
+
+    /*override*/ fun setupView(view: View, savedInstanceState: Bundle?) {
         // Initialize our background executor
         cameraExecutor = Executors.newSingleThreadExecutor()
         broadcastManager = LocalBroadcastManager.getInstance(view.context)
@@ -160,18 +170,18 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         outputDirectory = getOutputFileDirectory()
 
         // Wait for the views to be properly laid out
-        binding.viewFinder.post {
-
-            // Keep track of the display in which this view is attached
-            displayId = binding.viewFinder.display.displayId
-
-            // Build UI controls
-            updateCameraUi()
-
-            // Bind all camera use cases
-            //bindCameraUseCases()
-            startCamera()
-        }
+//        binding.viewFinder.post {
+//
+//            // Keep track of the display in which this view is attached
+//            displayId = binding.viewFinder.display.displayId
+//
+//            // Build UI controls
+//            updateCameraUi()
+//
+//            // Bind all camera use cases
+//            //bindCameraUseCases()
+//            startCamera()
+//        }
     }
 
     override fun onResume() {
@@ -187,11 +197,11 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         super.onDestroyView()
 
         // Shut down our background executor
-        cameraExecutor.shutdown()
+//        cameraExecutor.shutdown()
 
         // Unregister the broadcast receivers and listeners
-        broadcastManager.unregisterReceiver(volumeDownReceiver)
-        displayManager.unregisterDisplayListener(displayListener)
+//        broadcastManager.unregisterReceiver(volumeDownReceiver)
+//        displayManager.unregisterDisplayListener(displayListener)
     }
 
     /**
@@ -213,15 +223,15 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
     private fun updateCameraUi() {
 
         // Remove previous UI if any
-        binding.root.findViewById<ConstraintLayout>(R.id.camera_controller)?.let {
-            binding.root.removeView(it)
-        }
+//        binding.root.findViewById<ConstraintLayout>(R.id.camera_controller)?.let {
+//            binding.root.removeView(it)
+//        }
 
         //CameraControllerBinding.bind(binding.root)
 
         // Inflate a new view containing all UI for controlling the camera
         //val controls = View.inflate(requireContext(), R.layout.camera_controller, container)
-        val controller = CameraControllerBinding.inflate(layoutInflater, binding.root, true)
+//        val controller = CameraControllerBinding.inflate(layoutInflater, binding.root, true)
 
         // In the background, load latest photo taken (if any) for gallery thumbnail
         lifecycleScope.launch(Dispatchers.IO) {
@@ -234,46 +244,51 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
             }
         }
 
-        // Listener for button used to capture photo
-        controller.captureButton.setOnClickListener {
-            takePhoto()
-            //captureVideo(controls.findViewById<FloatingActionButton>(R.id.capture_button))
-        }
-
-        // Listener for button used to switch cameras
-        controller.switchButton.setOnClickListener {
-            lensFacing = if (lensFacing.lensFacing == CameraSelector.LENS_FACING_FRONT) {
-                CameraSelector.DEFAULT_BACK_CAMERA
-            } else {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            }
-            // Re-bind use cases to update selected camera
-            startCamera()
-        }
-
-        // Listener for button used to view last photo
-        controller.viewButton.setOnClickListener {
-            if (isDirectoryNotEmpty()) {
-                navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
-            }
-        }
-
-        controller.bottomAppBar.apply {
-            bottomAppBar = this
-            inflateMenu(R.menu.menu_home)
-            setOnMenuItemClickListener {
-                when (it.itemId) {
-                    R.id.menu_flash -> toggleFlash(it)
-                    R.id.menu_settings -> startActivity(Intent(requireContext(), SettingsActivity::class.java))
-                }
-                return@setOnMenuItemClickListener true
-            }
-        }
-
-        // Set up the BottomNavigationDrawer's open/close affordance
-        controller.bottomAppBarContentContainer.setOnClickListener {
-            showToast(R.string.under_dev)
-        }
+//        controller.captureButton.setOnLongClickListener {
+//            controller.captureButton.hide()
+//            true
+//        }
+//
+//        // Listener for button used to capture photo
+//        controller.captureButton.setOnClickListener {
+//            takePhoto()
+//            //captureVideo(controls.findViewById<FloatingActionButton>(R.id.capture_button))
+//        }
+//
+//        // Listener for button used to switch cameras
+//        controller.switchButton.setOnClickListener {
+//            lensFacing = if (lensFacing.lensFacing == CameraSelector.LENS_FACING_FRONT) {
+//                CameraSelector.DEFAULT_BACK_CAMERA
+//            } else {
+//                CameraSelector.DEFAULT_FRONT_CAMERA
+//            }
+//            // Re-bind use cases to update selected camera
+//            startCamera()
+//        }
+//
+//        // Listener for button used to view last photo
+//        controller.viewButton.setOnClickListener {
+//            if (isDirectoryNotEmpty()) {
+//                navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+//            }
+//        }
+//
+//        controller.bottomAppBar.apply {
+//            bottomAppBar = this
+//            inflateMenu(R.menu.menu_home)
+//            setOnMenuItemClickListener {
+//                when (it.itemId) {
+//                    R.id.menu_flash -> toggleFlash(it)
+//                    R.id.menu_settings -> startActivity(Intent(requireContext(), SettingsActivity::class.java))
+//                }
+//                return@setOnMenuItemClickListener true
+//            }
+//        }
+//
+//        // Set up the BottomNavigationDrawer's open/close affordance
+//        controller.bottomAppBarContentContainer.setOnClickListener {
+//            showToast(R.string.under_dev)
+//        }
     }
 
     /** Declare and bind preview, capture and analysis use cases */
@@ -283,9 +298,9 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
             // Preview
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-            }
+//            val preview = Preview.Builder().build().also {
+//                it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
+//            }
 
             imageCapture = ImageCapture.Builder().build()
             /*val recorder = Recorder.Builder()
@@ -383,10 +398,10 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         // We can only change the foreground Drawable using API level 23+ API
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Display flash animation to indicate that photo was captured
-            binding.root.postDelayed({
-                binding.root.foreground = ColorDrawable(Color.WHITE)
-                binding.root.postDelayed({ binding.root.foreground = null }, ANIMATION_FAST_MILLIS)
-            }, ANIMATION_SLOW_MILLIS)
+//            binding.root.postDelayed({
+//                binding.root.foreground = ColorDrawable(Color.WHITE)
+//                binding.root.postDelayed({ binding.root.foreground = null }, ANIMATION_FAST_MILLIS)
+//            }, ANIMATION_SLOW_MILLIS)
         }
     }
 
@@ -462,13 +477,13 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
     private fun bindCameraUseCases() {
 
         // Get screen metrics used to setup camera for full screen resolution
-        val metrics = DisplayMetrics().also { binding.viewFinder.display.getRealMetrics(it) }
-        Logger.debug(TAG, "Screen metrics: ${metrics.widthPixels} x ${metrics.heightPixels}")
-
-        val screenAspectRatio = aspectRatio(metrics.widthPixels, metrics.heightPixels)
-        Logger.debug(TAG, "Preview aspect ratio: $screenAspectRatio")
-
-        val rotation = binding.viewFinder.display.rotation
+//        val metrics = DisplayMetrics().also { binding.viewFinder.display.getRealMetrics(it) }
+//        Logger.debug(TAG, "Screen metrics: ${metrics.widthPixels} x ${metrics.heightPixels}")
+//
+//        val screenAspectRatio = aspectRatio(metrics.widthPixels, metrics.heightPixels)
+//        Logger.debug(TAG, "Preview aspect ratio: $screenAspectRatio")
+//
+//        val rotation = binding.viewFinder.display.rotation
 
         // Bind the CameraProvider to the LifeCycleOwner
         //val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
@@ -480,11 +495,11 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
             // Preview
-            previewBuilder = Preview.Builder()
-                // We request aspect ratio but no resolution
-                .setTargetAspectRatio(screenAspectRatio)
-                // Set initial target rotation
-                .setTargetRotation(rotation)
+//            previewBuilder = Preview.Builder()
+//                // We request aspect ratio but no resolution
+//                .setTargetAspectRatio(screenAspectRatio)
+//                // Set initial target rotation
+//                .setTargetRotation(rotation)
 
             preview = previewBuilder?.build()
 
@@ -496,20 +511,20 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 // We request aspect ratio but no resolution to match preview config, but letting
                 // CameraX optimize for whatever specific resolution best fits our use cases
-                .setTargetAspectRatio(screenAspectRatio)
+//                .setTargetAspectRatio(screenAspectRatio)
                 // Set initial target rotation, we will have to call this again if rotation changes
                 // during the lifecycle of this use case
-                .setTargetRotation(rotation)
+//                .setTargetRotation(rotation)
 
             imageCapture = imageCaptureBuilder?.build()
 
             // ImageAnalysis
             imageAnalyzer = ImageAnalysis.Builder()
                 // We request aspect ratio but no resolution
-                .setTargetAspectRatio(screenAspectRatio)
+//                .setTargetAspectRatio(screenAspectRatio)
                 // Set initial target rotation, we will have to call this again if rotation changes
                 // during the lifecycle of this use case
-                .setTargetRotation(rotation)
+//                .setTargetRotation(rotation)
                 .build()
                 // The analyzer can then be assigned to the instance
                 .also {
@@ -583,10 +598,10 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
         }
         val scaleGestureDetector = ScaleGestureDetector(requireContext(), listener)
 
-        binding.viewFinder.setOnTouchListener { _, event ->
-            scaleGestureDetector.onTouchEvent(event)
-            return@setOnTouchListener true
-        }
+//        binding.viewFinder.setOnTouchListener { _, event ->
+//            scaleGestureDetector.onTouchEvent(event)
+//            return@setOnTouchListener true
+//        }
     }
 
     private fun enableFocusFeature(cameraSelector: CameraSelector) {
@@ -622,18 +637,18 @@ class CameraFragment : BaseFragment<FragmentCameraBinding>() {
 
     private fun setGalleryThumbnail(uri: Uri) {
         // Reference of the view that holds the gallery thumbnail
-        val thumbnail = binding.root.findViewById<ImageButton>(R.id.view_button)
-
-        // Run the operations in the view's thread
-        thumbnail.post {
-            // Remove thumbnail padding
-            thumbnail.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
-
-            // Load thumbnail into circular button using Glide
-            thumbnail.load(uri) {
-                crossfade(true)
-                transformations(CircleCropTransformation())
-            }
-        }
+//        val thumbnail = binding.root.findViewById<ImageButton>(R.id.view_button)
+//
+//        // Run the operations in the view's thread
+//        thumbnail.post {
+//            // Remove thumbnail padding
+//            thumbnail.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
+//
+//            // Load thumbnail into circular button using Glide
+//            thumbnail.load(uri) {
+//                crossfade(true)
+//                transformations(CircleCropTransformation())
+//            }
+//        }
     }
 }

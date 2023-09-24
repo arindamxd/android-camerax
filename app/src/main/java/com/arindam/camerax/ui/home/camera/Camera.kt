@@ -1,7 +1,11 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.net.Uri
+import android.util.Log
 import androidx.annotation.FloatRange
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
@@ -10,7 +14,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.splineBasedDecay
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -24,8 +31,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,11 +48,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalContext
@@ -56,11 +67,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.concurrent.Executors
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -78,6 +92,10 @@ enum class CameraMode {
 
 @Composable
 fun CameraScreen(
+    photoFile: File?,
+    thumb: File?,
+    onSwitch: () -> Unit,
+    onGallery: () -> Unit,
     onModeChanged: (CameraMode) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -85,6 +103,7 @@ fun CameraScreen(
 
     val previewView: PreviewView = remember { PreviewView(context) }
 
+    val imageCapture: MutableState<ImageCapture?> = remember { mutableStateOf(null) }
     val videoCapture: MutableState<VideoCapture<Recorder>?> = remember { mutableStateOf(null) }
     val cameraSelector: MutableState<CameraSelector> = remember {
         mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -96,12 +115,18 @@ fun CameraScreen(
             cameraSelector = cameraSelector.value,
             previewView = previewView
         )
+        imageCapture.value = context.createPhotoCaptureUseCase(
+            lifecycleOwner = lifecycleOwner,
+            cameraSelector = cameraSelector.value,
+            previewView = previewView
+        )
     }
 
     AndroidView(
         factory = { previewView },
         modifier = Modifier.fillMaxSize()
     )
+
     Box(
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -133,30 +158,88 @@ fun CameraScreen(
                     }
                 }
             )
+
             Spacer(modifier = Modifier.height(10.dp))
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp),
             ) {
-                repeat(3) {
-                    Box(
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = R.drawable.ic_switch),
+                        contentScale = ContentScale.Crop,
+                        contentDescription = null,
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxSize()
-                    ) {
-                        Button(
-                            modifier = Modifier
-                                .size(if (it == 1) 60.dp else 40.dp)
-                                .align(Alignment.Center),
-                            onClick = { /*TODO*/ }
-                        ) {
+                            .size(45.dp)
+                            .align(Alignment.Center)
+                            .clickable {
+                                onSwitch()
+                            }
+                    )
+                }
 
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = R.drawable.ic_open_source),
+                        contentScale = ContentScale.Crop,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .align(Alignment.Center)
+                            .clickable {
+                                imageCapture.value?.let { capture ->
+                                    photoFile?.let {
+                                        val outputOptions = ImageCapture.OutputFileOptions.Builder(it).build()
+                                        capture.takePicture(outputOptions, Executors.newSingleThreadExecutor(), object : ImageCapture.OnImageSavedCallback {
+                                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                                val captureFileUri = output.savedUri ?: Uri.fromFile(photoFile)
+                                                Log.d("XX", "Photo capture succeeded: $captureFileUri")
+                                            }
+                                            override fun onError(exception: ImageCaptureException) {
+                                                Log.e("XX", "Photo capture exception: $exception")
+                                            }
+                                        })
+                                    }
+                                }
+                            }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                ) {
+                    Log.e("XX", "GalleryPager: $thumb")
+                    val padding = if (thumb == null) 10.dp else 0.dp
+                    Image(
+                        painter = rememberAsyncImagePainter(model = thumb ?: R.drawable.ic_photo),
+                        contentScale = ContentScale.Crop,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(45.dp)
+                            .clip(CircleShape)
+                            .align(Alignment.Center)
+                            .border((2.5).dp, Color.White, CircleShape)
+                            .padding(padding)
+                            .clickable {
+                                onGallery()
+                            }
+                    )
                 }
             }
+
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
@@ -167,6 +250,10 @@ fun CameraScreen(
 private fun CameraScreenPreview() {
     AppTheme {
         CameraScreen(
+            null,
+            null,
+            onSwitch = {},
+            onGallery = {},
             onModeChanged = {}
         )
     }
