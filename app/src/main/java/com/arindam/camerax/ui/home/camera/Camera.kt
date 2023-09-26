@@ -1,5 +1,6 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.graphics.drawable.ColorDrawable
 import android.util.Log
 import androidx.annotation.FloatRange
 import androidx.camera.core.CameraSelector
@@ -73,6 +74,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
+import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.commons.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -253,6 +256,12 @@ fun CameraScreen(
                                             })
 
                                         }
+
+                                        // Display flash animation to indicate that photo was captured
+                                        previewView.postDelayed({
+                                            previewView.foreground = ColorDrawable(Color.Black.hashCode())
+                                            previewView.postDelayed({ previewView.foreground = null }, ANIMATION_FAST_MILLIS)
+                                        }, ANIMATION_SLOW_MILLIS)
                                     }
                                     CameraMode.VIDEO -> {
 
