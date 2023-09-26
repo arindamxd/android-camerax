@@ -1,6 +1,5 @@
 package com.arindam.camerax.ui.home.camera
 
-import android.net.Uri
 import android.util.Log
 import androidx.annotation.FloatRange
 import androidx.camera.core.CameraSelector
@@ -67,13 +66,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toFile
+import androidx.lifecycle.lifecycleScope
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.commons.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
@@ -92,34 +96,42 @@ enum class CameraMode {
 
 @Composable
 fun CameraScreen(
-    photoFile: File?,
-    thumb: File?,
-    onSwitch: () -> Unit,
-    onGallery: () -> Unit,
-    onModeChanged: (CameraMode) -> Unit
+    baseFolder: File?,
+    onGallery: () -> Unit
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val previewView: PreviewView = remember { PreviewView(context) }
-
     val imageCapture: MutableState<ImageCapture?> = remember { mutableStateOf(null) }
     val videoCapture: MutableState<VideoCapture<Recorder>?> = remember { mutableStateOf(null) }
     val cameraSelector: MutableState<CameraSelector> = remember {
         mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
     }
 
+    val galleryThumb = remember { mutableStateOf<File?>(null) }
+    val cameraMode = remember { mutableStateOf(CameraMode.PHOTO) }
+
     LaunchedEffect(previewView) {
-        context.createVideoCaptureUseCase(
-            lifecycleOwner = lifecycleOwner,
-            cameraSelector = cameraSelector.value,
-            previewView = previewView
-        )
-        imageCapture.value = context.createPhotoCaptureUseCase(
-            lifecycleOwner = lifecycleOwner,
-            cameraSelector = cameraSelector.value,
-            previewView = previewView
-        )
+        when (cameraMode.value) {
+            CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
+                lifecycleOwner = lifecycleOwner,
+                cameraSelector = cameraSelector.value,
+                previewView = previewView
+            )
+            CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
+                lifecycleOwner = lifecycleOwner,
+                cameraSelector = cameraSelector.value,
+                previewView = previewView
+            )
+            CameraMode.FILTER -> {
+                // TODO
+            }
+        }
+
+        baseFolder?.listFiles { file ->
+            Constants.FILE.EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
+        }?.maxOrNull()?.let { galleryThumb.value = it }
     }
 
     AndroidView(
@@ -142,9 +154,9 @@ fun CameraScreen(
                     .height(30.dp),
                 itemFraction = .20f,
                 overshootFraction = .75f,
-                initialIndex = 0,
+                initialIndex = CameraMode.PHOTO.ordinal,
                 itemSpacing = 15.dp,
-                onItemSelected = onModeChanged,
+                onItemSelected = { cameraMode.value = it },
                 contentFactory = { item ->
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -180,7 +192,28 @@ fun CameraScreen(
                             .size(45.dp)
                             .align(Alignment.Center)
                             .clickable {
-                                onSwitch()
+                                cameraSelector.value = when (cameraSelector.value) {
+                                    CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
+                                    else -> CameraSelector.DEFAULT_BACK_CAMERA
+                                }
+
+                                lifecycleOwner.lifecycleScope.launch {
+                                    when (cameraMode.value) {
+                                        CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
+                                            lifecycleOwner = lifecycleOwner,
+                                            cameraSelector = cameraSelector.value,
+                                            previewView = previewView
+                                        )
+                                        CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
+                                            lifecycleOwner = lifecycleOwner,
+                                            cameraSelector = cameraSelector.value,
+                                            previewView = previewView
+                                        )
+                                        CameraMode.FILTER -> {
+                                            // TODO
+                                        }
+                                    }
+                                }
                             }
                     )
                 }
@@ -198,18 +231,29 @@ fun CameraScreen(
                             .size(60.dp)
                             .align(Alignment.Center)
                             .clickable {
-                                imageCapture.value?.let { capture ->
-                                    photoFile?.let {
-                                        val outputOptions = ImageCapture.OutputFileOptions.Builder(it).build()
-                                        capture.takePicture(outputOptions, Executors.newSingleThreadExecutor(), object : ImageCapture.OnImageSavedCallback {
-                                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                                val captureFileUri = output.savedUri ?: Uri.fromFile(photoFile)
-                                                Log.d("XX", "Photo capture succeeded: $captureFileUri")
-                                            }
-                                            override fun onError(exception: ImageCaptureException) {
-                                                Log.e("XX", "Photo capture exception: $exception")
-                                            }
-                                        })
+                                when (cameraMode.value) {
+                                    CameraMode.PHOTO -> imageCapture.value?.let { capture ->
+                                        val photoFile = getPhotoFile(baseFolder)
+                                        photoFile?.let {
+                                            val outputOptions = ImageCapture.OutputFileOptions.Builder(it).build()
+                                            capture.takePicture(outputOptions, Executors.newSingleThreadExecutor(), object : ImageCapture.OnImageSavedCallback {
+                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                                    val captureFile: File = output.savedUri?.toFile() ?: it
+                                                    Log.d("XX", "Photo capture succeeded: $captureFile")
+                                                    galleryThumb.value = captureFile
+                                                }
+
+                                                override fun onError(exception: ImageCaptureException) {
+                                                    Log.e("XX", "Photo capture exception: $exception")
+                                                }
+                                            })
+                                        }
+                                    }
+                                    CameraMode.VIDEO -> {
+
+                                    }
+                                    CameraMode.FILTER -> {
+                                        // TODO
                                     }
                                 }
                             }
@@ -221,10 +265,9 @@ fun CameraScreen(
                         .weight(1f)
                         .fillMaxSize()
                 ) {
-                    Log.e("XX", "GalleryPager: $thumb")
-                    val padding = if (thumb == null) 10.dp else 0.dp
+                    val padding = if (galleryThumb.value == null) 10.dp else 0.dp
                     Image(
-                        painter = rememberAsyncImagePainter(model = thumb ?: R.drawable.ic_photo),
+                        painter = rememberAsyncImagePainter(model = galleryThumb.value ?: R.drawable.ic_photo),
                         contentScale = ContentScale.Crop,
                         contentDescription = null,
                         modifier = Modifier
@@ -251,10 +294,7 @@ private fun CameraScreenPreview() {
     AppTheme {
         CameraScreen(
             null,
-            null,
-            onSwitch = {},
-            onGallery = {},
-            onModeChanged = {}
+            onGallery = {}
         )
     }
 }
@@ -480,4 +520,10 @@ private fun VelocityTracker.calculateVelocity(orientation: Orientation) = when (
 private fun PointerInputChange.calculateDragChange(orientation: Orientation) = when (orientation) {
     Orientation.Horizontal -> positionChange().x
     Orientation.Vertical -> positionChange().y
+}
+
+fun getPhotoFile(baseFolder: File?): File? {
+    val fileName = "yyyy-MM-dd-HH-mm-ss-SSS"
+    val extension = ".jpg"
+    return File(baseFolder, SimpleDateFormat(fileName, Locale.US).format(System.currentTimeMillis()) + extension)
 }

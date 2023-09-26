@@ -131,26 +131,18 @@ class CameraFragment : BaseFragmentCompose() {
         super.onCreate(savedInstanceState)
 
         outputDirectory = getOutputFileDirectory()
-        outputDirectory.listFiles { file ->
-            EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
-        }?.maxOrNull()?.let { thumb = it }
     }
 
     override fun setComposeView(view: ComposeView) = view.setContent {
         AppTheme {
             CameraScreen(
-                createFile(outputDirectory, FILENAME, PHOTO_EXTENSION),
-                thumb,
-                onSwitch = {
-
-                },
+                outputDirectory,
                 onGallery = {
                     if (isDirectoryNotEmpty()) {
                         navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
                     }
-                }) {
-                Log.e("XX", "setComposeView: ${it.name}")
-            }
+                }
+            )
         }
     }
 
