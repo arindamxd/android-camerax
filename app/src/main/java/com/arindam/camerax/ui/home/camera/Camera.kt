@@ -23,6 +23,8 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.gestures.verticalDrag
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +36,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -231,13 +234,30 @@ fun CameraScreen(
                         .fillMaxSize()
                 ) {
                     Image(
-                        painter = rememberAsyncImagePainter(model = R.drawable.ic_open_source),
+                        painter = rememberAsyncImagePainter(
+                            model = when (cameraMode.value) {
+                                CameraMode.PHOTO -> {
+                                    if (isSystemInDarkTheme()) R.drawable.ic_camera_photo_light
+                                    else R.drawable.ic_camera_photo_dark
+                                }
+                                CameraMode.VIDEO -> {
+                                    if (isSystemInDarkTheme()) R.drawable.ic_camera_video_light
+                                    else R.drawable.ic_camera_video_dark
+                                }
+                                CameraMode.FILTER -> {
+                                    R.drawable.ic_open_source
+                                }
+                            }
+                        ),
                         contentScale = ContentScale.Crop,
                         contentDescription = null,
                         modifier = Modifier
                             .size(60.dp)
                             .align(Alignment.Center)
-                            .clickable {
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = false)
+                            ) {
                                 when (cameraMode.value) {
                                     CameraMode.PHOTO -> imageCapture.value?.let { capture ->
                                         val photoFile = getPhotoFile(baseFolder)
