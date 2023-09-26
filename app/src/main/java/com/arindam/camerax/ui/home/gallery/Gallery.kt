@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalFoundationApi::class)
+@file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 
 package com.arindam.camerax.ui.home.gallery
 
@@ -18,16 +18,24 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
@@ -41,37 +49,50 @@ import java.io.File
 
 @Composable
 fun GalleryScreen(
-    data: List<File?> = listOf(),
-    onBackClicked: () -> Unit,
-    onShareClicked: (Int) -> Unit,
-    onDeleteClicked: (PagerState) -> Unit
+    dataList: List<File?> = listOf(),
+    navigateBack: () -> Unit,
+    onShareClicked: (Int) -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = {
-        data.size
-    })
+    val mediaList = rememberSaveable { mutableStateOf(listOf<File?>()) }
+    val pagerState = rememberPagerState(pageCount = { mediaList.value.size })
+
+    LaunchedEffect(mediaList) {
+        mediaList.value = dataList.toMutableList()
+    }
 
     Surface {
         GalleryPager(
-            pagerState = pagerState,
-            data = data
+            dataList = mediaList,
+            pagerState = pagerState
         )
         Box {
             GalleryHeader(
-                onBackClicked = onBackClicked
+                navigateBack = navigateBack
             )
             GalleryFooter(
+                dataList = mediaList,
                 pagerState = pagerState,
-                isDisabled = data.isEmpty(),
-                onShareClicked = onShareClicked,
-                onDeleteClicked = onDeleteClicked
+                navigateBack = navigateBack,
+                onShareClicked = onShareClicked
             )
         }
     }
 }
 
+@DarkLightPreviews
+@Composable
+private fun GalleryScreenPreview() {
+    AppTheme {
+        GalleryScreen(
+            navigateBack = {},
+            onShareClicked = {}
+        )
+    }
+}
+
 @Composable
 private fun GalleryHeader(
-    onBackClicked: () -> Unit
+    navigateBack: () -> Unit
 ) {
     Row(
         horizontalArrangement = Arrangement.Start,
@@ -86,7 +107,7 @@ private fun GalleryHeader(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = rememberRipple(bounded = false)
-                ) { onBackClicked.invoke() },
+                ) { navigateBack.invoke() },
             contentDescription = "Back"
         )
     }
@@ -94,11 +115,24 @@ private fun GalleryHeader(
 
 @Composable
 private fun GalleryFooter(
+    dataList: MutableState<List<File?>>,
     pagerState: PagerState,
-    isDisabled: Boolean,
-    onShareClicked: (Int) -> Unit,
-    onDeleteClicked: (PagerState) -> Unit
+    navigateBack: () -> Unit,
+    onShareClicked: (Int) -> Unit
 ) {
+    val showDialog = remember { mutableStateOf(false) }
+    DeleteDialog(
+        show = showDialog.value,
+        onConfirmed = {
+            val deletedFile = dataList.value[pagerState.currentPage].also { it?.delete() }
+            dataList.value = dataList.value.filterNot { it == deletedFile }
+
+            // If all photos have been deleted, return to camera
+            if (dataList.value.isEmpty()) navigateBack()
+        },
+        onDismiss = { showDialog.value = false }
+    )
+
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom,
@@ -111,7 +145,7 @@ private fun GalleryFooter(
                 .weight(1F)
                 .padding(start = 100.dp, bottom = 20.dp)
         ) {
-            if (isDisabled) return@Column
+            if (dataList.value.isEmpty()) return@Column
             Icon(
                 painter = painterResource(id = R.drawable.ic_share),
                 modifier = Modifier
@@ -131,7 +165,7 @@ private fun GalleryFooter(
                 .weight(1F)
                 .padding(end = 100.dp, bottom = 20.dp)
         ) {
-            if (isDisabled) return@Column
+            if (dataList.value.isEmpty()) return@Column
             Icon(
                 painter = painterResource(id = R.drawable.ic_delete),
                 modifier = Modifier
@@ -140,7 +174,9 @@ private fun GalleryFooter(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = rememberRipple(bounded = false)
-                    ) { onDeleteClicked.invoke(pagerState) },
+                    ) {
+                        showDialog.value = true
+                    },
                 contentDescription = "Back"
             )
         }
@@ -149,8 +185,8 @@ private fun GalleryFooter(
 
 @Composable
 private fun GalleryPager(
+    dataList: MutableState<List<File?>>,
     pagerState: PagerState,
-    data: List<File?> = listOf(),
 ) {
     LaunchedEffect(pagerState) {
         // Collect from the a snapshotFlow reading the currentPage
@@ -165,7 +201,7 @@ private fun GalleryPager(
         beyondBoundsPageCount = 2,
         modifier = Modifier.fillMaxSize()
     ) { page ->
-        data[page]?.let {
+        dataList.value[page]?.let {
             Image(
                 painter = rememberAsyncImagePainter(model = it),
                 contentScale = ContentScale.Crop,
@@ -175,14 +211,38 @@ private fun GalleryPager(
     }
 }
 
-@DarkLightPreviews
 @Composable
-private fun GalleryScreenPreview() {
-    AppTheme {
-        GalleryScreen(
-            onBackClicked = {},
-            onShareClicked = {},
-            onDeleteClicked = {}
-        )
-    }
+fun DeleteDialog(
+    show: Boolean = false,
+    title: Int = R.string.delete_title,
+    text: Int = R.string.delete_subtitle,
+    confirmTitle: Int = R.string.delete_button_alt,
+    dismissTitle: Int = R.string.delete_button_cancel,
+    onConfirmed: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+
+    AlertDialog(
+        onDismissRequest = { onDismiss.invoke() },
+        confirmButton = {
+            TextButton(onClick = {
+                onDismiss.invoke()
+                onConfirmed.invoke()
+            }) {
+                Text(text = stringResource(id = confirmTitle))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onDismiss.invoke() }) {
+                Text(text = stringResource(id = dismissTitle))
+            }
+        },
+        title = {
+            Text(text = stringResource(id = title))
+        },
+        text = {
+            Text(text = stringResource(id = text))
+        },
+    )
 }

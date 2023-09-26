@@ -24,7 +24,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -199,6 +198,18 @@ fun CameraScreen(
     )
 }
 
+@DarkLightPreviews
+@Composable
+private fun CameraScreenPreview() {
+    AppTheme {
+        CameraScreen(
+            baseFolder = null,
+            onGalleryClicked = {},
+            onSettingsClicked = {},
+        )
+    }
+}
+
 @Composable
 fun CameraPreview(view: PreviewView) {
     AndroidView(
@@ -217,7 +228,6 @@ fun CameraHeader(
         Row(
             modifier = Modifier
                 .height(50.dp)
-                .fillMaxWidth()
                 .background(color = colorResource(id = R.color.black_900_alpha_020))
         ) {
             Box(
@@ -228,10 +238,10 @@ fun CameraHeader(
                 Image(
                     painter = rememberAsyncImagePainter(model = R.drawable.ic_settings),
                     contentScale = ContentScale.Crop,
-                    contentDescription = "Switch",
+                    contentDescription = "Settings",
                     modifier = Modifier
-                        .padding(horizontal = 15.dp, vertical = 10.dp)
-                        .fillMaxHeight()
+                        .padding(end = 15.dp)
+                        .size(35.dp)
                         .align(Alignment.CenterEnd)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -348,25 +358,16 @@ fun CameraController(
                             .align(Alignment.Center)
                             .border((2.5).dp, Color.White, CircleShape)
                             .padding(padding)
-                            .clickable { onGalleryClicked() }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = false)
+                            ) { onGalleryClicked() }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
         }
-    }
-}
-
-@DarkLightPreviews
-@Composable
-private fun CameraScreenPreview() {
-    AppTheme {
-        CameraScreen(
-            baseFolder = null,
-            onGalleryClicked = {},
-            onSettingsClicked = {},
-        )
     }
 }
 

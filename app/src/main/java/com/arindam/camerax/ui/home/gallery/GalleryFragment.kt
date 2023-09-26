@@ -1,8 +1,6 @@
 package com.arindam.camerax.ui.home.gallery
 
-import android.content.DialogInterface
 import android.content.Intent
-import android.media.MediaScannerConnection
 import android.os.Bundle
 import android.webkit.MimeTypeMap
 import androidx.annotation.StyleRes
@@ -15,7 +13,6 @@ import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.util.*
 
@@ -52,8 +49,9 @@ class GalleryFragment : BaseFragmentCompose() {
     override fun setComposeView(view: ComposeView) = view.setContent {
         AppTheme {
             GalleryScreen(
-                mediaList,
-                onBackClicked = { // Handle back button press
+                dataList = mediaList,
+                navigateBack = {
+                    // Handle back button press
                     navigateBack()
                 },
                 onShareClicked = { currentItem -> // Handle share button press
@@ -77,7 +75,7 @@ class GalleryFragment : BaseFragmentCompose() {
                         // Launch the intent letting the user choose which app to share with
                         startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
                     }
-                },
+                }/*,
                 onDeleteClicked = { pager -> // Handle delete button press
                     // Make sure that we have a file to delete
                     mediaList.getOrNull(pager.currentPage)?.let { mediaFile ->
@@ -93,8 +91,8 @@ class GalleryFragment : BaseFragmentCompose() {
                                 mediaList.removeAt(pager.currentPage)
 
                                 // If all photos have been deleted, return to camera
-                                //if (mediaList.isEmpty()) navigateBack()
-                                navigateBack()
+                                if (mediaList.isEmpty()) navigateBack()
+                                //navigateBack()
                             } else {
                                 dialog.dismiss()
                             }
@@ -107,7 +105,7 @@ class GalleryFragment : BaseFragmentCompose() {
                             .setNegativeButton(R.string.delete_button_cancel, listener)
                             .show()
                     }
-                }
+                }*/
             )
         }
     }
