@@ -80,6 +80,7 @@ import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.commons.Constants
+import com.arindam.camerax.util.display.Toaster
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -109,7 +110,8 @@ enum class CameraState(val selector: CameraSelector) {
 @Composable
 fun CameraScreen(
     baseFolder: File?,
-    onGalleryClicked: () -> Unit
+    onGalleryClicked: () -> Unit,
+    onSettingsClicked: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -145,6 +147,9 @@ fun CameraScreen(
     }
 
     CameraPreview(previewView)
+    CameraHeader(
+        onSettingsClicked = onSettingsClicked
+    )
     CameraController(
         thumbnail = thumbnail,
         cameraMode = cameraMode,
@@ -181,10 +186,12 @@ fun CameraScreen(
                     executeFlash(previewView)
                 }
                 CameraMode.VIDEO -> {
-
+                    // TODO
+                    Toaster.show(context, "Under development")
                 }
                 CameraMode.FILTER -> {
                     // TODO
+                    Toaster.show(context, "Under development")
                 }
             }
         },
@@ -198,6 +205,42 @@ fun CameraPreview(view: PreviewView) {
         factory = { view },
         modifier = Modifier.fillMaxSize()
     )
+}
+
+@Composable
+fun CameraHeader(
+    onSettingsClicked: () -> Unit
+) {
+    Box(
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Row(
+            modifier = Modifier
+                .height(50.dp)
+                .fillMaxWidth()
+                .background(color = colorResource(id = R.color.black_900_alpha_020))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(model = R.drawable.ic_settings),
+                    contentScale = ContentScale.Crop,
+                    contentDescription = "Switch",
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp, vertical = 10.dp)
+                        .fillMaxHeight()
+                        .align(Alignment.CenterEnd)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = rememberRipple(bounded = false)
+                        ) { onSettingsClicked() }
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -259,7 +302,7 @@ fun CameraController(
                         contentScale = ContentScale.Crop,
                         contentDescription = "Switch",
                         modifier = Modifier
-                            .size(45.dp)
+                            .size(40.dp)
                             .align(Alignment.Center)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -275,7 +318,7 @@ fun CameraController(
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(
-                            model = getIconByCameraMode(cameraMode.value, isSystemInDarkTheme())
+                            model = getIconByCameraMode(cameraMode.value)
                         ),
                         contentScale = ContentScale.Crop,
                         contentDescription = "Camera",
@@ -305,10 +348,7 @@ fun CameraController(
                             .align(Alignment.Center)
                             .border((2.5).dp, Color.White, CircleShape)
                             .padding(padding)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = false)
-                            ) { onGalleryClicked() }
+                            .clickable { onGalleryClicked() }
                     )
                 }
             }
@@ -323,8 +363,9 @@ fun CameraController(
 private fun CameraScreenPreview() {
     AppTheme {
         CameraScreen(
-            null,
-            onGalleryClicked = {}
+            baseFolder = null,
+            onGalleryClicked = {},
+            onSettingsClicked = {},
         )
     }
 }
@@ -558,9 +599,9 @@ fun getPhotoFile(baseFolder: File?): File? {
     return File(baseFolder, SimpleDateFormat(fileName, Locale.US).format(System.currentTimeMillis()) + extension)
 }
 
-fun getIconByCameraMode(cameraMode: CameraMode, isDark: Boolean): Any = when (cameraMode) {
-    CameraMode.PHOTO -> if (isDark) R.drawable.ic_camera_photo_light else R.drawable.ic_camera_photo_dark
-    CameraMode.VIDEO -> if (isDark) R.drawable.ic_camera_video_light else R.drawable.ic_camera_video_dark
+fun getIconByCameraMode(cameraMode: CameraMode): Any = when (cameraMode) {
+    CameraMode.PHOTO -> R.drawable.ic_camera_photo
+    CameraMode.VIDEO -> R.drawable.ic_camera_video
     CameraMode.FILTER -> R.drawable.ic_open_source
 }
 
@@ -581,9 +622,9 @@ fun takePhoto(baseFolder: File?, capture: ImageCapture, onSaved: (File) -> Unit)
     }
 }
 
-fun executeFlash(view: PreviewView) {
+fun executeFlash(view: PreviewView, isDark: Boolean = false) {
     view.postDelayed({
-        view.foreground = ColorDrawable(Color.Black.hashCode())
+        view.foreground = ColorDrawable(if (isDark) Color.Black.hashCode() else Color.White.hashCode())
         view.postDelayed({ view.foreground = null }, ANIMATION_FAST_MILLIS)
     }, ANIMATION_SLOW_MILLIS)
 }

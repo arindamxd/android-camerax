@@ -29,6 +29,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragmentCompose
+import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.util.analyzer.LuminosityAnalyzer
 import com.arindam.camerax.util.commons.Constants.EXTRAS.KEY_EVENT_ACTION
@@ -116,8 +117,6 @@ class CameraFragment : BaseFragmentCompose() {
         } ?: Unit
     }
 
-    private var thumb: File? = null
-
     companion object {
         private const val TAG = "CameraX"
 
@@ -136,11 +135,14 @@ class CameraFragment : BaseFragmentCompose() {
     override fun setComposeView(view: ComposeView) = view.setContent {
         AppTheme {
             CameraScreen(
-                outputDirectory,
+                baseFolder = outputDirectory,
                 onGalleryClicked = {
                     if (isDirectoryNotEmpty()) {
                         navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
                     }
+                },
+                onSettingsClicked = {
+                    startActivity(Intent(requireContext(), SettingsActivity::class.java))
                 }
             )
         }

@@ -22,6 +22,7 @@ import java.util.*
  * Created by Arindam Karmakar on 17/04/20.
  */
 
+@Deprecated("Please use BaseFragmentCompose", ReplaceWith("BaseFragmentCompose()"))
 abstract class BaseFragment<T : ViewBinding> : Fragment() {
 
     protected lateinit var binding: T
