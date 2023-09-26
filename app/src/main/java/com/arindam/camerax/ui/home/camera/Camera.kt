@@ -114,7 +114,7 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val galleryThumb = remember { mutableStateOf<File?>(null) }
+    val thumbnail = remember { mutableStateOf<File?>(null) }
     val cameraMode = rememberSaveable { mutableStateOf(CameraMode.PHOTO) }
     val cameraState = rememberSaveable { mutableStateOf(CameraState.BACK) }
 
@@ -141,14 +141,74 @@ fun CameraScreen(
 
         baseFolder?.listFiles { file ->
             Constants.FILE.EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
-        }?.maxOrNull()?.let { galleryThumb.value = it }
+        }?.maxOrNull()?.let { thumbnail.value = it }
     }
 
+    CameraPreview(previewView)
+    CameraController(
+        thumbnail = thumbnail,
+        cameraMode = cameraMode,
+        onCameraModeChanged = { cameraMode.value = it },
+        onCameraStateChanged = {
+            cameraState.value = when (cameraState.value) {
+                CameraState.FRONT -> CameraState.BACK
+                CameraState.BACK -> CameraState.FRONT
+            }
+
+            lifecycleOwner.lifecycleScope.launch {
+                when (cameraMode.value) {
+                    CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
+                        lifecycleOwner = lifecycleOwner,
+                        cameraSelector = cameraState.value.selector,
+                        previewView = previewView
+                    )
+                    CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
+                        lifecycleOwner = lifecycleOwner,
+                        cameraSelector = cameraState.value.selector,
+                        previewView = previewView
+                    )
+                    CameraMode.FILTER -> {
+                        // TODO
+                    }
+                }
+            }
+        },
+        onCaptureClicked = {
+            when (cameraMode.value) {
+                CameraMode.PHOTO -> imageCapture.value?.let { capture ->
+                    takePhoto(baseFolder, capture) { thumbnail.value = it }
+                    // Display flash animation to indicate that photo was captured
+                    executeFlash(previewView)
+                }
+                CameraMode.VIDEO -> {
+
+                }
+                CameraMode.FILTER -> {
+                    // TODO
+                }
+            }
+        },
+        onGalleryClicked = onGalleryClicked,
+    )
+}
+
+@Composable
+fun CameraPreview(view: PreviewView) {
     AndroidView(
-        factory = { previewView },
+        factory = { view },
         modifier = Modifier.fillMaxSize()
     )
+}
 
+@Composable
+fun CameraController(
+    thumbnail: MutableState<File?>,
+    cameraMode: MutableState<CameraMode>,
+    onCameraModeChanged: (CameraMode) -> Unit,
+    onCameraStateChanged: () -> Unit,
+    onCaptureClicked: () -> Unit,
+    onGalleryClicked: () -> Unit
+) {
     Box(
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -166,7 +226,7 @@ fun CameraScreen(
                 overshootFraction = .75f,
                 initialIndex = CameraMode.PHOTO.ordinal,
                 itemSpacing = 15.dp,
-                onItemSelected = { cameraMode.value = it },
+                onItemSelected = onCameraModeChanged,
                 contentFactory = { item ->
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -197,34 +257,14 @@ fun CameraScreen(
                     Image(
                         painter = rememberAsyncImagePainter(model = R.drawable.ic_switch),
                         contentScale = ContentScale.Crop,
-                        contentDescription = null,
+                        contentDescription = "Switch",
                         modifier = Modifier
                             .size(45.dp)
                             .align(Alignment.Center)
-                            .clickable {
-                                cameraState.value = when (cameraState.value) {
-                                    CameraState.FRONT -> CameraState.BACK
-                                    CameraState.BACK -> CameraState.FRONT
-                                }
-
-                                lifecycleOwner.lifecycleScope.launch {
-                                    when (cameraMode.value) {
-                                        CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
-                                            lifecycleOwner = lifecycleOwner,
-                                            cameraSelector = cameraState.value.selector,
-                                            previewView = previewView
-                                        )
-                                        CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
-                                            lifecycleOwner = lifecycleOwner,
-                                            cameraSelector = cameraState.value.selector,
-                                            previewView = previewView
-                                        )
-                                        CameraMode.FILTER -> {
-                                            // TODO
-                                        }
-                                    }
-                                }
-                            }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = false)
+                            ) { onCameraStateChanged() }
                     )
                 }
 
@@ -238,31 +278,14 @@ fun CameraScreen(
                             model = getIconByCameraMode(cameraMode.value, isSystemInDarkTheme())
                         ),
                         contentScale = ContentScale.Crop,
-                        contentDescription = null,
+                        contentDescription = "Camera",
                         modifier = Modifier
                             .size(60.dp)
                             .align(Alignment.Center)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = rememberRipple(bounded = false)
-                            ) {
-                                when (cameraMode.value) {
-                                    CameraMode.PHOTO -> imageCapture.value?.let { capture ->
-                                        takePhoto(baseFolder, capture) {
-                                            galleryThumb.value = it
-                                        }
-
-                                        // Display flash animation to indicate that photo was captured
-                                        executeFlash(previewView)
-                                    }
-                                    CameraMode.VIDEO -> {
-
-                                    }
-                                    CameraMode.FILTER -> {
-                                        // TODO
-                                    }
-                                }
-                            }
+                            ) { onCaptureClicked() }
                     )
                 }
 
@@ -271,20 +294,21 @@ fun CameraScreen(
                         .weight(1f)
                         .fillMaxSize()
                 ) {
-                    val padding = if (galleryThumb.value == null) 10.dp else 0.dp
+                    val padding = if (thumbnail.value == null) 10.dp else 0.dp
                     Image(
-                        painter = rememberAsyncImagePainter(model = galleryThumb.value ?: R.drawable.ic_photo),
+                        painter = rememberAsyncImagePainter(model = thumbnail.value ?: R.drawable.ic_photo),
                         contentScale = ContentScale.Crop,
-                        contentDescription = null,
+                        contentDescription = "Gallery",
                         modifier = Modifier
                             .size(45.dp)
                             .clip(CircleShape)
                             .align(Alignment.Center)
                             .border((2.5).dp, Color.White, CircleShape)
                             .padding(padding)
-                            .clickable {
-                                onGalleryClicked()
-                            }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = false)
+                            ) { onGalleryClicked() }
                     )
                 }
             }
