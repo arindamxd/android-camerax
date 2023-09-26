@@ -16,7 +16,8 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:title="@string/menu_item_settings" />
+            app:title="@string/menu_item_settings"
+            app:titleTextAppearance="?attr/textAppearanceOverline" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

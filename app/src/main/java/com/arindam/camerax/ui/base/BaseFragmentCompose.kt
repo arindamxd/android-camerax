@@ -6,11 +6,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.StringRes
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavDirections
 import androidx.navigation.fragment.findNavController
-import androidx.viewbinding.ViewBinding
 import com.arindam.camerax.R
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 import com.arindam.camerax.util.display.Toaster
@@ -22,35 +22,21 @@ import java.util.*
  * Created by Arindam Karmakar on 17/04/20.
  */
 
-@Deprecated("Please use BaseFragmentCompose", ReplaceWith("BaseFragmentCompose()"))
-abstract class BaseFragment<T : ViewBinding> : Fragment() {
-
-    protected lateinit var binding: T
+abstract class BaseFragmentCompose : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? = provideBinding().let {
-        return if (it == null) provideView()
-        else {
-            binding = it
-            setComposeView()
-            binding.root
-        }
+    ): View = ComposeView(inflater.context).apply {
+        layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        setComposeView(this)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setupView(view, savedInstanceState)
-    }
-
-    open fun provideBinding(): T? = null
-    open fun provideView(): View? = View(context)
-
-    abstract fun setComposeView()
-
-    abstract fun setupView(view: View, savedInstanceState: Bundle?)
+    abstract fun setComposeView(view: ComposeView)
 
     protected fun navigate(directions: NavDirections) = findNavController().navigate(directions)
     protected fun navigateBack() = findNavController().navigateUp()

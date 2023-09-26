@@ -9,4 +9,4 @@
     android:paddingEnd="@dimen/pref_image_margin"
     android:paddingBottom="@dimen/rect_button_height"
     android:text="@string/pref_key_theme"
-    android:textAppearance="?attr/textAppearanceOverline" />
+    android:textAppearance="?attr/textAppearanceBody2" />
