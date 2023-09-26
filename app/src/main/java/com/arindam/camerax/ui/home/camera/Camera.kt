@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,6 +95,11 @@ enum class CameraMode {
     FILTER
 }
 
+enum class CameraState(val selector: CameraSelector) {
+    BACK(CameraSelector.DEFAULT_BACK_CAMERA),
+    FRONT(CameraSelector.DEFAULT_FRONT_CAMERA)
+}
+
 @Composable
 fun CameraScreen(
     baseFolder: File?,
@@ -102,26 +108,24 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val galleryThumb = remember { mutableStateOf<File?>(null) }
+    val cameraMode = rememberSaveable { mutableStateOf(CameraMode.PHOTO) }
+    val cameraState = rememberSaveable { mutableStateOf(CameraState.BACK) }
+
     val previewView: PreviewView = remember { PreviewView(context) }
     val imageCapture: MutableState<ImageCapture?> = remember { mutableStateOf(null) }
     val videoCapture: MutableState<VideoCapture<Recorder>?> = remember { mutableStateOf(null) }
-    val cameraSelector: MutableState<CameraSelector> = remember {
-        mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
-    }
-
-    val galleryThumb = remember { mutableStateOf<File?>(null) }
-    val cameraMode = remember { mutableStateOf(CameraMode.PHOTO) }
 
     LaunchedEffect(previewView) {
         when (cameraMode.value) {
             CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
                 lifecycleOwner = lifecycleOwner,
-                cameraSelector = cameraSelector.value,
+                cameraSelector = cameraState.value.selector,
                 previewView = previewView
             )
             CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
                 lifecycleOwner = lifecycleOwner,
-                cameraSelector = cameraSelector.value,
+                cameraSelector = cameraState.value.selector,
                 previewView = previewView
             )
             CameraMode.FILTER -> {
@@ -192,21 +196,21 @@ fun CameraScreen(
                             .size(45.dp)
                             .align(Alignment.Center)
                             .clickable {
-                                cameraSelector.value = when (cameraSelector.value) {
-                                    CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
-                                    else -> CameraSelector.DEFAULT_BACK_CAMERA
+                                cameraState.value = when (cameraState.value) {
+                                    CameraState.FRONT -> CameraState.BACK
+                                    CameraState.BACK -> CameraState.FRONT
                                 }
 
                                 lifecycleOwner.lifecycleScope.launch {
                                     when (cameraMode.value) {
                                         CameraMode.PHOTO -> imageCapture.value = context.getImageCaptureUseCase(
                                             lifecycleOwner = lifecycleOwner,
-                                            cameraSelector = cameraSelector.value,
+                                            cameraSelector = cameraState.value.selector,
                                             previewView = previewView
                                         )
                                         CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
                                             lifecycleOwner = lifecycleOwner,
-                                            cameraSelector = cameraSelector.value,
+                                            cameraSelector = cameraState.value.selector,
                                             previewView = previewView
                                         )
                                         CameraMode.FILTER -> {
@@ -247,6 +251,7 @@ fun CameraScreen(
                                                     Log.e("XX", "Photo capture exception: $exception")
                                                 }
                                             })
+
                                         }
                                     }
                                     CameraMode.VIDEO -> {
