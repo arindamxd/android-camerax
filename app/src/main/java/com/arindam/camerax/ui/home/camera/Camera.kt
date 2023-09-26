@@ -109,7 +109,7 @@ enum class CameraState(val selector: CameraSelector) {
 @Composable
 fun CameraScreen(
     baseFolder: File?,
-    onGallery: () -> Unit
+    onGalleryClicked: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -235,19 +235,7 @@ fun CameraScreen(
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(
-                            model = when (cameraMode.value) {
-                                CameraMode.PHOTO -> {
-                                    if (isSystemInDarkTheme()) R.drawable.ic_camera_photo_light
-                                    else R.drawable.ic_camera_photo_dark
-                                }
-                                CameraMode.VIDEO -> {
-                                    if (isSystemInDarkTheme()) R.drawable.ic_camera_video_light
-                                    else R.drawable.ic_camera_video_dark
-                                }
-                                CameraMode.FILTER -> {
-                                    R.drawable.ic_open_source
-                                }
-                            }
+                            model = getIconByCameraMode(cameraMode.value, isSystemInDarkTheme())
                         ),
                         contentScale = ContentScale.Crop,
                         contentDescription = null,
@@ -260,28 +248,12 @@ fun CameraScreen(
                             ) {
                                 when (cameraMode.value) {
                                     CameraMode.PHOTO -> imageCapture.value?.let { capture ->
-                                        val photoFile = getPhotoFile(baseFolder)
-                                        photoFile?.let {
-                                            val outputOptions = ImageCapture.OutputFileOptions.Builder(it).build()
-                                            capture.takePicture(outputOptions, Executors.newSingleThreadExecutor(), object : ImageCapture.OnImageSavedCallback {
-                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                                    val captureFile: File = output.savedUri?.toFile() ?: it
-                                                    Log.d("XX", "Photo capture succeeded: $captureFile")
-                                                    galleryThumb.value = captureFile
-                                                }
-
-                                                override fun onError(exception: ImageCaptureException) {
-                                                    Log.e("XX", "Photo capture exception: $exception")
-                                                }
-                                            })
-
+                                        takePhoto(baseFolder, capture) {
+                                            galleryThumb.value = it
                                         }
 
                                         // Display flash animation to indicate that photo was captured
-                                        previewView.postDelayed({
-                                            previewView.foreground = ColorDrawable(Color.Black.hashCode())
-                                            previewView.postDelayed({ previewView.foreground = null }, ANIMATION_FAST_MILLIS)
-                                        }, ANIMATION_SLOW_MILLIS)
+                                        executeFlash(previewView)
                                     }
                                     CameraMode.VIDEO -> {
 
@@ -311,7 +283,7 @@ fun CameraScreen(
                             .border((2.5).dp, Color.White, CircleShape)
                             .padding(padding)
                             .clickable {
-                                onGallery()
+                                onGalleryClicked()
                             }
                     )
                 }
@@ -328,7 +300,7 @@ private fun CameraScreenPreview() {
     AppTheme {
         CameraScreen(
             null,
-            onGallery = {}
+            onGalleryClicked = {}
         )
     }
 }
@@ -560,4 +532,34 @@ fun getPhotoFile(baseFolder: File?): File? {
     val fileName = "yyyy-MM-dd-HH-mm-ss-SSS"
     val extension = ".jpg"
     return File(baseFolder, SimpleDateFormat(fileName, Locale.US).format(System.currentTimeMillis()) + extension)
+}
+
+fun getIconByCameraMode(cameraMode: CameraMode, isDark: Boolean): Any = when (cameraMode) {
+    CameraMode.PHOTO -> if (isDark) R.drawable.ic_camera_photo_light else R.drawable.ic_camera_photo_dark
+    CameraMode.VIDEO -> if (isDark) R.drawable.ic_camera_video_light else R.drawable.ic_camera_video_dark
+    CameraMode.FILTER -> R.drawable.ic_open_source
+}
+
+fun takePhoto(baseFolder: File?, capture: ImageCapture, onSaved: (File) -> Unit) {
+    val photoFile = getPhotoFile(baseFolder)
+    photoFile?.let {
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(it).build()
+        capture.takePicture(outputOptions, Executors.newSingleThreadExecutor(), object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                val captureFile: File = output.savedUri?.toFile() ?: it
+                onSaved.invoke(captureFile)
+                Log.d("XX", "Photo capture succeeded: $captureFile")
+            }
+            override fun onError(exception: ImageCaptureException) {
+                Log.e("XX", "Photo capture exception: $exception")
+            }
+        })
+    }
+}
+
+fun executeFlash(view: PreviewView) {
+    view.postDelayed({
+        view.foreground = ColorDrawable(Color.Black.hashCode())
+        view.postDelayed({ view.foreground = null }, ANIMATION_FAST_MILLIS)
+    }, ANIMATION_SLOW_MILLIS)
 }

@@ -137,7 +137,7 @@ class CameraFragment : BaseFragmentCompose() {
         AppTheme {
             CameraScreen(
                 outputDirectory,
-                onGallery = {
+                onGalleryClicked = {
                     if (isDirectoryNotEmpty()) {
                         navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
                     }
