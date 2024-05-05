@@ -78,7 +78,7 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:host="example.android.com" />
+                <data android:host="arindamxd.github.io" />
                 <data android:pathPattern="/camerax" />
             </intent-filter>
 
