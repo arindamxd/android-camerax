@@ -117,7 +117,7 @@ fun CameraScreen(
 
     val thumbnail = remember { mutableStateOf<File?>(null) }
     val cameraMode = rememberSaveable { mutableStateOf(CameraMode.PHOTO) }
-    val cameraState = rememberSaveable { mutableStateOf(CameraState.BACK) }
+    val cameraState = rememberSaveable { mutableStateOf(CameraState.FRONT) }
 
     val previewView: PreviewView = remember { PreviewView(context) }
     val imageCapture: MutableState<ImageCapture?> = remember { mutableStateOf(null) }
