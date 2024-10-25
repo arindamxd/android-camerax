@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -106,7 +107,7 @@ private fun GalleryHeader(
                 .padding(10.dp)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = rememberRipple(bounded = false)
+                    indication = remember { ripple(bounded = false) }
                 ) { navigateBack.invoke() },
             contentDescription = "Back"
         )
@@ -153,7 +154,7 @@ private fun GalleryFooter(
                     .padding(10.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = rememberRipple(bounded = false)
+                        indication = remember { ripple(bounded = false) }
                     ) { onShareClicked.invoke(pagerState.currentPage) },
                 contentDescription = "Back"
             )
@@ -173,7 +174,7 @@ private fun GalleryFooter(
                     .padding(10.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = rememberRipple(bounded = false)
+                        indication = remember { ripple(bounded = false) }
                     ) {
                         showDialog.value = true
                     },
@@ -198,7 +199,7 @@ private fun GalleryPager(
     HorizontalPager(
         state = pagerState,
         pageSize = PageSize.Fill,
-        beyondBoundsPageCount = 2,
+        beyondViewportPageCount = 2,
         modifier = Modifier.fillMaxSize()
     ) { page ->
         dataList.value[page]?.let {
