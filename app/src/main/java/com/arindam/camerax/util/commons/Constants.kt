@@ -13,11 +13,6 @@ object Constants {
         internal const val PREF_NAME = "pref_camerax"
     }
 
-    object EXTRAS {
-        internal const val KEY_EVENT_ACTION = "key_event_action"
-        internal const val KEY_EVENT_EXTRA = "key_event_extra"
-    }
-
     object PERMISSIONS {
         internal val REQUIRED_PERMISSIONS = mutableListOf(
             Manifest.permission.CAMERA/*,
@@ -34,9 +29,8 @@ object Constants {
         internal val EXTENSION_WHITELIST = arrayOf("jpg")
     }
 
-    object FIRESTORE {
-        internal const val DOCUMENT_PATH = "active/quote"
-        internal const val KEY_MESSAGE = "message"
-        internal const val KEY_AUTHOR = "author"
+    object EXTRAS {
+        const val KEY_EVENT_ACTION = "key_event_action"
+        const val KEY_EVENT_EXTRA = "key_event_extra"
     }
 }
