@@ -37,6 +37,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         signingConfig = signingConfigs.getByName("release")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk.abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") )
     }
 
     buildTypes {
@@ -51,7 +52,9 @@ android {
             resValue("string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}.release)")
             resValue("string", "app_name", "CameraX")
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            ndk.debugSymbolLevel = "SYMBOL_TABLE"
         }
     }
 
@@ -200,5 +203,3 @@ dependencies {
     androidTestImplementation(libs.androidx.runner)
     androidTestImplementation(libs.androidx.espresso.core)
 }
-
-android.buildTypes["release"].ndk.debugSymbolLevel = "SYMBOL_TABLE"

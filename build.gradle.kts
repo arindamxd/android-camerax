@@ -31,3 +31,16 @@ tasks.register<Delete>("clean") {
         rootProject.subprojects.map { it.layout.buildDirectory }
     )
 }
+
+tasks.register("printNativeDebugSymbols") {
+    dependsOn("bundleRelease") // ensures bundleRelease runs first
+    doLast {
+        val symbolsDir = layout.buildDirectory.dir("outputs/native-debug-symbols/release").get().asFile
+        val symbolsZip = symbolsDir.resolve("native-debug-symbols.zip")
+        if (symbolsZip.exists()) {
+            println("Native debug symbols generated at: ${symbolsZip.absolutePath}")
+        } else {
+            println("No native-debug-symbols.zip found in $symbolsDir")
+        }
+    }
+}
