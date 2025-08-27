@@ -1,8 +1,10 @@
 package com.arindam.camerax.ui.home.camera
 
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.util.Log
 import androidx.annotation.FloatRange
+import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -35,9 +37,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -96,9 +98,9 @@ import kotlin.math.sign
  */
 
 enum class CameraMode {
-    PHOTO,
-    VIDEO,
-    FILTER
+    PHOTO
+//    VIDEO,
+//    FILTER
 }
 
 enum class CameraState(val selector: CameraSelector) {
@@ -130,14 +132,14 @@ fun CameraScreen(
                 cameraSelector = cameraState.value.selector,
                 previewView = previewView
             )
-            CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
-                lifecycleOwner = lifecycleOwner,
-                cameraSelector = cameraState.value.selector,
-                previewView = previewView
-            )
-            CameraMode.FILTER -> {
-                // TODO
-            }
+//            CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
+//                lifecycleOwner = lifecycleOwner,
+//                cameraSelector = cameraState.value.selector,
+//                previewView = previewView
+//            )
+//            CameraMode.FILTER -> {
+//                // TODO
+//            }
         }
 
         baseFolder?.listFiles { file ->
@@ -166,14 +168,14 @@ fun CameraScreen(
                         cameraSelector = cameraState.value.selector,
                         previewView = previewView
                     )
-                    CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
-                        lifecycleOwner = lifecycleOwner,
-                        cameraSelector = cameraState.value.selector,
-                        previewView = previewView
-                    )
-                    CameraMode.FILTER -> {
-                        // TODO
-                    }
+//                    CameraMode.VIDEO -> videoCapture.value = context.getVideoCaptureUseCase(
+//                        lifecycleOwner = lifecycleOwner,
+//                        cameraSelector = cameraState.value.selector,
+//                        previewView = previewView
+//                    )
+//                    CameraMode.FILTER -> {
+//                        // TODO
+//                    }
                 }
             }
         },
@@ -182,16 +184,18 @@ fun CameraScreen(
                 CameraMode.PHOTO -> imageCapture.value?.let { capture ->
                     takePhoto(baseFolder, capture) { thumbnail.value = it }
                     // Display flash animation to indicate that photo was captured
-                    executeFlash(previewView)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        executeFlash(previewView)
+                    }
                 }
-                CameraMode.VIDEO -> {
-                    // TODO
-                    Toaster.show(context, "Under development")
-                }
-                CameraMode.FILTER -> {
-                    // TODO
-                    Toaster.show(context, "Under development")
-                }
+//                CameraMode.VIDEO -> {
+//                    // TODO
+//                    Toaster.show(context, "Under development")
+//                }
+//                CameraMode.FILTER -> {
+//                    // TODO
+//                    Toaster.show(context, "Under development")
+//                }
             }
         },
         onGalleryClicked = onGalleryClicked,
@@ -245,7 +249,7 @@ fun CameraHeader(
                         .align(Alignment.CenterEnd)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = rememberRipple(bounded = false)
+                            indication = ripple(bounded = false)
                         ) { onSettingsClicked() }
                 )
             }
@@ -316,7 +320,7 @@ fun CameraController(
                             .align(Alignment.Center)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = false)
+                                indication = ripple(bounded = false)
                             ) { onCameraStateChanged() }
                     )
                 }
@@ -337,7 +341,7 @@ fun CameraController(
                             .align(Alignment.Center)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = false)
+                                indication = ripple(bounded = false)
                             ) { onCaptureClicked() }
                     )
                 }
@@ -360,7 +364,7 @@ fun CameraController(
                             .padding(padding)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = false)
+                                indication = ripple(bounded = false)
                             ) { onGalleryClicked() }
                     )
                 }
@@ -602,8 +606,8 @@ fun getPhotoFile(baseFolder: File?): File? {
 
 fun getIconByCameraMode(cameraMode: CameraMode): Any = when (cameraMode) {
     CameraMode.PHOTO -> R.drawable.ic_camera_photo
-    CameraMode.VIDEO -> R.drawable.ic_camera_video
-    CameraMode.FILTER -> R.drawable.ic_open_source
+//    CameraMode.VIDEO -> R.drawable.ic_camera_video
+//    CameraMode.FILTER -> R.drawable.ic_open_source
 }
 
 fun takePhoto(baseFolder: File?, capture: ImageCapture, onSaved: (File) -> Unit) {
@@ -623,6 +627,7 @@ fun takePhoto(baseFolder: File?, capture: ImageCapture, onSaved: (File) -> Unit)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.M)
 fun executeFlash(view: PreviewView, isDark: Boolean = false) {
     view.postDelayed({
         view.foreground = ColorDrawable(if (isDark) Color.Black.hashCode() else Color.White.hashCode())

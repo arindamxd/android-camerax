@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.navigation.safeargs) apply false
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.firebase.crashlytics) apply false
-
 }
 
 // App version
@@ -21,11 +20,14 @@ ext["versionNameBase"] = "${ext["versionMajor"]}.${ext["versionMinor"]}.${ext["v
 ext["versionCodeBase"] = (ext["versionMajor"] as Int) * 10000 + (ext["versionMinor"] as Int) * 100 + (ext["versionPatch"] as Int)
 
 // SDK and tools
-ext["compileSdk"] = 34
+ext["compileSdk"] = 36
 ext["minSdkVersion"] = 21
 ext["minTvSdkVersion"] = 21 // TV was introduced with Lollipop, min SDK should be 21.
-ext["targetSdkVersion"] = 34
+ext["targetSdkVersion"] = 36
 
 tasks.register<Delete>("clean") {
-    delete(rootProject.buildDir)
+    delete(
+        rootProject.layout.buildDirectory,
+        rootProject.subprojects.map { it.layout.buildDirectory }
+    )
 }

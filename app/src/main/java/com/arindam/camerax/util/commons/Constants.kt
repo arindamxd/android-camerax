@@ -28,4 +28,9 @@ object Constants {
         internal const val FILE_NAME_KEY = "file_name"
         internal val EXTENSION_WHITELIST = arrayOf("jpg")
     }
+
+    object EXTRAS {
+        const val KEY_EVENT_ACTION = "key_event_action"
+        const val KEY_EVENT_EXTRA = "key_event_extra"
+    }
 }
