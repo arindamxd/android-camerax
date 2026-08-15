@@ -24,10 +24,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +59,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -110,7 +116,16 @@ fun CameraHeader(
                     listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)
                 )
             )
-            .statusBarsPadding()
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                )
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
@@ -144,7 +159,7 @@ fun CameraHeader(
                     compact = compact,
                     onClick = onGridClicked
                 )
-                if (state.mode != CameraMode.VIDEO) {
+                if (state.mode == CameraMode.PHOTO) {
                     GlassIconButton(
                         icon = if (state.motionPhotoEnabled) {
                             Icons.Filled.MotionPhotosOn
@@ -244,6 +259,27 @@ fun RecordingHud(
 }
 
 @Composable
+fun PanoramaBanner(state: CameraUiState) {
+    val visible = state.mode == CameraMode.PANORAMA
+    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
+        Text(
+            text = if (state.panoramaActive) {
+                stringResource(R.string.panorama_panning, state.panoramaFrames)
+            } else {
+                stringResource(R.string.panorama_hint)
+            },
+            color = CameraAccent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
 fun NightSceneBanner(state: CameraUiState) {
     val visible = state.nightScene == NightScene.RECOMMENDED || state.autoNightActive
     AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
@@ -269,7 +305,10 @@ fun HybridAeControls(
     onIsoChanged: (Int) -> Unit,
     onShutterChanged: (Long) -> Unit
 ) {
-    if (state.exposureLimits.supportedPriorities.size < 2 || state.mode == CameraMode.VIDEO) return
+    if (state.exposureLimits.supportedPriorities.size < 2 ||
+        state.mode == CameraMode.VIDEO ||
+        state.mode == CameraMode.PANORAMA
+    ) return
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(
             modifier = Modifier
@@ -353,7 +392,7 @@ fun ZoomChips(
     ) {
         state.zoomChips.forEach { ratio ->
             val selected = kotlin.math.abs(state.zoomRatio - ratio) < 0.15f ||
-                (ratio == 1f && state.zoomRatio in 0.85f..1.2f)
+                    (ratio == 1f && state.zoomRatio in 0.85f..1.2f)
             val label = if (ratio < 1f) String.format("%.1f", ratio) else ratio.toInt().toString()
             Text(
                 text = "${label}x",
@@ -448,7 +487,16 @@ fun CameraFooter(
                     listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f))
                 )
             )
-            .navigationBarsPadding()
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing
+                    .union(WindowInsets.systemGestures)
+                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .padding(bottom = if (compact) 8.dp else 16.dp)
     ) {
         if (!state.lockCaptureMode) {
@@ -498,6 +546,7 @@ fun CameraFooter(
                 ShutterButton(
                     mode = state.mode,
                     isRecording = state.isRecording,
+                    panoramaActive = state.panoramaActive,
                     compact = compact,
                     onClick = onShutterClicked
                 )
@@ -517,12 +566,19 @@ fun CameraFooter(
 fun ShutterButton(
     mode: CameraMode,
     isRecording: Boolean,
+    panoramaActive: Boolean = false,
     compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    val innerScale by animateFloatAsState(if (isRecording) 0.42f else 0.78f, label = "shutterScale")
-    val corner by animateFloatAsState(if (isRecording) 0.22f else 0.5f, label = "shutterCorner")
+    val innerScale by animateFloatAsState(
+        if (isRecording || panoramaActive) 0.42f else 0.78f,
+        label = "shutterScale"
+    )
+    val corner by animateFloatAsState(
+        if (isRecording || panoramaActive) 0.22f else 0.5f,
+        label = "shutterCorner"
+    )
     Box(
         modifier = Modifier
             .size(if (compact) 64.dp else 84.dp)
@@ -543,7 +599,11 @@ fun ShutterButton(
             )
             val inner = size.minDimension * innerScale
             val origin = Offset((size.width - inner) / 2f, (size.height - inner) / 2f)
-            val color = if (mode == CameraMode.VIDEO || isRecording) CameraDanger else Color.White
+            val color = when {
+                mode == CameraMode.VIDEO || isRecording -> CameraDanger
+                panoramaActive -> CameraAccent
+                else -> Color.White
+            }
             drawRoundRect(
                 color = color,
                 topLeft = origin,
@@ -560,9 +620,19 @@ fun RuleOfThirdsGrid() {
         val color = Color.White.copy(alpha = 0.28f)
         val stroke = 1.dp.toPx()
         drawLine(color, Offset(size.width / 3f, 0f), Offset(size.width / 3f, size.height), stroke)
-        drawLine(color, Offset(size.width * 2f / 3f, 0f), Offset(size.width * 2f / 3f, size.height), stroke)
+        drawLine(
+            color,
+            Offset(size.width * 2f / 3f, 0f),
+            Offset(size.width * 2f / 3f, size.height),
+            stroke
+        )
         drawLine(color, Offset(0f, size.height / 3f), Offset(size.width, size.height / 3f), stroke)
-        drawLine(color, Offset(0f, size.height * 2f / 3f), Offset(size.width, size.height * 2f / 3f), stroke)
+        drawLine(
+            color,
+            Offset(0f, size.height * 2f / 3f),
+            Offset(size.width, size.height * 2f / 3f),
+            stroke
+        )
     }
 }
 
@@ -708,7 +778,8 @@ private fun GlassIconButton(
 ) {
     Box(
         modifier = Modifier
-            .size(if (compact) 36.dp else 42.dp)
+            .minimumInteractiveComponentSize()
+            .size(if (compact) 44.dp else 48.dp)
             .clip(CircleShape)
             .background(if (selected) CameraAccent.copy(alpha = 0.9f) else CameraGlass)
             .clickable(
@@ -722,7 +793,7 @@ private fun GlassIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = if (selected) Color.Black else CameraOnGlass,
-            modifier = Modifier.size(if (compact) 18.dp else 22.dp)
+            modifier = Modifier.size(if (compact) 20.dp else 22.dp)
         )
     }
 }

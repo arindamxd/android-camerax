@@ -63,6 +63,7 @@ import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
+import com.arindam.camerax.domain.model.PhysicalZoom
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.ZoomInfo
@@ -120,6 +121,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var motionOnSaved: ((File) -> Unit)? = null
     private var motionOnError: ((String) -> Unit)? = null
     private var motionAwaitingVideo = false
+    private var previewBoosted = false
 
     suspend fun initialize() {
         if (cameraProvider != null) return
@@ -147,13 +149,14 @@ class CameraSession(private val context: Context) : CameraRepository {
         provider.unbindAll()
         releaseEffects()
 
-        previewView.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+        previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
-        val baseSelector = config.lens.toSelector()
+        val baseSelector = selectorFor(config)
         val manager = extensionsManager
         val useExtension = config.extension != CameraExtension.NONE &&
+            config.cameraId == null &&
             manager != null &&
             manager.isExtensionAvailable(baseSelector, config.extension.toExtensionMode())
         val selector = if (useExtension) {
@@ -224,17 +227,24 @@ class CameraSession(private val context: Context) : CameraRepository {
         applyTorch(config.flash)
         val zoom = camera?.cameraInfo?.zoomState?.value
         val limits = exposureLimits()
+        val facing = if (config.lens == CameraLens.FRONT) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
         return CameraBindResult(
             hasFlash = camera?.cameraInfo?.hasFlashUnit() == true,
             minZoom = zoom?.minZoomRatio ?: 1f,
             maxZoom = zoom?.maxZoomRatio ?: 1f,
             zoomRatio = zoom?.zoomRatio ?: 1f,
             videoAvailable = videoCapture != null,
-            supportedExtensions = supportedExtensions(baseSelector),
+            supportedExtensions = supportedExtensions(config.lens.toSelector()),
             stillFormat = stillFormat,
             ultraHdrEnabled = stillFormat != StillFormat.JPEG,
             nightIndicatorSupported = Build.VERSION.SDK_INT >= 36,
-            exposureLimits = limits
+            exposureLimits = limits,
+            physicalZooms = discoverPhysicalZooms(facing),
+            boundCameraId = config.cameraId
         )
     }
 
@@ -390,7 +400,74 @@ class CameraSession(private val context: Context) : CameraRepository {
         colorProcessor?.release()
         colorProcessor = null
         _nightScene.value = NightScene.UNKNOWN
+        previewBoosted = false
         clearMotionCapture()
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun selectorFor(config: CameraBindConfig): CameraSelector {
+        val id = config.cameraId
+        if (id.isNullOrBlank()) return config.lens.toSelector()
+        return CameraSelector.Builder()
+            .addCameraFilter { infos ->
+                infos.filter { Camera2CameraInfo.from(it).cameraId == id }.ifEmpty { infos }
+            }
+            .build()
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun discoverPhysicalZooms(facing: Int): List<PhysicalZoom> {
+        val provider = cameraProvider ?: return emptyList()
+        val infos = provider.availableCameraInfos.filter { it.lensFacing == facing }
+        if (infos.size < 2) return emptyList()
+        val labeled = infos.mapNotNull { info ->
+            val camera2 = Camera2CameraInfo.from(info)
+            val focals = camera2.getCameraCharacteristic(
+                CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+            ) ?: return@mapNotNull null
+            val sensor = camera2.getCameraCharacteristic(
+                CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
+            )
+            val minFocal = focals.minOrNull() ?: return@mapNotNull null
+            val equivalent = if (sensor != null && sensor.width > 0f) {
+                36f * minFocal / sensor.width
+            } else {
+                minFocal * 7f
+            }
+            val label = when {
+                equivalent < 20f -> 0.5f
+                equivalent < 40f -> 1f
+                equivalent < 70f -> 2f
+                else -> 5f
+            }
+            PhysicalZoom(cameraId = camera2.cameraId, label = label) to equivalent
+        }
+        return labeled
+            .groupBy { it.first.label }
+            .map { (_, group) ->
+                val target = when (group.first().first.label) {
+                    0.5f -> 16f
+                    1f -> 28f
+                    2f -> 55f
+                    else -> 100f
+                }
+                group.minBy { kotlin.math.abs(it.second - target) }.first
+            }
+            .sortedBy { it.label }
+    }
+
+    private fun applyLowLightPreviewBoost(scene: NightScene) {
+        val exposure = camera?.cameraInfo?.exposureState ?: return
+        val range = exposure.exposureCompensationRange
+        if (scene == NightScene.RECOMMENDED && !previewBoosted && range.upper > 0) {
+            camera?.cameraControl?.setExposureCompensationIndex(
+                2.coerceAtMost(range.upper)
+            )
+            previewBoosted = true
+        } else if (scene != NightScene.RECOMMENDED && previewBoosted) {
+            camera?.cameraControl?.setExposureCompensationIndex(0)
+            previewBoosted = false
+        }
     }
 
     private fun applyTorch(mode: FlashMode) {
@@ -526,6 +603,7 @@ class CameraSession(private val context: Context) : CameraRepository {
                         else -> NightScene.UNKNOWN
                     }
                     if (_nightScene.value != scene) _nightScene.value = scene
+                    applyLowLightPreviewBoost(scene)
                 }
             }
         )

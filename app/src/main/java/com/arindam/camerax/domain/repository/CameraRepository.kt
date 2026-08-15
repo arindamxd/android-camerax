@@ -14,8 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
 interface CameraRepository {
+
     val nightScene: StateFlow<NightScene>
+
     suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult
+
     fun capturePhoto(
         outputDirectory: File,
         lens: CameraLens,
@@ -24,12 +27,14 @@ interface CameraRepository {
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
     )
+
     fun startRecording(
         outputDirectory: File,
         muted: Boolean,
         onEvent: (RecordingEvent) -> Unit,
         onError: (String) -> Unit
     ): File?
+
     fun pauseRecording()
     fun resumeRecording()
     fun stopRecording()
@@ -45,4 +50,6 @@ interface CameraRepository {
 
 interface MediaRepository {
     fun latest(directory: File): File?
+    fun stitchPanorama(frames: List<File>, outputDirectory: File): File
+    fun publish(file: File)
 }

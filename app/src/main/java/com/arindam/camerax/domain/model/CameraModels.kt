@@ -3,7 +3,8 @@ package com.arindam.camerax.domain.model
 enum class CameraMode {
     PHOTO,
     VIDEO,
-    EFFECTS
+    EFFECTS,
+    PANORAMA
 }
 
 enum class CameraLens {
@@ -84,12 +85,18 @@ data class ExposureLimits(
 
 data class FocusPoint(val x: Float, val y: Float)
 
+data class PhysicalZoom(
+    val cameraId: String,
+    val label: Float
+)
+
 data class CameraBindConfig(
     val lens: CameraLens,
     val flash: FlashMode,
     val extension: CameraExtension,
     val colorFilter: ColorFilterType,
-    val faceDetection: Boolean
+    val faceDetection: Boolean,
+    val cameraId: String? = null
 )
 
 data class CameraBindResult(
@@ -102,7 +109,9 @@ data class CameraBindResult(
     val stillFormat: StillFormat = StillFormat.JPEG,
     val ultraHdrEnabled: Boolean = false,
     val nightIndicatorSupported: Boolean = false,
-    val exposureLimits: ExposureLimits = ExposureLimits()
+    val exposureLimits: ExposureLimits = ExposureLimits(),
+    val physicalZooms: List<PhysicalZoom> = emptyList(),
+    val boundCameraId: String? = null
 )
 
 data class ZoomInfo(

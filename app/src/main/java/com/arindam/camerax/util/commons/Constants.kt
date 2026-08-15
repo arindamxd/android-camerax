@@ -1,6 +1,7 @@
 package com.arindam.camerax.util.commons
 
 import android.Manifest
+import android.os.Build
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
@@ -17,9 +18,9 @@ object Constants {
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO
         ).apply {
-            /*if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }*/
+            }
         }.toTypedArray()
     }
 

@@ -6,6 +6,7 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import com.arindam.camerax.domain.model.ColorFilterType
+import androidx.core.graphics.createBitmap
 
 /**
  * Shared color matrices for live CameraX [androidx.camera.core.CameraEffect] shaders
@@ -86,7 +87,7 @@ object ColorFilters {
 
     fun applyToBitmap(source: Bitmap, type: ColorFilterType): Bitmap {
         if (type == ColorFilterType.NONE) return source
-        val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(source.width, source.height)
         val canvas = Canvas(output)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             colorFilter = ColorMatrixColorFilter(androidMatrix(type))

@@ -60,7 +60,8 @@ abstract class BaseFragmentCompose : Fragment() {
 
     /** Helper function used to create a timestamped file */
     protected fun createFile(baseFolder: File, format: String, extension: String) = File(
-        baseFolder, SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension
+        baseFolder,
+        SimpleDateFormat(format, Locale.US).format(System.currentTimeMillis()) + extension
     )
 
     protected fun createFileName(format: String): String {

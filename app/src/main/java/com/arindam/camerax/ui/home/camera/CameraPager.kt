@@ -195,6 +195,30 @@ private class PagerState {
             .roundToInt()
             .coerceIn(0, numberOfItems - 1)
 
+        fun indexAtPosition(x: Float, y: Float): Int {
+            val dimension = when (orientation) {
+                Orientation.Horizontal -> size.width
+                Orientation.Vertical -> size.height
+            }
+            val coordinate = when (orientation) {
+                Orientation.Horizontal -> x
+                Orientation.Vertical -> y
+            }
+            val centerOffset = dimension / 2f - itemDimension / 2f
+            var best = currentIndex
+            var bestDistance = Float.MAX_VALUE
+            for (index in 0 until numberOfItems) {
+                val start = index * (itemDimension + itemSpacing) - dragOffset.value + centerOffset
+                val center = start + itemDimension / 2f
+                val distance = kotlin.math.abs(coordinate - center)
+                if (distance < bestDistance) {
+                    bestDistance = distance
+                    best = index
+                }
+            }
+            return best.coerceIn(0, numberOfItems - 1)
+        }
+
         fun updateIndex(offset: Float) {
             val index = itemIndex(offset.roundToInt())
             if (index != currentIndex) {
@@ -219,18 +243,38 @@ private class PagerState {
             val tracker = VelocityTracker()
             val decay = splineBasedDecay<Float>(this)
             val down = awaitFirstDown()
+            val start = down.position
+            var dragged = false
+            val slop = viewConfiguration.touchSlop
             val offsetLimit = calculateOffsetLimit()
             val dragHandler = { change: PointerInputChange ->
-                scope?.launch {
-                    val dragChange = change.calculateDragChange(orientation)
-                    dragOffset.snapTo((dragOffset.value - dragChange).coerceIn(offsetLimit.min, offsetLimit.max))
-                    updateIndex(dragOffset.value)
+                val travel = when (orientation) {
+                    Orientation.Horizontal -> kotlin.math.abs(change.position.x - start.x)
+                    Orientation.Vertical -> kotlin.math.abs(change.position.y - start.y)
                 }
-                tracker.addPosition(change.uptimeMillis, change.position)
+                if (travel > slop) dragged = true
+                if (dragged) {
+                    scope?.launch {
+                        val dragChange = change.calculateDragChange(orientation)
+                        dragOffset.snapTo(
+                            (dragOffset.value - dragChange).coerceIn(offsetLimit.min, offsetLimit.max)
+                        )
+                        updateIndex(dragOffset.value)
+                    }
+                    tracker.addPosition(change.uptimeMillis, change.position)
+                }
             }
             when (orientation) {
                 Orientation.Horizontal -> horizontalDrag(down.id, dragHandler)
                 Orientation.Vertical -> verticalDrag(down.id, dragHandler)
+            }
+            if (!dragged) {
+                val tapped = indexAtPosition(start.x, start.y)
+                scope?.launch {
+                    snapTo(tapped)
+                    updateIndex(dragOffset.value)
+                }
+                return@awaitEachGesture
             }
             val velocity = tracker.calculateVelocity(orientation)
             scope?.launch {

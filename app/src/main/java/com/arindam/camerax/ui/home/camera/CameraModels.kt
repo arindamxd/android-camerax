@@ -15,6 +15,7 @@ import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
+import com.arindam.camerax.domain.model.PhysicalZoom
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
 import java.io.File
@@ -24,6 +25,7 @@ val CameraMode.labelRes: Int
         CameraMode.PHOTO -> R.string.mode_photo
         CameraMode.VIDEO -> R.string.mode_video
         CameraMode.EFFECTS -> R.string.mode_effects
+        CameraMode.PANORAMA -> R.string.mode_panorama
     }
 
 val FlashMode.labelRes: Int
@@ -101,15 +103,29 @@ data class CameraUiState(
     val exposureLimits: ExposureLimits = ExposureLimits(),
     val iso: Int = 100,
     val shutterNanos: Long = 16_666_667L,
+    val panoramaActive: Boolean = false,
+    val panoramaFrames: Int = 0,
+    val cameraId: String? = null,
+    val physicalZooms: List<PhysicalZoom> = emptyList(),
     val message: String? = null
 ) {
     val zoomChips: List<Float>
-        get() = buildList {
-            if (minZoom <= 0.7f) add(minZoom.coerceAtLeast(0.5f))
-            add(1f)
-            if (maxZoom >= 1.9f) add(2f)
-            if (maxZoom >= 4.5f) add(5f)
-        }.distinct()
+        get() {
+            val physical = physicalZooms.map { it.label }
+            if (physical.size >= 2) {
+                return (physical + listOfNotNull(
+                    1f.takeIf { 1f !in physical },
+                    2f.takeIf { maxZoom >= 1.9f && 2f !in physical },
+                    5f.takeIf { maxZoom >= 4.5f && 5f !in physical }
+                )).distinct().sorted()
+            }
+            return buildList {
+                if (minZoom <= 0.7f) add(minZoom.coerceAtLeast(0.5f))
+                add(1f)
+                if (maxZoom >= 1.9f) add(2f)
+                if (maxZoom >= 4.5f) add(5f)
+            }.distinct()
+        }
 }
 
 enum class ExternalCaptureKind {

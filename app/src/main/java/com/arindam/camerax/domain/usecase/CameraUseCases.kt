@@ -16,8 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
 class BindCamera(private val repository: CameraRepository) {
-    suspend operator fun invoke(host: CameraHost, config: CameraBindConfig): CameraBindResult =
-        repository.bind(host, config)
+    suspend operator fun invoke(host: CameraHost, config: CameraBindConfig): CameraBindResult = repository.bind(host, config)
 }
 
 class CapturePhoto(private val repository: CameraRepository) {
@@ -77,8 +76,7 @@ class SetTargetRotation(private val repository: CameraRepository) {
 }
 
 class SetExposure(private val repository: CameraRepository) {
-    operator fun invoke(priority: ExposurePriority, iso: Int, shutterNanos: Long) =
-        repository.setExposure(priority, iso, shutterNanos)
+    operator fun invoke(priority: ExposurePriority, iso: Int, shutterNanos: Long) = repository.setExposure(priority, iso, shutterNanos)
 }
 
 class ObserveNightScene(private val repository: CameraRepository) {
@@ -91,4 +89,12 @@ class ReleaseCamera(private val repository: CameraRepository) {
 
 class GetLatestMedia(private val repository: MediaRepository) {
     operator fun invoke(directory: File): File? = repository.latest(directory)
+}
+
+class StitchPanorama(private val repository: MediaRepository) {
+    operator fun invoke(frames: List<File>, outputDirectory: File): File = repository.stitchPanorama(frames, outputDirectory)
+}
+
+class PublishMedia(private val repository: MediaRepository) {
+    operator fun invoke(file: File) = repository.publish(file)
 }

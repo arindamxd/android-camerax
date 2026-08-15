@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,26 +72,46 @@ fun GalleryScreen(
 ) {
     val mediaList = rememberSaveable { mutableStateOf(listOf<File?>()) }
     val pagerState = rememberPagerState(pageCount = { mediaList.value.size })
+    var playbackSpeed by remember { mutableFloatStateOf(1f) }
 
     LaunchedEffect(dataList) {
         mediaList.value = dataList.toMutableList()
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        playbackSpeed = 1f
     }
 
     Surface {
         GalleryPager(
             dataList = mediaList,
-            pagerState = pagerState
+            pagerState = pagerState,
+            playbackSpeed = playbackSpeed
         )
-        Box {
+        Box(Modifier.fillMaxSize()) {
             GalleryHeader(
                 navigateBack = navigateBack
             )
-            GalleryFooter(
-                dataList = mediaList,
-                pagerState = pagerState,
-                navigateBack = navigateBack,
-                onShareClicked = onShareClicked
-            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val current = mediaList.value.getOrNull(pagerState.currentPage)
+                if (current?.extension?.equals("mp4", ignoreCase = true) == true) {
+                    PlaybackSpeedRow(
+                        speed = playbackSpeed,
+                        onSpeedSelected = { playbackSpeed = it }
+                    )
+                }
+                GalleryFooter(
+                    dataList = mediaList,
+                    pagerState = pagerState,
+                    navigateBack = navigateBack,
+                    onShareClicked = onShareClicked
+                )
+            }
         }
     }
 }
@@ -155,9 +176,7 @@ private fun GalleryFooter(
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom,
-        modifier = Modifier
-            .fillMaxSize()
-            .navigationBarsPadding()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -208,6 +227,7 @@ private fun GalleryFooter(
 private fun GalleryPager(
     dataList: MutableState<List<File?>>,
     pagerState: PagerState,
+    playbackSpeed: Float = 1f,
 ) {
     HorizontalPager(
         state = pagerState,
@@ -217,7 +237,11 @@ private fun GalleryPager(
     ) { page ->
         dataList.value.getOrNull(page)?.let { file ->
             if (file.extension.lowercase() == "mp4") {
-                GalleryVideo(file = file, isActive = pagerState.currentPage == page)
+                GalleryVideo(
+                    file = file,
+                    isActive = pagerState.currentPage == page,
+                    playbackSpeed = playbackSpeed
+                )
             } else {
                 val motion = MotionPhotoMuxer.isMotionPhoto(file)
                 Box(Modifier.fillMaxSize()) {
@@ -249,7 +273,7 @@ private fun GalleryMotionOverlay(file: File) {
                 runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
             }
             if (extracted != null) {
-                GalleryVideo(file = extracted, isActive = true)
+                GalleryVideo(file = extracted, isActive = true, playbackSpeed = 1f)
             }
         }
         Text(
@@ -270,20 +294,59 @@ private fun GalleryMotionOverlay(file: File) {
 }
 
 @Composable
-private fun GalleryVideo(file: File, isActive: Boolean) {
+private fun PlaybackSpeedRow(
+    speed: Float,
+    onSpeedSelected: (Float) -> Unit
+) {
+    val speeds = listOf(0.5f, 1f, 1.5f, 2f)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(CameraGlass)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        speeds.forEach { value ->
+            val selected = kotlin.math.abs(speed - value) < 0.01f
+            Text(
+                text = if (value == 1f) "1x" else "${value}x",
+                color = if (selected) CameraAccent else Color.White,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSpeedSelected(value) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun GalleryVideo(file: File, isActive: Boolean, playbackSpeed: Float) {
     val videoView = remember(file) { mutableStateOf<VideoView?>(null) }
+    val playerRef = remember(file) { mutableStateOf<android.media.MediaPlayer?>(null) }
     AndroidView(
         factory = { context ->
             VideoView(context).apply {
                 setVideoPath(file.absolutePath)
                 setOnPreparedListener { player ->
+                    playerRef.value = player
                     player.isLooping = true
+                    runCatching {
+                        player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
+                    }
                     if (isActive) start()
                 }
                 videoView.value = this
             }
         },
         update = { view ->
+            playerRef.value?.let { player ->
+                runCatching {
+                    player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
+                }
+            }
             if (isActive) {
                 if (!view.isPlaying) view.start()
             } else if (view.isPlaying) {
@@ -295,6 +358,7 @@ private fun GalleryVideo(file: File, isActive: Boolean) {
     DisposableEffect(file) {
         onDispose {
             videoView.value?.stopPlayback()
+            playerRef.value = null
         }
     }
 }

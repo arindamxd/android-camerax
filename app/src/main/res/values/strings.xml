@@ -13,6 +13,10 @@
     <string name="mode_photo">Photo</string>
     <string name="mode_video">Video</string>
     <string name="mode_effects">Effects</string>
+    <string name="mode_panorama">Pano</string>
+    <string name="panorama_hint">Tap shutter, then pan slowly</string>
+    <string name="panorama_panning">Panning · %1$d frames</string>
+    <string name="playback_speed">Speed %1$sx</string>
     <string name="flash_off">Flash off</string>
     <string name="flash_on">Flash on</string>
     <string name="flash_auto">Flash auto</string>

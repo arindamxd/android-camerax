@@ -1,6 +1,10 @@
 package com.arindam.camerax.ui.home.camera
 
 import android.content.res.Configuration
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
@@ -28,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -51,8 +56,10 @@ fun CameraScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val previewView = remember {
         PreviewView(context).apply {
-            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             scaleType = PreviewView.ScaleType.FILL_CENTER
+            isClickable = false
+            isFocusable = false
         }
     }
 
@@ -106,6 +113,24 @@ fun CameraScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    DisposableEffect(state.panoramaActive) {
+        if (!state.panoramaActive) return@DisposableEffect onDispose { }
+        val manager = context.getSystemService(SensorManager::class.java)
+        val sensor = manager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+            ?: return@DisposableEffect onDispose { }
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val rotation = FloatArray(9)
+                val orientation = FloatArray(3)
+                SensorManager.getRotationMatrixFromVector(rotation, event.values)
+                SensorManager.getOrientation(rotation, orientation)
+                viewModel.onPanoramaYaw(Math.toDegrees(orientation[0].toDouble()).toFloat())
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+        }
+        manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
+        onDispose { manager.unregisterListener(listener) }
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val compact = maxHeight < 480.dp ||
@@ -118,6 +143,7 @@ fun CameraScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .zIndex(0f)
                     .pointerInput(state.isRecording) {
                         detectTapGestures { offset ->
                             viewModel.tapToFocus(previewView, offset)
@@ -133,7 +159,11 @@ fun CameraScreen(
                 RuleOfThirdsGrid()
             }
             FocusRing(state.focusPoint)
-            Column(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .zIndex(1f)
+            ) {
                 CameraHeader(
                     state = state,
                     compact = compact,
@@ -146,6 +176,7 @@ fun CameraScreen(
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         NightSceneBanner(state)
+                        PanoramaBanner(state)
                         RecordingHud(
                             state = state,
                             onPauseClicked = viewModel::pauseOrResume,
@@ -155,7 +186,9 @@ fun CameraScreen(
                 }
             }
             Column(
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HybridAeControls(
