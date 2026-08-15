@@ -44,7 +44,7 @@ class AutoFitPreviewBuilder private constructor(config: PreviewConfig, viewFinde
     private var viewFinderDisplay: Int = -1
 
     /** Internal reference of the [DisplayManager] */
-    private lateinit var displayManager: DisplayManager
+    private val displayManager: DisplayManager
 
     /**
      * We need a display listener for orientation changes that do not trigger a configuration
@@ -88,6 +88,7 @@ class AutoFitPreviewBuilder private constructor(config: PreviewConfig, viewFinde
     init {
         // Make sure that the view finder reference is valid
         val viewFinder = viewFinderRef.get() ?: throw IllegalArgumentException("Invalid reference to view finder used")
+        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
 
         // Initialize the display and rotation from texture view information
         viewFinderDisplay = viewFinder.display.displayId
@@ -137,7 +138,6 @@ class AutoFitPreviewBuilder private constructor(config: PreviewConfig, viewFinde
         //  rotation every time [updateTransform] is called, which gets triggered by
         //  [CameraFragment] display listener -- but the approach taken in this sample is not the
         //  only valid one.
-        displayManager = viewFinder.context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         displayManager.registerDisplayListener(displayListener, null)
 
         // Remove the display listeners when the view is detached to avoid holding a reference to

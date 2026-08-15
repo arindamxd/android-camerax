@@ -122,9 +122,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         val baseSelector = config.lens.toSelector()
         val manager = extensionsManager
         val useExtension = config.extension != CameraExtension.NONE &&
-            manager?.isExtensionAvailable(baseSelector, config.extension.toExtensionMode()) == true
+            manager != null &&
+            manager.isExtensionAvailable(baseSelector, config.extension.toExtensionMode())
         val selector = if (useExtension) {
-            manager!!.getExtensionEnabledCameraSelector(baseSelector, config.extension.toExtensionMode())
+            manager.getExtensionEnabledCameraSelector(baseSelector, config.extension.toExtensionMode())
         } else {
             baseSelector
         }

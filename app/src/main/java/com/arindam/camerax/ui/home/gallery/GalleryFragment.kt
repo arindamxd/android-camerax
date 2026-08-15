@@ -32,9 +32,6 @@ class GalleryFragment : BaseFragmentCompose() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
-        retainInstance = true
-
         // Get root directory of media from navigation arguments
         val rootDirectory = File(args.rootDirectory)
 

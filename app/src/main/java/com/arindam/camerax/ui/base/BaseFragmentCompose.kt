@@ -2,6 +2,7 @@ package com.arindam.camerax.ui.base
 
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -49,7 +50,7 @@ abstract class BaseFragmentCompose : Fragment() {
     /** Use external media if it is available, our app's file directory otherwise */
     protected fun getOutputFileDirectory(): File {
         val appContext = requireContext().applicationContext
-        val mediaDir = requireContext().externalMediaDirs.firstOrNull()?.let {
+        val mediaDir = appContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.let {
             File(it, appContext.resources.getString(R.string.app_name)).apply { mkdirs() }
         }
         return if (mediaDir != null && mediaDir.exists()) mediaDir else appContext.filesDir
