@@ -17,6 +17,8 @@ import androidx.lifecycle.LifecycleOwner
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+private fun PreviewView.currentRotation(): Int = display?.rotation ?: ROTATION_0
+
 /**
  * Created by Arindam Karmakar on 23/09/23.
  */
@@ -34,12 +36,15 @@ suspend fun Context.getImageCaptureUseCase(
     cameraSelector: CameraSelector,
     previewView: PreviewView
 ): ImageCapture {
-    val preview = Preview.Builder().build().apply {
-        setSurfaceProvider(previewView.surfaceProvider)
-    }
+    val preview = Preview.Builder()
+        .setTargetRotation(previewView.currentRotation())
+        .build()
+        .apply {
+            setSurfaceProvider(previewView.surfaceProvider)
+        }
     val imageCapture = ImageCapture.Builder()
         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-        .setTargetRotation(ROTATION_0)
+        .setTargetRotation(previewView.currentRotation())
         .build()
 
     val cameraProvider = getCameraProvider()
@@ -58,9 +63,12 @@ suspend fun Context.getVideoCaptureUseCase(
     cameraSelector: CameraSelector,
     previewView: PreviewView
 ): VideoCapture<Recorder> {
-    val preview = Preview.Builder().build().apply {
-        setSurfaceProvider(previewView.surfaceProvider)
-    }
+    val preview = Preview.Builder()
+        .setTargetRotation(previewView.currentRotation())
+        .build()
+        .apply {
+            setSurfaceProvider(previewView.surfaceProvider)
+        }
     val qualitySelector = QualitySelector.from(
         Quality.FHD,
         FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD)

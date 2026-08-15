@@ -22,8 +22,8 @@
         <item name="colorOnError">@color/red_200</item>
 
         <item name="scrimBackground">@color/black_900_alpha_087</item>
-        <item name="android:statusBarColor">@color/black_800</item>
-        <item name="android:navigationBarColor">@color/black_800</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
 
         <item name="elevationOverlayEnabled">false</item>
 
@@ -31,6 +31,7 @@
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
     </style>
 

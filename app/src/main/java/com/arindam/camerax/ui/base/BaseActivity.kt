@@ -1,6 +1,7 @@
 package com.arindam.camerax.ui.base
 
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.viewbinding.ViewBinding
@@ -16,6 +17,7 @@ abstract class BaseActivity<T : ViewBinding> : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (this is HomeActivity) installSplashScreen()
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         provideBinding().let {
             if (it == null) setContentView(0)

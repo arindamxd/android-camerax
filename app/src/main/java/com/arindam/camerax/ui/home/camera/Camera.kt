@@ -34,8 +34,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -65,7 +67,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -229,29 +231,36 @@ fun CameraHeader(
     Box(
         contentAlignment = Alignment.TopCenter
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .height(50.dp)
+                .fillMaxWidth()
                 .background(color = colorResource(id = R.color.black_900_alpha_020))
+                .statusBarsPadding()
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
-                Image(
-                    painter = rememberAsyncImagePainter(model = R.drawable.ic_settings),
-                    contentScale = ContentScale.Crop,
-                    contentDescription = "Settings",
+                Box(
                     modifier = Modifier
-                        .padding(end = 15.dp)
-                        .size(35.dp)
-                        .align(Alignment.CenterEnd)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = false)
-                        ) { onSettingsClicked() }
-                )
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = R.drawable.ic_settings),
+                        contentScale = ContentScale.Crop,
+                        contentDescription = "Settings",
+                        modifier = Modifier
+                            .padding(end = 15.dp)
+                            .size(35.dp)
+                            .align(Alignment.CenterEnd)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = false)
+                            ) { onSettingsClicked() }
+                    )
+                }
             }
         }
     }
@@ -271,8 +280,9 @@ fun CameraController(
     ) {
         Column(
             modifier = Modifier
-                .height(120.dp)
+                .fillMaxWidth()
                 .background(color = colorResource(id = R.color.black_900_alpha_020))
+                .navigationBarsPadding()
         ) {
             DiscretePager(
                 items = CameraMode.entries,

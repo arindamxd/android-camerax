@@ -18,6 +18,7 @@
     <application
         android:name=".CameraX"
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="false"
         android:hardwareAccelerated="true"
         android:hasCode="true"
@@ -25,7 +26,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
-        tools:replace="android:hasCode">
+        tools:replace="android:hasCode"
+        tools:targetApi="33">
 
         <!-- Fonts -->
         <meta-data
@@ -48,9 +50,10 @@
         <activity
             android:name=".ui.home.HomeActivity"
             android:clearTaskOnLaunch="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
             android:exported="true"
+            android:resizeableActivity="true"
             android:rotationAnimation="seamless"
-            android:screenOrientation="fullUser"
             android:theme="@style/Theme.Starting"
             tools:targetApi="o">
 
@@ -91,8 +94,8 @@
 
         <activity
             android:name=".ui.settings.SettingsActivity"
+            android:resizeableActivity="true"
             android:rotationAnimation="seamless"
-            android:screenOrientation="fullUser"
             tools:targetApi="o" />
 
     </application>

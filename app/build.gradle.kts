@@ -1,30 +1,47 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
-    alias(libs.plugins.dagger.hilt.android)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.navigation.safeargs)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.firebase.crashlytics) apply false
 }
 
-val storeFileProvider: String = gradleLocalProperties(rootDir, providers).getProperty("storeFile")
-val storePasswordProvider: String = gradleLocalProperties(rootDir, providers).getProperty("storePassword")
-val keyAliasProvider: String = gradleLocalProperties(rootDir, providers).getProperty("keyAlias")
-val keyPasswordProvider: String = gradleLocalProperties(rootDir, providers).getProperty("keyPassword")
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
+
+val localProperties = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        localFile.inputStream().use { load(it) }
+    }
+}
+val storeFileProvider = localProperties.getProperty("storeFile")
+val storePasswordProvider = localProperties.getProperty("storePassword")
+val keyAliasProvider = localProperties.getProperty("keyAlias")
+val keyPasswordProvider = localProperties.getProperty("keyPassword")
+val hasReleaseSigning = listOf(
+    storeFileProvider,
+    storePasswordProvider,
+    keyAliasProvider,
+    keyPasswordProvider
+).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.arindam.camerax"
     compileSdk = rootProject.extra["compileSdk"] as Int
 
     signingConfigs {
-        create("release") {
-            storeFile = file(storeFileProvider)
-            storePassword = storePasswordProvider
-            keyAlias = keyAliasProvider
-            keyPassword = keyPasswordProvider
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(storeFileProvider!!)
+                storePassword = storePasswordProvider
+                keyAlias = keyAliasProvider
+                keyPassword = keyPasswordProvider
+            }
         }
     }
 
@@ -35,7 +52,9 @@ android {
         versionCode = rootProject.extra["versionCodeBase"] as Int
         versionName = rootProject.extra["versionNameBase"] as String
         vectorDrawables.useSupportLibrary = true
-        signingConfig = signingConfigs.getByName("release")
+        if (hasReleaseSigning) {
+            signingConfig = signingConfigs.getByName("release")
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") )
     }
@@ -62,24 +81,20 @@ android {
         buildConfig = true
         viewBinding = true
         compose = true
+        resValues = true
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 
@@ -114,6 +129,7 @@ dependencies {
 
     // Lifecycle and LiveData
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Navigation library
     implementation(libs.androidx.navigation.fragment.ktx)
@@ -186,10 +202,6 @@ dependencies {
 
     implementation(libs.androidx.paging.compose)
 
-    // Hilt
-    implementation(libs.dagger.hilt.android)
-    kapt(libs.dagger.hilt.compiler)
-
     // Unit testing
     testImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.rules)
@@ -202,4 +214,10 @@ dependencies {
     androidTestImplementation(libs.androidx.rules)
     androidTestImplementation(libs.androidx.runner)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
