@@ -9,8 +9,8 @@ plugins {
 }
 
 if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-    apply(plugin = "com.google.firebase.crashlytics")
+    pluginManager.apply(libs.plugins.google.services.get().pluginId)
+    pluginManager.apply(libs.plugins.firebase.crashlytics.get().pluginId)
 }
 
 val localProperties = Properties().apply {
@@ -19,10 +19,10 @@ val localProperties = Properties().apply {
         localFile.inputStream().use { load(it) }
     }
 }
-val storeFileProvider = localProperties.getProperty("storeFile")
-val storePasswordProvider = localProperties.getProperty("storePassword")
-val keyAliasProvider = localProperties.getProperty("keyAlias")
-val keyPasswordProvider = localProperties.getProperty("keyPassword")
+val storeFileProvider: String? = localProperties.getProperty("storeFile")
+val storePasswordProvider: String? = localProperties.getProperty("storePassword")
+val keyAliasProvider: String? = localProperties.getProperty("keyAlias")
+val keyPasswordProvider: String? = localProperties.getProperty("keyPassword")
 val hasReleaseSigning = listOf(
     storeFileProvider,
     storePasswordProvider,

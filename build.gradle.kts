@@ -24,6 +24,7 @@ ext["minTvSdkVersion"] = 23
 ext["targetSdkVersion"] = 37
 
 tasks.register<Delete>("clean") {
+    description = "Deletes the root and module build directories."
     delete(
         rootProject.layout.buildDirectory,
         rootProject.subprojects.map { it.layout.buildDirectory }
@@ -31,7 +32,8 @@ tasks.register<Delete>("clean") {
 }
 
 tasks.register("printNativeDebugSymbols") {
-    dependsOn("bundleRelease") // ensures bundleRelease runs first
+    description = "Prints the path of the release native debug symbols zip after bundling."
+    dependsOn("bundleRelease")
     doLast {
         val symbolsDir = layout.buildDirectory.dir("outputs/native-debug-symbols/release").get().asFile
         val symbolsZip = symbolsDir.resolve("native-debug-symbols.zip")
