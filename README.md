@@ -1,90 +1,149 @@
-# Android CameraX
+# CameraX
 
-CameraX aims to demonstrate how to use CameraX APIs written in Kotlin.
+A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live filters, and ML Kit face overlay, with a Compose UI.
 
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" 
+[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
 alt="Get it on Google Play" height="90">](https://play.google.com/store/apps/details?id=com.arindam.camerax)
 
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://opensource.org/licenses/Apache-2.0)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## Overview
+- [Project page](https://arindamxd.github.io/projects/camerax)
+- [Privacy policy](https://arindamxd.github.io/projects/camerax/privacy-policy)
+- [Author](https://arindamxd.github.io/)
 
-CameraX is a Jet-pack support library, built to help you make camera app development easier. It 
-provides a consistent and easy-to-use API surface that works across most Android devices, with 
-backward-compatibility to Android 5.0 (API level 21).
+## What this project is
 
-- Ease of use
-- Consistency across devices
-- New camera experiences
+The **app** is named CameraX. It is built with the Jetpack **CameraX library** (lifecycle-aware, Camera2 under the hood, API 21+). This repo is the app, not the library — you can install it, tap through it, and copy patterns from it.
 
-While it leverages the capabilities of camera2, it uses a simpler, uses a case-based approach that 
-is lifecycle-aware. It also resolves device compatibility issues for you so that you don't have to 
-include device-specific code in your codebase. These features reduce the amount of code you need 
-to write when adding camera capabilities to your app.
+| In the app | What it demonstrates |
+| --- | --- |
+| **Photo** | Still capture with flash, timer, grid, pinch zoom, tap-to-focus |
+| **Video** | Record with audio, pause / resume, mute, elapsed timer, `.mp4` in gallery |
+| **Effects** | OEM HDR / Night / Portrait / Beauty (when the device supports them), color filters, face boxes |
 
-Lastly, CameraX enables developers to leverage the same camera experiences and features that 
-pre-installed camera apps provide, with as little as two lines of code. CameraX Extensions are 
-optional add-ons that enable you to add effects like Portrait, HDR, Night, and Beauty within your 
-application on supported devices.
+Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video + analysis together, the camera falls back (drop analysis, drop video, stills only) instead of crashing.
+
+## Try it
+
+1. Grant **camera** and **microphone**.
+2. Swipe **Photo / Video / Effects** at the bottom.
+3. Photo shutter is a white disc; video is red and becomes a stop square while recording.
+4. In Effects, pick a filter, an extension chip, or face detection.
+5. Open the thumbnail to browse, share, or delete photos and videos.
+
+## Architecture
+
+Single `:app` module, package-level Clean Architecture:
+
+```
+ui  →  domain  ←  data
+```
+
+```mermaid
+flowchart LR
+  CameraScreen --> CameraViewModel
+  CameraViewModel --> UseCases
+  UseCases --> CameraRepository
+  CameraSession --> CameraRepository
+  CameraSession --> ProcessCameraProvider
+  CameraSession --> Preview
+  CameraSession --> ImageCapture
+  CameraSession --> VideoCapture
+  CameraSession --> ImageAnalysis
+  CameraSession --> OverlayEffect
+```
+
+| Layer | Package | Role |
+| --- | --- | --- |
+| Presentation | `ui/` | Compose chrome, `CameraViewModel` (UI state, countdown, mode) |
+| Domain | `domain/` | Models, `CameraRepository`, use cases (`CapturePhoto`, `StartRecording`, `BindCamera`, …) |
+| Data | `data/camera/` | `CameraSession` — CameraX implementation of `CameraRepository` |
+| Composition root | `di/AppContainer` | Manual DI; UI never constructs `CameraSession` |
+
+`CameraFragment` is only a Compose host. Preview is wrapped as `PreviewViewHost` (`CameraHost`) so domain code does not import `PreviewView`.
+
+### Where to look
+
+```
+app/src/main/java/com/arindam/camerax/
+  domain/model/          CameraMode, FlashMode, RecordingEvent, …
+  domain/repository/     CameraRepository, MediaRepository
+  domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
+  data/camera/           CameraSession, ColorFilterProcessor, Overlay + CameraX mappers
+  data/media/            FileMediaRepository (latest jpg/mp4)
+  data/local/            SharedPreferences
+  di/                    AppContainer
+  ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
+  ui/home/gallery/       Photo + video pager
+```
+
+## CameraX API map
+
+| Control | API |
+| --- | --- |
+| Viewfinder | `Preview` + `PreviewView` |
+| Photo | `ImageCapture` |
+| Video, pause, mute | `VideoCapture` + `Recorder` + `Recording` |
+| Flash / torch | `ImageCapture.flashMode` + `CameraControl.enableTorch` |
+| Pinch zoom and 0.5 / 1x / 2x chips | `CameraControl.setZoomRatio` / `ZoomState` |
+| Tap to focus | `FocusMeteringAction` |
+| HDR / Night / Portrait / Beauty | `ExtensionsManager` (`ExtensionMode`) |
+| Live color filters | `CameraEffect` + `SurfaceProcessor` on preview and video; same matrix on still JPEGs |
+| Face boxes on preview **and** video | `ImageAnalysis` + `MlKitAnalyzer` + `OverlayEffect` (`PREVIEW \| VIDEO_CAPTURE`) |
+
+Face boxes are drawn with `OverlayEffect`, not a Compose canvas, so they are burned into recordings.
+
+Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java/com/arindam/camerax/domain/repository/CameraRepository.kt) and [`CameraSession`](app/src/main/java/com/arindam/camerax/data/camera/CameraSession.kt).
+
+## Stack
+
+- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**
+- minSdk **23**, target/compileSdk **37**
+- Navigation, ViewModel, Coil, ML Kit face detection
+- Optional Firebase Analytics / Crashlytics when `app/google-services.json` is present
 
 ## Build
 
-To build the app directly from the command line, run:
 ```sh
 ./gradlew assembleDebug
 ```
 
+Open the project in Android Studio and run the `app` configuration on a device or emulator with a camera. Microphone is optional hardware (`android.hardware.microphone` is not required).
+
 ## Test
 
-Unit testing and instrumented device testing share the same code. To test the app using Roboelectric, no device required, run:
 ```sh
-./gradlew test
+./gradlew test                  # JVM (Robolectric)
+./gradlew connectedAndroidTest  # device / emulator via ADB
 ```
 
-To run the same tests in an Android device connected via ADB, run:
-```sh
-./gradlew connectedAndroidTest
-```
+In Android Studio: **Run → Edit Configurations → Add** → `Android JUnit` (Robolectric) or `Android Instrumented Tests`, module `app`, class `com.arindam.camerax.MainInstrumentedTest`.
 
-Alternatively, test running configurations can be added to Android Studio for convenience (and a nice UI). To do that:
-1. Go to: `Run` > `Edit Configurations` > `Add New Configuration`.
-1. For Roboelectric select `Android JUnit`, for connected device select `Android Instrumented Tests`.
-1. Select `app` module and `com.arindam.camerax.MainInstrumentedTest` class.
-1. Optional: Give the run configuration a name, like `test roboelectric` or `test device`
+## Stretch (not in this app yet)
 
-### Find this project useful ? :heart:
-> Support it by clicking the :star:   button on the upper right of this page. :v:
+Slow-mo (`HighSpeedVideoSessionConfig`), ConcurrentCamera (front + back), RAW/DNG, full photo editor.
 
-### TODO
+## Contributing
 
-> Implement photo editor, live filters and face detection.
-> Add many more features and bug fixes.
+Pull requests are welcome. Follow [CONTRIBUTING.md](CONTRIBUTING.md) and target the `development` branch.
 
-### Contact - Let's become friends
+### Find this project useful?
 
+Star the repo if it helped you ship a camera feature.
+
+### Contact
+
+- [Author](https://arindamxd.github.io/)
 - [Twitter](https://twitter.com/arindamxd)
-- [Linkedin](https://in.linkedin.com/in/arindamxd)
+- [LinkedIn](https://in.linkedin.com/in/arindamxd)
 - [GitHub](https://github.com/arindamxd)
 
-### License
+## License
 
-```
-   Copyright (C) 2019 Arindam Karmakar, Android Open Source Project
+Copyright 2019-2026 Arindam Karmakar
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-```
-
-### Contributing to Advanced Android Training
-
-All pull requests are welcome, make sure to follow the [contribution guidelines](CONTRIBUTING.md) when you submit pull request.
+Portions of the original camera sample are from the
+[Android Open Source Project](https://github.com/android/camera-samples).

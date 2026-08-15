@@ -16,6 +16,11 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_face.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class androidx.camera.** { *; }
+
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile

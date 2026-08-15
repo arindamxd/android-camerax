@@ -130,6 +130,8 @@ dependencies {
     // Lifecycle and LiveData
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Navigation library
     implementation(libs.androidx.navigation.fragment.ktx)
@@ -142,6 +144,9 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
+    implementation(libs.androidx.camera.effects)
+    implementation(libs.androidx.camera.mlkit.vision)
+    implementation(libs.mlkit.face.detection)
 
     // EXIF
     implementation(libs.androidx.exifinterface)

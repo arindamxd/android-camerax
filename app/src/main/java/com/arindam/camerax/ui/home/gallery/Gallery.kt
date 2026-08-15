@@ -2,6 +2,7 @@
 
 package com.arindam.camerax.ui.home.gallery
 
+import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -25,18 +26,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.DarkLightPreviews
@@ -56,7 +58,7 @@ fun GalleryScreen(
     val mediaList = rememberSaveable { mutableStateOf(listOf<File?>()) }
     val pagerState = rememberPagerState(pageCount = { mediaList.value.size })
 
-    LaunchedEffect(mediaList) {
+    LaunchedEffect(dataList) {
         mediaList.value = dataList.toMutableList()
     }
 
@@ -188,25 +190,53 @@ private fun GalleryPager(
     dataList: MutableState<List<File?>>,
     pagerState: PagerState,
 ) {
-    LaunchedEffect(pagerState) {
-        // Collect from the a snapshotFlow reading the currentPage
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            pagerState.animateScrollToPage(page)
-        }
-    }
-
     HorizontalPager(
         state = pagerState,
         pageSize = PageSize.Fill,
-        beyondViewportPageCount = 2,
+        beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize()
     ) { page ->
-        dataList.value[page]?.let {
-            Image(
-                painter = rememberAsyncImagePainter(model = it),
-                contentScale = ContentScale.Crop,
-                contentDescription = null
-            )
+        dataList.value.getOrNull(page)?.let { file ->
+            if (file.extension.lowercase() == "mp4") {
+                GalleryVideo(file = file, isActive = pagerState.currentPage == page)
+            } else {
+                Image(
+                    painter = rememberAsyncImagePainter(model = file),
+                    contentScale = ContentScale.Fit,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GalleryVideo(file: File, isActive: Boolean) {
+    val videoView = remember(file) { mutableStateOf<VideoView?>(null) }
+    AndroidView(
+        factory = { context ->
+            VideoView(context).apply {
+                setVideoPath(file.absolutePath)
+                setOnPreparedListener { player ->
+                    player.isLooping = true
+                    if (isActive) start()
+                }
+                videoView.value = this
+            }
+        },
+        update = { view ->
+            if (isActive) {
+                if (!view.isPlaying) view.start()
+            } else if (view.isPlaying) {
+                view.pause()
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+    DisposableEffect(file) {
+        onDispose {
+            videoView.value?.stopPlayback()
         }
     }
 }

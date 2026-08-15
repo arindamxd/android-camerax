@@ -1,0 +1,45 @@
+---
+description: Project memory for the CameraX app — architecture, stack, and conventions
+alwaysApply: true
+---
+
+# CameraX — project memory
+
+Play Store camera app (`com.arindam.camerax`) built with Jetpack CameraX 1.6. Kotlin, Jetpack Compose, minSdk 23. Goal: show other apps what the CameraX library can do.
+
+## Architecture (Clean Architecture, single module)
+
+```
+ui (presentation) → domain ← data
+```
+
+- `domain/model` — camera models with no CameraX / Compose types
+- `domain/repository` — `CameraRepository`, `MediaRepository`
+- `domain/usecase` — `CapturePhoto`, `StartRecording`, `BindCamera`, recording/zoom/flash/filter interactors
+- `data/camera/CameraSession` — CameraX implementation of `CameraRepository`
+- `data/camera/PreviewViewHost` — `CameraHost` adapter for `PreviewView`
+- `ui/` — Compose chrome + `CameraViewModel` (UI state, countdown, bind revision)
+- `di/AppContainer` — composition root; do not construct `CameraSession` from the UI
+
+Keep use cases; do not collapse back to ViewModel → CameraSession. Do not split Gradle modules unless asked.
+
+`CameraFragment` is a thin Compose host only. Do not resurrect the old View-based capture/flash/zoom code.
+
+## CameraX rules
+
+- Bind `Preview + ImageCapture + VideoCapture` together when possible; fall back (drop analysis, drop video, stills only) on `IllegalArgumentException`.
+- Rebind only for lens, OEM extensions, face detection, or enabling/disabling the color `CameraEffect`. Zoom, torch, flash, and filter matrix updates must not rebind.
+- OEM extension chips (HDR / Night / Portrait=`BOKEH` / Beauty=`FACE_RETOUCH`) only if `ExtensionsManager.isExtensionAvailable`. Extensions typically cannot bind with `VideoCapture`.
+- Face boxes on **preview and recorded video** use `MlKitAnalyzer` + `OverlayEffect` (`PREVIEW | VIDEO_CAPTURE`), not a Compose canvas.
+- Live filters: `ColorFilterProcessor` (`CameraEffect` subclass) for preview/video; same color matrix on still JPEGs.
+- Media: photos `.jpg`, video `.mp4`. `Constants.FILE.EXTENSION_WHITELIST` must include both.
+
+## UI
+
+Immersive dark preview, glass chrome, accent `#f9aa33` (`CameraAccent` / `orange_500`), Work Sans. Modes: Photo / Video / Effects.
+
+## Do not
+
+- Force-push, amend pushed commits, or commit unless asked.
+- Edit the plan file in `.cursor/plans/`.
+- Require microphone as a hardware feature (`android.hardware.microphone` is optional).

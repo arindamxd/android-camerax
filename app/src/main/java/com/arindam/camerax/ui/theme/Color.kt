@@ -67,3 +67,11 @@ val md_theme_dark_shadow = Color(0xFF000000)
 val md_theme_dark_surfaceTint = Color(0xFFCFBCFF)
 val md_theme_dark_outlineVariant = Color(0xFF49454E)
 val md_theme_dark_scrim = Color(0xFF000000)
+
+/** Camera chrome — always drawn over a live preview. */
+val CameraAccent = Color(0xFFF9AA33)
+val CameraDanger = Color(0xFFFF4C5D)
+val CameraGlass = Color(0x66000000)
+val CameraGlassStrong = Color(0x99000000)
+val CameraOnGlass = Color(0xFFFFFFFF)
+val CameraOnGlassMuted = Color(0x99FFFFFF)

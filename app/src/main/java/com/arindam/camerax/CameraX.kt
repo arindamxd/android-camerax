@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.data.local.Preferences
+import com.arindam.camerax.di.AppContainer
 import com.arindam.camerax.util.theme.NightMode
 import java.util.Locale
 
@@ -13,9 +14,12 @@ import java.util.Locale
 
 class CameraX : Application() {
 
+    lateinit var container: AppContainer
+        private set
+
     override fun onCreate() {
         super.onCreate()
-
+        container = AppContainer(this)
         Preferences.init(this)
         handleDayNightTheme()
     }
