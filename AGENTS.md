@@ -1,9 +1,7 @@
----
-description: Project memory for the CameraX app — architecture, stack, and conventions
-alwaysApply: true
----
+# AGENTS.md — CameraX
 
-# CameraX — project memory
+Guidance for AI coding agents (and humans) working in this repository. **Read this before making
+changes.** It describes the rules, architecture, design system, and shared components.
 
 Play Store camera app (`com.arindam.camerax`) built with Jetpack CameraX 1.6.1. Kotlin, Jetpack Compose, minSdk 23, compileSdk/targetSdk 37. Goal: show other apps what the CameraX library can do.
 
