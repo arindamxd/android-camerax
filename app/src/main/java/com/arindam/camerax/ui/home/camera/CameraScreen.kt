@@ -1,26 +1,37 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.content.res.Configuration
+import android.hardware.display.DisplayManager
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import java.io.File
@@ -30,11 +41,13 @@ fun CameraScreen(
     outputDirectory: File?,
     onGalleryClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
+    onExternalCaptureReady: (File) -> Unit,
     viewModel: CameraViewModel
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val inspection = LocalInspectionMode.current
+    val configuration = LocalConfiguration.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val previewView = remember {
         PreviewView(context).apply {
@@ -55,6 +68,12 @@ fun CameraScreen(
     ) {
         if (!inspection) {
             viewModel.bind(lifecycleOwner, previewView)
+            previewView.display?.rotation?.let(viewModel::updateTargetRotation)
+        }
+    }
+    LaunchedEffect(configuration.orientation, configuration.screenWidthDp) {
+        if (!inspection) {
+            previewView.display?.rotation?.let(viewModel::updateTargetRotation)
         }
     }
     LaunchedEffect(state.message) {
@@ -62,68 +81,106 @@ fun CameraScreen(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.consumeMessage()
     }
+    LaunchedEffect(viewModel) {
+        viewModel.externalCaptureReady.collect(onExternalCaptureReady)
+    }
 
-    Box(Modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { previewView },
-            modifier = Modifier.fillMaxSize()
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(state.isRecording) {
-                    detectTapGestures { offset ->
-                        viewModel.tapToFocus(previewView, offset)
+    DisposableEffect(previewView) {
+        val displayManager = context.getSystemService(DisplayManager::class.java)
+        val listener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) = Unit
+            override fun onDisplayRemoved(displayId: Int) = Unit
+            override fun onDisplayChanged(displayId: Int) {
+                if (previewView.display?.displayId == displayId) {
+                    previewView.display?.rotation?.let(viewModel::updateTargetRotation)
+                }
+            }
+        }
+        displayManager?.registerDisplayListener(listener, Handler(Looper.getMainLooper()))
+        onDispose { displayManager?.unregisterDisplayListener(listener) }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.onHostStopped()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compact = maxHeight < 480.dp ||
+            configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        Box(Modifier.fillMaxSize()) {
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(state.isRecording) {
+                        detectTapGestures { offset ->
+                            viewModel.tapToFocus(previewView, offset)
+                        }
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, _, zoom, _ ->
+                            viewModel.pinchZoom(zoom)
+                        }
+                    }
+            )
+            if (state.gridEnabled) {
+                RuleOfThirdsGrid()
+            }
+            FocusRing(state.focusPoint)
+            Column(Modifier.fillMaxWidth()) {
+                CameraHeader(
+                    state = state,
+                    compact = compact,
+                    onFlashClicked = viewModel::cycleFlash,
+                    onTimerClicked = viewModel::cycleTimer,
+                    onGridClicked = viewModel::toggleGrid,
+                    onMotionClicked = viewModel::toggleMotionPhoto,
+                    onSettingsClicked = onSettingsClicked
+                )
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        NightSceneBanner(state)
+                        RecordingHud(
+                            state = state,
+                            onPauseClicked = viewModel::pauseOrResume,
+                            onMuteClicked = viewModel::toggleMute
+                        )
                     }
                 }
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, _, zoom, _ ->
-                        viewModel.pinchZoom(zoom)
-                    }
-                }
-        )
-        if (state.gridEnabled) {
-            RuleOfThirdsGrid()
+            }
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HybridAeControls(
+                    state = state,
+                    onPrioritySelected = viewModel::setExposurePriority,
+                    onIsoChanged = viewModel::setIso,
+                    onShutterChanged = viewModel::setShutterNanos
+                )
+                Spacer(Modifier.height(8.dp))
+                ZoomChips(state = state, onZoomSelected = viewModel::setZoom)
+                Spacer(Modifier.height(8.dp))
+                CameraFooter(
+                    state = state,
+                    compact = compact,
+                    onModeSelected = viewModel::setMode,
+                    onFlipClicked = viewModel::toggleLens,
+                    onShutterClicked = { viewModel.onShutter(previewView) },
+                    onGalleryClicked = onGalleryClicked,
+                    onFilterSelected = viewModel::setColorFilter,
+                    onExtensionSelected = viewModel::setExtension,
+                    onFaceDetectionClicked = viewModel::toggleFaceDetection
+                )
+            }
+            CountdownOverlay(state.countdownRemaining)
         }
-        FocusRing(state.focusPoint)
-        CameraHeader(
-            state = state,
-            onFlashClicked = viewModel::cycleFlash,
-            onTimerClicked = viewModel::cycleTimer,
-            onGridClicked = viewModel::toggleGrid,
-            onSettingsClicked = onSettingsClicked
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 96.dp)
-        ) {
-            RecordingHud(
-                state = state,
-                onPauseClicked = viewModel::pauseOrResume,
-                onMuteClicked = viewModel::toggleMute
-            )
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = if (state.mode == CameraMode.EFFECTS) 300.dp else 210.dp)
-        ) {
-            ZoomChips(state = state, onZoomSelected = viewModel::setZoom)
-        }
-        Box(Modifier.align(Alignment.BottomCenter)) {
-            CameraFooter(
-                state = state,
-                onModeSelected = viewModel::setMode,
-                onFlipClicked = viewModel::toggleLens,
-                onShutterClicked = { viewModel.onShutter(previewView) },
-                onGalleryClicked = onGalleryClicked,
-                onFilterSelected = viewModel::setColorFilter,
-                onExtensionSelected = viewModel::setExtension,
-                onFaceDetectionClicked = viewModel::toggleFaceDetection
-            )
-        }
-        CountdownOverlay(state.countdownRemaining)
     }
 }
 
@@ -133,7 +190,7 @@ private fun CameraChromePreview() {
     val previewState = CameraUiState(
         hasFlash = true,
         gridEnabled = true,
-        mode = CameraMode.PHOTO,
+        mode = com.arindam.camerax.domain.model.CameraMode.PHOTO,
         zoomRatio = 1f,
         minZoom = 0.5f,
         maxZoom = 5f
@@ -145,6 +202,7 @@ private fun CameraChromePreview() {
                 onFlashClicked = {},
                 onTimerClicked = {},
                 onGridClicked = {},
+                onMotionClicked = {},
                 onSettingsClicked = {}
             )
             Box(Modifier.align(Alignment.BottomCenter)) {

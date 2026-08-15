@@ -5,11 +5,14 @@ import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.domain.repository.MediaRepository
+import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
 class BindCamera(private val repository: CameraRepository) {
@@ -22,9 +25,10 @@ class CapturePhoto(private val repository: CameraRepository) {
         outputDirectory: File,
         lens: CameraLens,
         colorFilter: ColorFilterType,
+        motionPhoto: Boolean,
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
-    ) = repository.capturePhoto(outputDirectory, lens, colorFilter, onSaved, onError)
+    ) = repository.capturePhoto(outputDirectory, lens, colorFilter, motionPhoto, onSaved, onError)
 }
 
 class StartRecording(private val repository: CameraRepository) {
@@ -66,6 +70,19 @@ class TapToFocus(private val repository: CameraRepository) {
 
 class SetColorFilter(private val repository: CameraRepository) {
     operator fun invoke(type: ColorFilterType) = repository.setColorFilter(type)
+}
+
+class SetTargetRotation(private val repository: CameraRepository) {
+    operator fun invoke(rotation: Int) = repository.setTargetRotation(rotation)
+}
+
+class SetExposure(private val repository: CameraRepository) {
+    operator fun invoke(priority: ExposurePriority, iso: Int, shutterNanos: Long) =
+        repository.setExposure(priority, iso, shutterNanos)
+}
+
+class ObserveNightScene(private val repository: CameraRepository) {
+    operator fun invoke(): StateFlow<NightScene> = repository.nightScene
 }
 
 class ReleaseCamera(private val repository: CameraRepository) {

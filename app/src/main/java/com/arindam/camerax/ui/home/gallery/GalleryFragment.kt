@@ -1,5 +1,6 @@
 package com.arindam.camerax.ui.home.gallery
 
+import android.content.ClipData
 import android.content.Intent
 import android.os.Bundle
 import android.webkit.MimeTypeMap
@@ -61,9 +62,8 @@ class GalleryFragment : BaseFragmentCompose() {
                             val mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mediaFile.extension)
                             // Get URI from our FileProvider implementation
                             val uri = FileProvider.getUriForFile(requireContext(), BuildConfig.APPLICATION_ID + ".provider", mediaFile)
-                            // Set the appropriate intent extra, type, action and flags
                             putExtra(Intent.EXTRA_STREAM, uri)
-
+                            clipData = ClipData.newRawUri("", uri)
                             type = mediaType
                             action = Intent.ACTION_SEND
                             flags = Intent.FLAG_GRANT_READ_URI_PERMISSION

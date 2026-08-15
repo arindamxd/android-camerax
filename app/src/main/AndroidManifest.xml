@@ -16,12 +16,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <!--<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />-->
 
     <application
         android:name=".CameraX"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
+        android:extractNativeLibs="false"
         android:fullBackupContent="false"
         android:hardwareAccelerated="true"
         android:hasCode="true"
@@ -29,7 +33,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
-        tools:replace="android:hasCode"
+        tools:replace="android:hasCode,android:extractNativeLibs"
         tools:targetApi="33">
 
         <!-- Fonts -->
@@ -71,6 +75,9 @@
                 <action android:name="android.media.action.IMAGE_CAPTURE" />
                 <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
                 <action android:name="android.media.action.VIDEO_CAMERA" />
+                <action android:name="android.media.action.VIDEO_CAPTURE" />
+                <action android:name="android.provider.action.MOTION_PHOTO_CAPTURE" />
+                <action android:name="android.provider.action.MOTION_PHOTO_CAPTURE_SECURE" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -100,6 +107,12 @@
             android:resizeableActivity="true"
             android:rotationAnimation="seamless"
             tools:targetApi="o" />
+
+        <service
+            android:name=".data.camera.RecordingForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone"
+            android:stopWithTask="true" />
 
     </application>
 

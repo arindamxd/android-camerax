@@ -9,11 +9,14 @@ import com.arindam.camerax.domain.usecase.BindCamera
 import com.arindam.camerax.domain.usecase.CapturePhoto
 import com.arindam.camerax.domain.usecase.GetLatestMedia
 import com.arindam.camerax.domain.usecase.MuteRecording
+import com.arindam.camerax.domain.usecase.ObserveNightScene
 import com.arindam.camerax.domain.usecase.PauseRecording
 import com.arindam.camerax.domain.usecase.ReleaseCamera
 import com.arindam.camerax.domain.usecase.ResumeRecording
 import com.arindam.camerax.domain.usecase.SetColorFilter
+import com.arindam.camerax.domain.usecase.SetExposure
 import com.arindam.camerax.domain.usecase.SetFlash
+import com.arindam.camerax.domain.usecase.SetTargetRotation
 import com.arindam.camerax.domain.usecase.SetZoom
 import com.arindam.camerax.domain.usecase.StartRecording
 import com.arindam.camerax.domain.usecase.StopRecording
@@ -35,6 +38,9 @@ class AppContainer(context: Context) {
         setZoom = SetZoom(cameraRepository),
         tapToFocus = TapToFocus(cameraRepository),
         setColorFilter = SetColorFilter(cameraRepository),
+        setTargetRotation = SetTargetRotation(cameraRepository),
+        setExposure = SetExposure(cameraRepository),
+        observeNightScene = ObserveNightScene(cameraRepository),
         releaseCamera = ReleaseCamera(cameraRepository),
         getLatestMedia = GetLatestMedia(mediaRepository)
     )
@@ -52,6 +58,9 @@ data class CameraInteractors(
     val setZoom: SetZoom,
     val tapToFocus: TapToFocus,
     val setColorFilter: SetColorFilter,
+    val setTargetRotation: SetTargetRotation,
+    val setExposure: SetExposure,
+    val observeNightScene: ObserveNightScene,
     val releaseCamera: ReleaseCamera,
     val getLatestMedia: GetLatestMedia
 )

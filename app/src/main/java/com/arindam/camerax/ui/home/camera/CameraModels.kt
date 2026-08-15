@@ -1,5 +1,9 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import androidx.annotation.StringRes
 import androidx.compose.ui.geometry.Offset
 import com.arindam.camerax.R
@@ -7,7 +11,11 @@ import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.ExposureLimits
+import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.NightScene
+import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
 import java.io.File
 
@@ -40,6 +48,13 @@ val CameraExtension.labelRes: Int
         CameraExtension.NIGHT -> R.string.extension_night
         CameraExtension.PORTRAIT -> R.string.extension_portrait
         CameraExtension.BEAUTY -> R.string.extension_beauty
+    }
+
+val ExposurePriority.labelRes: Int
+    @StringRes get() = when (this) {
+        ExposurePriority.AUTO -> R.string.ae_auto
+        ExposurePriority.ISO -> R.string.ae_iso
+        ExposurePriority.SHUTTER -> R.string.ae_shutter
     }
 
 val ColorFilterType.labelRes: Int
@@ -75,6 +90,17 @@ data class CameraUiState(
     val focusPoint: Offset? = null,
     val captureFlashToken: Int = 0,
     val bindRevision: Int = 0,
+    val lockCaptureMode: Boolean = false,
+    val nightScene: NightScene = NightScene.UNKNOWN,
+    val autoNightActive: Boolean = false,
+    val motionPhotoEnabled: Boolean = false,
+    val motionCapturing: Boolean = false,
+    val ultraHdrEnabled: Boolean = false,
+    val stillFormat: StillFormat = StillFormat.JPEG,
+    val exposurePriority: ExposurePriority = ExposurePriority.AUTO,
+    val exposureLimits: ExposureLimits = ExposureLimits(),
+    val iso: Int = 100,
+    val shutterNanos: Long = 16_666_667L,
     val message: String? = null
 ) {
     val zoomChips: List<Float>
@@ -84,6 +110,61 @@ data class CameraUiState(
             if (maxZoom >= 1.9f) add(2f)
             if (maxZoom >= 4.5f) add(5f)
         }.distinct()
+}
+
+enum class ExternalCaptureKind {
+    NONE,
+    IMAGE_CAPTURE,
+    VIDEO_CAPTURE,
+    MOTION_PHOTO,
+    OPEN_PHOTO,
+    OPEN_VIDEO
+}
+
+data class ExternalCaptureRequest(
+    val kind: ExternalCaptureKind = ExternalCaptureKind.NONE,
+    val outputUri: Uri? = null
+) {
+    val returnsResult: Boolean
+        get() = kind == ExternalCaptureKind.IMAGE_CAPTURE ||
+            kind == ExternalCaptureKind.VIDEO_CAPTURE ||
+            kind == ExternalCaptureKind.MOTION_PHOTO
+
+    companion object {
+        fun from(intent: Intent): ExternalCaptureRequest {
+            val output = extraOutputUri(intent)
+            return when (intent.action) {
+                MediaStore.ACTION_IMAGE_CAPTURE,
+                MediaStore.ACTION_IMAGE_CAPTURE_SECURE ->
+                    ExternalCaptureRequest(ExternalCaptureKind.IMAGE_CAPTURE, output)
+                MediaStore.ACTION_VIDEO_CAPTURE ->
+                    ExternalCaptureRequest(ExternalCaptureKind.VIDEO_CAPTURE, output)
+                MOTION_PHOTO_CAPTURE,
+                MOTION_PHOTO_CAPTURE_SECURE ->
+                    ExternalCaptureRequest(ExternalCaptureKind.MOTION_PHOTO, output)
+                MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA,
+                MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE ->
+                    ExternalCaptureRequest(ExternalCaptureKind.OPEN_PHOTO)
+                MediaStore.INTENT_ACTION_VIDEO_CAMERA ->
+                    ExternalCaptureRequest(ExternalCaptureKind.OPEN_VIDEO)
+                else -> ExternalCaptureRequest()
+            }
+        }
+
+        private fun extraOutputUri(intent: Intent): Uri? {
+            val extra = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(MediaStore.EXTRA_OUTPUT, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(MediaStore.EXTRA_OUTPUT)
+            }
+            return extra ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri
+        }
+
+        private const val MOTION_PHOTO_CAPTURE = "android.provider.action.MOTION_PHOTO_CAPTURE"
+        private const val MOTION_PHOTO_CAPTURE_SECURE =
+            "android.provider.action.MOTION_PHOTO_CAPTURE_SECURE"
+    }
 }
 
 fun formatRecordingTime(nanos: Long): String {

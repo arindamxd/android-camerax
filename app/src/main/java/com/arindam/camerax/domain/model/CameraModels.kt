@@ -56,6 +56,32 @@ enum class ColorFilterType {
     VIVID
 }
 
+enum class NightScene {
+    UNKNOWN,
+    NOT_RECOMMENDED,
+    RECOMMENDED
+}
+
+enum class ExposurePriority {
+    AUTO,
+    ISO,
+    SHUTTER
+}
+
+enum class StillFormat {
+    JPEG,
+    JPEG_ULTRA_HDR,
+    HEIC_ULTRA_HDR
+}
+
+data class ExposureLimits(
+    val isoMin: Int = 50,
+    val isoMax: Int = 3200,
+    val shutterMinNanos: Long = 1_000_000L,
+    val shutterMaxNanos: Long = 250_000_000L,
+    val supportedPriorities: Set<ExposurePriority> = setOf(ExposurePriority.AUTO)
+)
+
 data class FocusPoint(val x: Float, val y: Float)
 
 data class CameraBindConfig(
@@ -72,7 +98,11 @@ data class CameraBindResult(
     val maxZoom: Float,
     val zoomRatio: Float,
     val videoAvailable: Boolean,
-    val supportedExtensions: Set<CameraExtension>
+    val supportedExtensions: Set<CameraExtension>,
+    val stillFormat: StillFormat = StillFormat.JPEG,
+    val ultraHdrEnabled: Boolean = false,
+    val nightIndicatorSupported: Boolean = false,
+    val exposureLimits: ExposureLimits = ExposureLimits()
 )
 
 data class ZoomInfo(

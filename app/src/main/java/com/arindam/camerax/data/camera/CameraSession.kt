@@ -2,18 +2,33 @@ package com.arindam.camerax.data.camera
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.RectF
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.TotalCaptureResult
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.Surface
 import androidx.annotation.MainThread
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraControl
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.CaptureRequestOptions
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraEffect
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
@@ -44,8 +59,12 @@ import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.ExposureLimits
+import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
+import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.ZoomInfo
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.util.commons.Constants
@@ -53,6 +72,9 @@ import com.arindam.camerax.util.log.Logger
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -80,14 +102,24 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var cameraProvider: ProcessCameraProvider? = null
     private var extensionsManager: ExtensionsManager? = null
     private var camera: Camera? = null
+    private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var videoCapture: VideoCapture<Recorder>? = null
+    private var imageAnalysis: ImageAnalysis? = null
     private var recording: Recording? = null
     private var overlayEffect: OverlayEffect? = null
     private var colorProcessor: ColorFilterProcessor? = null
     private var faceDetector: FaceDetector? = null
     private var boundPreviewView: PreviewView? = null
     @Volatile private var latestFaces: List<Rect> = emptyList()
+    private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
+    override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
+    private var stillFormat: StillFormat = StillFormat.JPEG
+    private var motionStill: File? = null
+    private var motionVideo: File? = null
+    private var motionOnSaved: ((File) -> Unit)? = null
+    private var motionOnError: ((String) -> Unit)? = null
+    private var motionAwaitingVideo = false
 
     suspend fun initialize() {
         if (cameraProvider != null) return
@@ -130,16 +162,21 @@ class CameraSession(private val context: Context) : CameraRepository {
             baseSelector
         }
 
-        val preview = Preview.Builder()
-            .setTargetRotation(rotation)
-            .build()
-            .also { it.surfaceProvider = previewView.surfaceProvider }
+        val previewBuilder = Preview.Builder().setTargetRotation(rotation)
+        attachNightModeMonitor(previewBuilder)
+        val preview = previewBuilder.build().also { it.surfaceProvider = previewView.surfaceProvider }
+        this.preview = preview
 
-        val capture = ImageCapture.Builder()
+        val captureBuilder = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setFlashMode(config.flash.toImageCaptureMode())
             .setTargetRotation(rotation)
-            .build()
+        val resolved = resolveStillFormat(provider.getCameraInfo(selector))
+        stillFormat = resolved.second
+        if (resolved.first != ImageCapture.OUTPUT_FORMAT_JPEG) {
+            captureBuilder.setOutputFormat(resolved.first)
+        }
+        val capture = captureBuilder.build()
         imageCapture = capture
 
         val recorder = Recorder.Builder()
@@ -162,6 +199,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         } else {
             null
         }
+        imageAnalysis = analysis
 
         val includeVideo = !useExtension
         val includeAnalysis = analysis != null
@@ -185,13 +223,18 @@ class CameraSession(private val context: Context) : CameraRepository {
 
         applyTorch(config.flash)
         val zoom = camera?.cameraInfo?.zoomState?.value
+        val limits = exposureLimits()
         return CameraBindResult(
             hasFlash = camera?.cameraInfo?.hasFlashUnit() == true,
             minZoom = zoom?.minZoomRatio ?: 1f,
             maxZoom = zoom?.maxZoomRatio ?: 1f,
             zoomRatio = zoom?.zoomRatio ?: 1f,
             videoAvailable = videoCapture != null,
-            supportedExtensions = supportedExtensions(baseSelector)
+            supportedExtensions = supportedExtensions(baseSelector),
+            stillFormat = stillFormat,
+            ultraHdrEnabled = stillFormat != StillFormat.JPEG,
+            nightIndicatorSupported = Build.VERSION.SDK_INT >= 36,
+            exposureLimits = limits
         )
     }
 
@@ -199,33 +242,15 @@ class CameraSession(private val context: Context) : CameraRepository {
         outputDirectory: File,
         lens: CameraLens,
         colorFilter: ColorFilterType,
+        motionPhoto: Boolean,
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
     ) {
-        val capture = imageCapture ?: return onError("Camera is not ready")
-        val photoFile = createFile(outputDirectory, Constants.FILE.PHOTO_EXTENSION)
-        val metadata = ImageCapture.Metadata().apply {
-            isReversedHorizontal = lens == CameraLens.FRONT
+        if (motionPhoto && videoCapture != null) {
+            captureMotionPhoto(outputDirectory, lens, colorFilter, onSaved, onError)
+            return
         }
-        val options = ImageCapture.OutputFileOptions.Builder(photoFile)
-            .setMetadata(metadata)
-            .build()
-        capture.takePicture(
-            options,
-            ContextCompat.getMainExecutor(context),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val file = output.savedUri?.toFile() ?: photoFile
-                    val processed = applyStillFilter(file, colorFilter)
-                    onSaved(processed)
-                }
-
-                override fun onError(exception: ImageCaptureException) {
-                    Logger.error(TAG, "Photo capture failed: ${exception.message}")
-                    onError(exception.message ?: "Photo capture failed")
-                }
-            }
-        )
+        takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
     }
 
     override fun startRecording(
@@ -247,8 +272,18 @@ class CameraSession(private val context: Context) : CameraRepository {
             Manifest.permission.RECORD_AUDIO
         ) == PermissionChecker.PERMISSION_GRANTED
         val active = if (withAudio) pending.withAudioEnabled() else pending
+        startRecordingService()
         recording = active.start(ContextCompat.getMainExecutor(context)) { event ->
-            event.toDomain()?.let(onEvent)
+            val domain = event.toDomain() ?: return@start
+            if (domain is RecordingEvent.Finalized) {
+                stopRecordingService()
+                if (motionAwaitingVideo) {
+                    motionAwaitingVideo = false
+                    if (!domain.success) motionVideo = null
+                    finishMotionIfReady()
+                }
+            }
+            onEvent(domain)
         }
         if (withAudio && muted) {
             recording?.mute(true)
@@ -304,9 +339,48 @@ class CameraSession(private val context: Context) : CameraRepository {
         colorProcessor?.colorMatrix = ColorFilters.glMatrix(type)
     }
 
+    override fun setTargetRotation(rotation: Int) {
+        preview?.targetRotation = rotation
+        imageCapture?.targetRotation = rotation
+        videoCapture?.targetRotation = rotation
+        imageAnalysis?.targetRotation = rotation
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    override fun setExposure(priority: ExposurePriority, iso: Int, shutterNanos: Long) {
+        val control = camera?.cameraControl ?: return
+        if (Build.VERSION.SDK_INT < 36) return
+        val camera2 = Camera2CameraControl.from(control)
+        if (priority == ExposurePriority.AUTO) {
+            camera2.clearCaptureRequestOptions()
+            return
+        }
+        val builder = CaptureRequestOptions.Builder()
+            .setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON)
+        when (priority) {
+            ExposurePriority.ISO -> {
+                builder.setCaptureRequestOption(
+                    CaptureRequest.CONTROL_AE_PRIORITY_MODE,
+                    CameraMetadata.CONTROL_AE_PRIORITY_MODE_SENSOR_SENSITIVITY_PRIORITY
+                )
+                builder.setCaptureRequestOption(CaptureRequest.SENSOR_SENSITIVITY, iso)
+            }
+            ExposurePriority.SHUTTER -> {
+                builder.setCaptureRequestOption(
+                    CaptureRequest.CONTROL_AE_PRIORITY_MODE,
+                    CameraMetadata.CONTROL_AE_PRIORITY_MODE_SENSOR_EXPOSURE_TIME_PRIORITY
+                )
+                builder.setCaptureRequestOption(CaptureRequest.SENSOR_EXPOSURE_TIME, shutterNanos)
+            }
+            ExposurePriority.AUTO -> Unit
+        }
+        camera2.setCaptureRequestOptions(builder.build())
+    }
+
     override fun release() {
         recording?.stop()
         recording = null
+        stopRecordingService()
         cameraProvider?.unbindAll()
         releaseEffects()
         faceDetector?.close()
@@ -315,10 +389,208 @@ class CameraSession(private val context: Context) : CameraRepository {
         overlayThread.quitSafely()
         colorProcessor?.release()
         colorProcessor = null
+        _nightScene.value = NightScene.UNKNOWN
+        clearMotionCapture()
     }
 
     private fun applyTorch(mode: FlashMode) {
         camera?.cameraControl?.enableTorch(mode == FlashMode.TORCH)
+    }
+
+    private fun takeStill(
+        outputDirectory: File,
+        lens: CameraLens,
+        colorFilter: ColorFilterType,
+        onSaved: (File) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val capture = imageCapture ?: return onError("Camera is not ready")
+        val extension = if (stillFormat == StillFormat.HEIC_ULTRA_HDR) {
+            Constants.FILE.HEIC_EXTENSION
+        } else {
+            Constants.FILE.PHOTO_EXTENSION
+        }
+        val photoFile = createFile(outputDirectory, extension)
+        val metadata = ImageCapture.Metadata().apply {
+            isReversedHorizontal = lens == CameraLens.FRONT
+        }
+        val options = ImageCapture.OutputFileOptions.Builder(photoFile)
+            .setMetadata(metadata)
+            .build()
+        capture.takePicture(
+            options,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    val file = output.savedUri?.toFile() ?: photoFile
+                    val preserveHdr = stillFormat != StillFormat.JPEG
+                    val processed = if (preserveHdr) file else applyStillFilter(file, colorFilter)
+                    onSaved(processed)
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Logger.error(TAG, "Photo capture failed: ${exception.message}")
+                    onError(exception.message ?: "Photo capture failed")
+                }
+            }
+        )
+    }
+
+    private fun captureMotionPhoto(
+        outputDirectory: File,
+        lens: CameraLens,
+        colorFilter: ColorFilterType,
+        onSaved: (File) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        motionStill = null
+        motionOnSaved = onSaved
+        motionOnError = onError
+        motionAwaitingVideo = true
+        val videoFile = startRecording(
+            outputDirectory = outputDirectory,
+            muted = true,
+            onEvent = {},
+            onError = { message ->
+                motionAwaitingVideo = false
+                motionVideo = null
+                Logger.warning(TAG, "Motion video failed: $message")
+                finishMotionIfReady()
+            }
+        )
+        if (videoFile == null) {
+            motionAwaitingVideo = false
+            takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
+            return
+        }
+        motionVideo = videoFile
+        takeStill(
+            outputDirectory = outputDirectory,
+            lens = lens,
+            colorFilter = colorFilter,
+            onSaved = { file ->
+                motionStill = file
+                finishMotionIfReady()
+            },
+            onError = { message ->
+                clearMotionCapture()
+                onError(message)
+            }
+        )
+        overlayHandler.postDelayed({ stopRecording() }, MOTION_DURATION_MS)
+    }
+
+    private fun finishMotionIfReady() {
+        val still = motionStill ?: return
+        if (motionAwaitingVideo) return
+        val video = motionVideo
+        val onSaved = motionOnSaved ?: return
+        clearMotionCapture()
+        if (video != null && video.exists() && video.length() > 0L) {
+            try {
+                val muxed = File(still.parentFile, still.nameWithoutExtension + "_motion.jpg")
+                MotionPhotoMuxer.mux(still, video, muxed)
+                still.delete()
+                video.delete()
+                onSaved(muxed)
+                return
+            } catch (error: Exception) {
+                Logger.error(TAG, "Motion mux failed: ${error.message}")
+            }
+        }
+        onSaved(still)
+    }
+
+    private fun clearMotionCapture() {
+        motionStill = null
+        motionVideo = null
+        motionOnSaved = null
+        motionOnError = null
+        motionAwaitingVideo = false
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun attachNightModeMonitor(builder: Preview.Builder) {
+        if (Build.VERSION.SDK_INT < 36) return
+        Camera2Interop.Extender(builder).setSessionCaptureCallback(
+            object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureCompleted(
+                    session: CameraCaptureSession,
+                    request: CaptureRequest,
+                    result: TotalCaptureResult
+                ) {
+                    val value = result.get(CaptureResult.EXTENSION_NIGHT_MODE_INDICATOR) ?: return
+                    val scene = when (value) {
+                        CameraMetadata.EXTENSION_NIGHT_MODE_INDICATOR_ON -> NightScene.RECOMMENDED
+                        CameraMetadata.EXTENSION_NIGHT_MODE_INDICATOR_OFF -> NightScene.NOT_RECOMMENDED
+                        else -> NightScene.UNKNOWN
+                    }
+                    if (_nightScene.value != scene) _nightScene.value = scene
+                }
+            }
+        )
+    }
+
+    private fun resolveStillFormat(info: CameraInfo): Pair<Int, StillFormat> {
+        val supported = runCatching {
+            ImageCapture.getImageCaptureCapabilities(info).supportedOutputFormats
+        }.getOrDefault(emptySet())
+        val heic = heicUltraHdrFormat()
+        if (heic != null && heic in supported) return heic to StillFormat.HEIC_ULTRA_HDR
+        if (ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in supported) {
+            return ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR to StillFormat.JPEG_ULTRA_HDR
+        }
+        return ImageCapture.OUTPUT_FORMAT_JPEG to StillFormat.JPEG
+    }
+
+    private fun heicUltraHdrFormat(): Int? =
+        ImageCapture::class.java.fields
+            .firstOrNull { it.name.contains("HEIC", ignoreCase = true) }
+            ?.let { runCatching { it.getInt(null) }.getOrNull() }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun exposureLimits(): ExposureLimits {
+        val bound = camera ?: return ExposureLimits()
+        if (Build.VERSION.SDK_INT < 36) return ExposureLimits()
+        val info = Camera2CameraInfo.from(bound.cameraInfo)
+        val modes = info.getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_PRIORITY_MODES)
+        val iso = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE)
+        val shutter = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE)
+        val priorities = buildSet {
+            add(ExposurePriority.AUTO)
+            modes?.forEach { mode ->
+                when (mode) {
+                    CameraMetadata.CONTROL_AE_PRIORITY_MODE_SENSOR_SENSITIVITY_PRIORITY ->
+                        add(ExposurePriority.ISO)
+                    CameraMetadata.CONTROL_AE_PRIORITY_MODE_SENSOR_EXPOSURE_TIME_PRIORITY ->
+                        add(ExposurePriority.SHUTTER)
+                }
+            }
+        }
+        return ExposureLimits(
+            isoMin = iso?.lower ?: 50,
+            isoMax = iso?.upper ?: 3200,
+            shutterMinNanos = shutter?.lower ?: 1_000_000L,
+            shutterMaxNanos = shutter?.upper ?: 250_000_000L,
+            supportedPriorities = priorities
+        )
+    }
+
+    private fun startRecordingService() {
+        runCatching {
+            ContextCompat.startForegroundService(
+                context,
+                Intent(context, RecordingForegroundService::class.java)
+            )
+        }.onFailure { error ->
+            Logger.warning(TAG, "Unable to start recording service: ${error.message}")
+        }
+    }
+
+    private fun stopRecordingService() {
+        runCatching {
+            context.stopService(Intent(context, RecordingForegroundService::class.java))
+        }
     }
 
     private fun setupFaceAnalyzer(analysis: ImageAnalysis) {
@@ -480,5 +752,6 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     companion object {
         private const val TAG = "CameraSession"
+        private const val MOTION_DURATION_MS = 1_500L
     }
 }

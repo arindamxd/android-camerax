@@ -42,6 +42,8 @@ import androidx.compose.material.icons.filled.GridOff
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.MotionPhotosOff
+import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -50,6 +52,7 @@ import androidx.compose.material.icons.filled.Timer3
 import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -77,7 +80,10 @@ import com.arindam.camerax.R
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.NightScene
+import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraDanger
@@ -89,9 +95,11 @@ import java.io.File
 @Composable
 fun CameraHeader(
     state: CameraUiState,
+    compact: Boolean = false,
     onFlashClicked: () -> Unit,
     onTimerClicked: () -> Unit,
     onGridClicked: () -> Unit,
+    onMotionClicked: () -> Unit,
     onSettingsClicked: () -> Unit
 ) {
     Column(
@@ -116,6 +124,7 @@ fun CameraHeader(
                         icon = flashIcon(state.flash),
                         contentDescription = stringResource(state.flash.labelRes),
                         selected = state.flash != FlashMode.OFF,
+                        compact = compact,
                         onClick = onFlashClicked
                     )
                 }
@@ -123,6 +132,7 @@ fun CameraHeader(
                     icon = timerIcon(state.timer),
                     contentDescription = stringResource(state.timer.labelRes),
                     selected = state.timer != TimerMode.OFF,
+                    compact = compact,
                     onClick = onTimerClicked
                 )
                 GlassIconButton(
@@ -131,14 +141,45 @@ fun CameraHeader(
                         if (state.gridEnabled) R.string.grid_on else R.string.grid_off
                     ),
                     selected = state.gridEnabled,
+                    compact = compact,
                     onClick = onGridClicked
                 )
+                if (state.mode != CameraMode.VIDEO) {
+                    GlassIconButton(
+                        icon = if (state.motionPhotoEnabled) {
+                            Icons.Filled.MotionPhotosOn
+                        } else {
+                            Icons.Filled.MotionPhotosOff
+                        },
+                        contentDescription = stringResource(
+                            if (state.motionPhotoEnabled) R.string.motion_photo_on else R.string.motion_photo_off
+                        ),
+                        selected = state.motionPhotoEnabled,
+                        compact = compact,
+                        onClick = onMotionClicked
+                    )
+                }
             }
-            GlassIconButton(
-                icon = Icons.Filled.Settings,
-                contentDescription = stringResource(R.string.settings),
-                onClick = onSettingsClicked
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                GlassIconButton(
+                    icon = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                    compact = compact,
+                    onClick = onSettingsClicked
+                )
+                if (state.ultraHdrEnabled) {
+                    Text(
+                        text = if (state.stillFormat == StillFormat.HEIC_ULTRA_HDR) {
+                            stringResource(R.string.ultrahdr_heic)
+                        } else {
+                            stringResource(R.string.ultrahdr)
+                        },
+                        color = CameraAccent,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
     }
 }
@@ -199,6 +240,101 @@ fun RecordingHud(
                 onClick = onMuteClicked
             )
         }
+    }
+}
+
+@Composable
+fun NightSceneBanner(state: CameraUiState) {
+    val visible = state.nightScene == NightScene.RECOMMENDED || state.autoNightActive
+    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
+        Text(
+            text = stringResource(
+                if (state.autoNightActive) R.string.night_mode_active else R.string.night_mode_recommended
+            ),
+            color = CameraAccent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun HybridAeControls(
+    state: CameraUiState,
+    onPrioritySelected: (ExposurePriority) -> Unit,
+    onIsoChanged: (Int) -> Unit,
+    onShutterChanged: (Long) -> Unit
+) {
+    if (state.exposureLimits.supportedPriorities.size < 2 || state.mode == CameraMode.VIDEO) return
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(CameraGlass)
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            state.exposureLimits.supportedPriorities.forEach { priority ->
+                val selected = state.exposurePriority == priority
+                Text(
+                    text = stringResource(priority.labelRes),
+                    color = if (selected) Color.Black else CameraOnGlass,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (selected) CameraAccent else Color.Transparent)
+                        .clickable { onPrioritySelected(priority) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
+        }
+        if (state.exposurePriority == ExposurePriority.ISO) {
+            val limits = state.exposureLimits
+            Slider(
+                value = state.iso.toFloat(),
+                onValueChange = { onIsoChanged(it.toInt()) },
+                valueRange = limits.isoMin.toFloat()..limits.isoMax.toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .padding(top = 4.dp)
+            )
+            Text(
+                text = stringResource(R.string.iso_value, state.iso),
+                color = CameraOnGlass,
+                fontSize = 11.sp
+            )
+        }
+        if (state.exposurePriority == ExposurePriority.SHUTTER) {
+            val limits = state.exposureLimits
+            Slider(
+                value = state.shutterNanos.toFloat(),
+                onValueChange = { onShutterChanged(it.toLong()) },
+                valueRange = limits.shutterMinNanos.toFloat()..limits.shutterMaxNanos.toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .padding(top = 4.dp)
+            )
+            Text(
+                text = stringResource(R.string.shutter_value, shutterLabel(state.shutterNanos)),
+                color = CameraOnGlass,
+                fontSize = 11.sp
+            )
+        }
+    }
+}
+
+private fun shutterLabel(nanos: Long): String {
+    if (nanos <= 0L) return "—"
+    val seconds = nanos / 1_000_000_000.0
+    return if (seconds >= 1.0) {
+        String.format("%.1fs", seconds)
+    } else {
+        "1/%d".format((1.0 / seconds).toInt().coerceAtLeast(1))
     }
 }
 
@@ -295,6 +431,7 @@ fun EffectsFilmstrip(
 @Composable
 fun CameraFooter(
     state: CameraUiState,
+    compact: Boolean = false,
     onModeSelected: (CameraMode) -> Unit,
     onFlipClicked: () -> Unit,
     onShutterClicked: () -> Unit,
@@ -312,35 +449,37 @@ fun CameraFooter(
                 )
             )
             .navigationBarsPadding()
-            .padding(bottom = 16.dp)
+            .padding(bottom = if (compact) 8.dp else 16.dp)
     ) {
-        EffectsFilmstrip(
-            state = state,
-            onFilterSelected = onFilterSelected,
-            onExtensionSelected = onExtensionSelected,
-            onFaceDetectionClicked = onFaceDetectionClicked
-        )
-        DiscretePager(
-            items = CameraMode.entries,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp),
-            itemFraction = 0.28f,
-            overshootFraction = 0.75f,
-            initialIndex = state.mode.ordinal,
-            itemSpacing = 8.dp,
-            onItemSelected = onModeSelected
-        ) { item ->
-            val selected = item == state.mode
-            Text(
-                text = stringResource(item.labelRes).uppercase(),
-                color = if (selected) CameraAccent else CameraOnGlassMuted,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 13.sp,
-                letterSpacing = 1.2.sp
+        if (!state.lockCaptureMode) {
+            EffectsFilmstrip(
+                state = state,
+                onFilterSelected = onFilterSelected,
+                onExtensionSelected = onExtensionSelected,
+                onFaceDetectionClicked = onFaceDetectionClicked
             )
+            DiscretePager(
+                items = CameraMode.entries,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (compact) 28.dp else 36.dp),
+                itemFraction = 0.28f,
+                overshootFraction = 0.75f,
+                initialIndex = state.mode.ordinal,
+                itemSpacing = 8.dp,
+                onItemSelected = onModeSelected
+            ) { item ->
+                val selected = item == state.mode
+                Text(
+                    text = stringResource(item.labelRes).uppercase(),
+                    color = if (selected) CameraAccent else CameraOnGlassMuted,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if (compact) 11.sp else 13.sp,
+                    letterSpacing = 1.2.sp
+                )
+            }
+            Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
         }
-        Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -351,6 +490,7 @@ fun CameraFooter(
                 GlassIconButton(
                     icon = Icons.Filled.Cameraswitch,
                     contentDescription = stringResource(R.string.switch_camera_button_alt),
+                    compact = compact,
                     onClick = onFlipClicked
                 )
             }
@@ -358,11 +498,16 @@ fun CameraFooter(
                 ShutterButton(
                     mode = state.mode,
                     isRecording = state.isRecording,
+                    compact = compact,
                     onClick = onShutterClicked
                 )
             }
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                GalleryThumb(file = state.thumbnail, onClick = onGalleryClicked)
+                if (state.lockCaptureMode) {
+                    Spacer(Modifier.size(48.dp))
+                } else {
+                    GalleryThumb(file = state.thumbnail, onClick = onGalleryClicked)
+                }
             }
         }
     }
@@ -372,6 +517,7 @@ fun CameraFooter(
 fun ShutterButton(
     mode: CameraMode,
     isRecording: Boolean,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
@@ -379,7 +525,7 @@ fun ShutterButton(
     val corner by animateFloatAsState(if (isRecording) 0.22f else 0.5f, label = "shutterCorner")
     Box(
         modifier = Modifier
-            .size(84.dp)
+            .size(if (compact) 64.dp else 84.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = false)

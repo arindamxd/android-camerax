@@ -5,6 +5,7 @@ package com.arindam.camerax.ui.home.gallery
 import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -12,8 +13,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
@@ -32,17 +37,26 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
+import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.ui.theme.CameraAccent
+import com.arindam.camerax.ui.theme.CameraGlass
 import java.io.File
 
 /**
@@ -99,7 +113,10 @@ private fun GalleryHeader(
     Row(
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Top,
-        modifier = Modifier.padding(start = 10.dp, top = 10.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(start = 10.dp, top = 10.dp)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_back),
@@ -110,7 +127,7 @@ private fun GalleryHeader(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = remember { ripple(bounded = false) }
                 ) { navigateBack.invoke() },
-            contentDescription = "Back"
+            contentDescription = stringResource(R.string.back_button_alt)
         )
     }
 }
@@ -138,7 +155,9 @@ private fun GalleryFooter(
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
     ) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -157,7 +176,7 @@ private fun GalleryFooter(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = remember { ripple(bounded = false) }
                     ) { onShareClicked.invoke(pagerState.currentPage) },
-                contentDescription = "Back"
+            contentDescription = stringResource(R.string.share_button_alt)
             )
         }
         Column(
@@ -179,7 +198,7 @@ private fun GalleryFooter(
                     ) {
                         showDialog.value = true
                     },
-                contentDescription = "Back"
+            contentDescription = stringResource(R.string.delete_button_alt)
             )
         }
     }
@@ -200,14 +219,53 @@ private fun GalleryPager(
             if (file.extension.lowercase() == "mp4") {
                 GalleryVideo(file = file, isActive = pagerState.currentPage == page)
             } else {
-                Image(
-                    painter = rememberAsyncImagePainter(model = file),
-                    contentScale = ContentScale.Fit,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val motion = MotionPhotoMuxer.isMotionPhoto(file)
+                Box(Modifier.fillMaxSize()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = file),
+                        contentScale = ContentScale.Fit,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    if (motion) {
+                        GalleryMotionOverlay(file = file)
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun GalleryMotionOverlay(file: File) {
+    val context = LocalContext.current
+    var playing by remember(file) { mutableStateOf(false) }
+    val clip = remember(file) {
+        File(context.cacheDir, "motion_${file.nameWithoutExtension}.mp4")
+    }
+    Box(Modifier.fillMaxSize()) {
+        if (playing) {
+            val extracted = remember(file) {
+                runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
+            }
+            if (extracted != null) {
+                GalleryVideo(file = extracted, isActive = true)
+            }
+        }
+        Text(
+            text = stringResource(
+                if (playing) R.string.motion_photo_badge else R.string.play_motion_photo
+            ),
+            color = CameraAccent,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .clickable { playing = !playing }
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
     }
 }
 
