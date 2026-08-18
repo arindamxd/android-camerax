@@ -38,7 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Exposure
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -61,8 +61,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,9 +94,12 @@ import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
+import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraDanger
+import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraGlass
+import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.CameraOnGlass
 import com.arindam.camerax.ui.theme.CameraOnGlassMuted
 import java.io.File
@@ -106,8 +112,16 @@ fun CameraHeader(
     onTimerClicked: () -> Unit,
     onGridClicked: () -> Unit,
     onMotionClicked: () -> Unit,
-    onSettingsClicked: () -> Unit
+    onSettingsClicked: () -> Unit,
+    onExposurePrioritySelected: (ExposurePriority) -> Unit = {},
+    onIsoChanged: (Int) -> Unit = {},
+    onShutterChanged: (Long) -> Unit = {},
+    onCompensationChanged: (Int) -> Unit = {}
 ) {
+    var exposureOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(state.showsExposureControls) {
+        if (!state.showsExposureControls) exposureOpen = false
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -159,7 +173,7 @@ fun CameraHeader(
                     compact = compact,
                     onClick = onGridClicked
                 )
-                if (state.mode == CameraMode.PHOTO) {
+                if (state.mode == CameraMode.PHOTO && !state.rawCapture) {
                     GlassIconButton(
                         icon = if (state.motionPhotoEnabled) {
                             Icons.Filled.MotionPhotosOn
@@ -174,6 +188,18 @@ fun CameraHeader(
                         onClick = onMotionClicked
                     )
                 }
+                if (state.showsExposureControls) {
+                    val exposureActive = exposureOpen ||
+                        state.exposurePriority != ExposurePriority.AUTO ||
+                        state.exposureCompensation != 0
+                    GlassIconButton(
+                        icon = Icons.Filled.Exposure,
+                        contentDescription = stringResource(R.string.exposure_button),
+                        selected = exposureActive,
+                        compact = compact,
+                        onClick = { exposureOpen = !exposureOpen }
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 GlassIconButton(
@@ -182,7 +208,15 @@ fun CameraHeader(
                     compact = compact,
                     onClick = onSettingsClicked
                 )
-                if (state.ultraHdrEnabled) {
+                if (state.stillFormat == StillFormat.RAW_JPEG) {
+                    Text(
+                        text = stringResource(R.string.raw_dng),
+                        color = CameraAccent,
+                        fontFamily = CameraMono,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                } else if (state.ultraHdrEnabled) {
                     Text(
                         text = if (state.stillFormat == StillFormat.HEIC_ULTRA_HDR) {
                             stringResource(R.string.ultrahdr_heic)
@@ -190,11 +224,22 @@ fun CameraHeader(
                             stringResource(R.string.ultrahdr)
                         },
                         color = CameraAccent,
+                        fontFamily = CameraMono,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
+        }
+        if (exposureOpen && state.showsExposureControls) {
+            ExposureControls(
+                state = state,
+                compact = compact,
+                onPrioritySelected = onExposurePrioritySelected,
+                onIsoChanged = onIsoChanged,
+                onShutterChanged = onShutterChanged,
+                onCompensationChanged = onCompensationChanged
+            )
         }
     }
 }
@@ -234,6 +279,7 @@ fun RecordingHud(
                     formatRecordingTime(state.recordingNanos)
                 },
                 color = CameraOnGlass,
+                fontFamily = CameraMono,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp
             )
@@ -245,15 +291,17 @@ fun RecordingHud(
                 compact = true,
                 onClick = onPauseClicked
             )
-            GlassIconButton(
-                icon = if (state.isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
-                contentDescription = stringResource(
-                    if (state.isMuted) R.string.unmute_audio else R.string.mute_audio
-                ),
-                compact = true,
-                selected = state.isMuted,
-                onClick = onMuteClicked
-            )
+            if (state.mode != CameraMode.SLOW_MOTION) {
+                GlassIconButton(
+                    icon = if (state.isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
+                    contentDescription = stringResource(
+                        if (state.isMuted) R.string.unmute_audio else R.string.mute_audio
+                    ),
+                    compact = true,
+                    selected = state.isMuted,
+                    onClick = onMuteClicked
+                )
+            }
         }
     }
 }
@@ -269,6 +317,96 @@ fun PanoramaBanner(state: CameraUiState) {
                 stringResource(R.string.panorama_hint)
             },
             color = CameraAccent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun SlowMotionBanner(state: CameraUiState) {
+    val active = state.mode == CameraMode.SLOW_MOTION &&
+        state.slowMotionSupported &&
+        state.slowMotionFps > 0
+    AnimatedVisibility(visible = active, enter = fadeIn(), exit = fadeOut()) {
+        Text(
+            text = stringResource(R.string.slow_motion_fps, state.slowMotionFps),
+            color = CameraAccent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun StabilizationBanner(state: CameraUiState) {
+    AnimatedVisibility(
+        visible = state.videoStabilizationActive,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        Text(
+            text = stringResource(R.string.video_stabilization_on),
+            color = CameraAccent,
+            fontFamily = CameraMono,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun VideoHdrBanner(state: CameraUiState) {
+    val labelRes = when (state.videoHdrBound) {
+        VideoHdrRange.HLG10 -> R.string.video_hdr_hlg
+        VideoHdrRange.HDR10 -> R.string.video_hdr_hdr10
+        VideoHdrRange.HDR10_PLUS -> R.string.video_hdr_hdr10_plus
+        VideoHdrRange.SDR -> null
+    }
+    AnimatedVisibility(
+        visible = labelRes != null && state.mode != CameraMode.SLOW_MOTION,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        if (labelRes != null) {
+            Text(
+                text = stringResource(labelRes),
+                color = CameraAccent,
+                fontFamily = CameraMono,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CameraGlass)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun LowLightBoostBanner(state: CameraUiState) {
+    AnimatedVisibility(
+        visible = state.lowLightBoostActive,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        Text(
+            text = stringResource(R.string.low_light_boost_on),
+            color = CameraAccent,
+            fontFamily = CameraMono,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
@@ -299,70 +437,112 @@ fun NightSceneBanner(state: CameraUiState) {
 }
 
 @Composable
-fun HybridAeControls(
+fun ExposureControls(
     state: CameraUiState,
+    compact: Boolean = false,
     onPrioritySelected: (ExposurePriority) -> Unit,
     onIsoChanged: (Int) -> Unit,
-    onShutterChanged: (Long) -> Unit
+    onShutterChanged: (Long) -> Unit,
+    onCompensationChanged: (Int) -> Unit
 ) {
-    if (state.exposureLimits.supportedPriorities.size < 2 ||
-        state.mode == CameraMode.VIDEO ||
-        state.mode == CameraMode.PANORAMA
-    ) return
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(CameraGlass)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            state.exposureLimits.supportedPriorities.forEach { priority ->
-                val selected = state.exposurePriority == priority
-                Text(
-                    text = stringResource(priority.labelRes),
-                    color = if (selected) Color.Black else CameraOnGlass,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
+    val limits = state.exposureLimits
+    val showHybrid = limits.supportedPriorities.size >= 2
+    val showEv = limits.evMax > limits.evMin
+    if (!showHybrid && !showEv) return
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        if (showHybrid) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(CameraGlass)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                limits.supportedPriorities.forEach { priority ->
+                    val selected = state.exposurePriority == priority
+                    Text(
+                        text = stringResource(priority.labelRes),
+                        color = if (selected) Color.Black else CameraOnGlass,
+                        fontFamily = CameraMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (compact) 11.sp else 12.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (selected) CameraAccent else Color.Transparent)
+                            .clickable { onPrioritySelected(priority) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+            if (state.exposurePriority == ExposurePriority.ISO) {
+                Slider(
+                    value = state.iso.toFloat(),
+                    onValueChange = { onIsoChanged(it.toInt()) },
+                    valueRange = limits.isoMin.toFloat()..limits.isoMax.toFloat(),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (selected) CameraAccent else Color.Transparent)
-                        .clickable { onPrioritySelected(priority) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .fillMaxWidth(0.72f)
+                        .padding(top = 4.dp)
+                )
+                Text(
+                    text = stringResource(R.string.iso_value, state.iso),
+                    color = CameraOnGlass,
+                    fontFamily = CameraMono,
+                    fontSize = 11.sp
+                )
+            }
+            if (state.exposurePriority == ExposurePriority.SHUTTER) {
+                Slider(
+                    value = state.shutterNanos.toFloat(),
+                    onValueChange = { onShutterChanged(it.toLong()) },
+                    valueRange = limits.shutterMinNanos.toFloat()..limits.shutterMaxNanos.toFloat(),
+                    modifier = Modifier
+                        .fillMaxWidth(0.72f)
+                        .padding(top = 4.dp)
+                )
+                Text(
+                    text = stringResource(R.string.shutter_value, shutterLabel(state.shutterNanos)),
+                    color = CameraOnGlass,
+                    fontFamily = CameraMono,
+                    fontSize = 11.sp
                 )
             }
         }
-        if (state.exposurePriority == ExposurePriority.ISO) {
-            val limits = state.exposureLimits
-            Slider(
-                value = state.iso.toFloat(),
-                onValueChange = { onIsoChanged(it.toInt()) },
-                valueRange = limits.isoMin.toFloat()..limits.isoMax.toFloat(),
+        if (showEv) {
+            val ev = state.exposureCompensation * limits.evStep
+            val evLabel = when {
+                ev > 0.05f -> "+%.1f".format(ev)
+                ev < -0.05f -> "%.1f".format(ev)
+                else -> "0.0"
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .fillMaxWidth(0.72f)
-                    .padding(top = 4.dp)
-            )
-            Text(
-                text = stringResource(R.string.iso_value, state.iso),
-                color = CameraOnGlass,
-                fontSize = 11.sp
-            )
-        }
-        if (state.exposurePriority == ExposurePriority.SHUTTER) {
-            val limits = state.exposureLimits
-            Slider(
-                value = state.shutterNanos.toFloat(),
-                onValueChange = { onShutterChanged(it.toLong()) },
-                valueRange = limits.shutterMinNanos.toFloat()..limits.shutterMaxNanos.toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth(0.72f)
-                    .padding(top = 4.dp)
-            )
-            Text(
-                text = stringResource(R.string.shutter_value, shutterLabel(state.shutterNanos)),
-                color = CameraOnGlass,
-                fontSize = 11.sp
-            )
+                    .fillMaxWidth(0.78f)
+                    .padding(top = if (showHybrid) 8.dp else 0.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(CameraGlass)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.exposure_ev, evLabel),
+                    color = CameraAccent,
+                    fontFamily = CameraMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
+                Slider(
+                    value = state.exposureCompensation.toFloat(),
+                    onValueChange = { onCompensationChanged(it.toInt()) },
+                    valueRange = limits.evMin.toFloat()..limits.evMax.toFloat(),
+                    steps = (limits.evMax - limits.evMin - 1).coerceAtLeast(0),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -397,6 +577,7 @@ fun ZoomChips(
             Text(
                 text = "${label}x",
                 color = if (selected) Color.Black else CameraOnGlass,
+                fontFamily = CameraMono,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
                 modifier = Modifier
@@ -413,8 +594,7 @@ fun ZoomChips(
 fun EffectsFilmstrip(
     state: CameraUiState,
     onFilterSelected: (ColorFilterType) -> Unit,
-    onExtensionSelected: (CameraExtension) -> Unit,
-    onFaceDetectionClicked: () -> Unit
+    onExtensionSelected: (CameraExtension) -> Unit
 ) {
     AnimatedVisibility(visible = state.mode == CameraMode.EFFECTS && !state.isRecording) {
         Column(
@@ -456,12 +636,6 @@ fun EffectsFilmstrip(
                         onClick = { onExtensionSelected(extension) }
                     )
                 }
-                ExtensionChip(
-                    label = stringResource(R.string.face_detection),
-                    selected = state.faceDetectionEnabled,
-                    icon = Icons.Filled.Face,
-                    onClick = onFaceDetectionClicked
-                )
             }
         }
     }
@@ -476,8 +650,7 @@ fun CameraFooter(
     onShutterClicked: () -> Unit,
     onGalleryClicked: () -> Unit,
     onFilterSelected: (ColorFilterType) -> Unit,
-    onExtensionSelected: (CameraExtension) -> Unit,
-    onFaceDetectionClicked: () -> Unit
+    onExtensionSelected: (CameraExtension) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -503,17 +676,16 @@ fun CameraFooter(
             EffectsFilmstrip(
                 state = state,
                 onFilterSelected = onFilterSelected,
-                onExtensionSelected = onExtensionSelected,
-                onFaceDetectionClicked = onFaceDetectionClicked
+                onExtensionSelected = onExtensionSelected
             )
             DiscretePager(
-                items = CameraMode.entries,
+                items = state.visibleModes,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (compact) 28.dp else 36.dp),
                 itemFraction = 0.28f,
                 overshootFraction = 0.75f,
-                initialIndex = state.mode.ordinal,
+                initialIndex = state.visibleModes.indexOf(state.mode).coerceAtLeast(0),
                 itemSpacing = 8.dp,
                 onItemSelected = onModeSelected
             ) { item ->
@@ -521,6 +693,7 @@ fun CameraFooter(
                 Text(
                     text = stringResource(item.labelRes).uppercase(),
                     color = if (selected) CameraAccent else CameraOnGlassMuted,
+                    fontFamily = CameraMono,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = if (compact) 11.sp else 13.sp,
                     letterSpacing = 1.2.sp
@@ -535,12 +708,18 @@ fun CameraFooter(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                GlassIconButton(
-                    icon = Icons.Filled.Cameraswitch,
-                    contentDescription = stringResource(R.string.switch_camera_button_alt),
-                    compact = compact,
-                    onClick = onFlipClicked
-                )
+                val showFlip = !state.isRecording ||
+                    (state.flipWhileRecording && state.mode == CameraMode.VIDEO)
+                if (showFlip) {
+                    GlassIconButton(
+                        icon = Icons.Filled.Cameraswitch,
+                        contentDescription = stringResource(R.string.switch_camera_button_alt),
+                        compact = compact,
+                        onClick = onFlipClicked
+                    )
+                } else {
+                    Spacer(Modifier.size(if (compact) 40.dp else 48.dp))
+                }
             }
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 ShutterButton(
@@ -600,7 +779,9 @@ fun ShutterButton(
             val inner = size.minDimension * innerScale
             val origin = Offset((size.width - inner) / 2f, (size.height - inner) / 2f)
             val color = when {
-                mode == CameraMode.VIDEO || isRecording -> CameraDanger
+                mode == CameraMode.VIDEO ||
+                    mode == CameraMode.SLOW_MOTION ||
+                    isRecording -> CameraDanger
                 panoramaActive -> CameraAccent
                 else -> Color.White
             }
@@ -668,6 +849,7 @@ fun CountdownOverlay(value: Int?) {
         Text(
             text = value.toString(),
             color = Color.White,
+            fontFamily = CameraFontFamily,
             fontSize = 96.sp,
             fontWeight = FontWeight.Bold
         )
@@ -702,6 +884,7 @@ private fun FilterThumb(
     val fill = when (filter) {
         ColorFilterType.NONE -> Color.White
         ColorFilterType.MONO -> Color(0xFFBDBDBD)
+        ColorFilterType.INVERT -> Color(0xFF212121)
         ColorFilterType.VINTAGE -> Color(0xFFD7A86E)
         ColorFilterType.COOL -> Color(0xFF7EC8E3)
         ColorFilterType.WARM -> Color(0xFFFFB74D)

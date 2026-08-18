@@ -5,20 +5,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /**
  * Created by Arindam Karmakar on 12/09/23.
@@ -101,29 +94,6 @@ fun AppTheme(
         isDarkTheme -> darkColors
         else -> lightColors
     }
-    val typography = Typography(
-        titleLarge = TextStyle(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 22.sp,
-            lineHeight = 28.sp,
-            letterSpacing = 0.sp
-        ),
-        titleMedium = TextStyle(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            letterSpacing = 0.15.sp
-        ),
-        bodyLarge = TextStyle(
-            fontWeight = FontWeight.Normal,
-            fontFamily = FontFamily.SansSerif,
-            fontStyle = FontStyle.Italic,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            letterSpacing = 0.15.sp,
-            baselineShift = BaselineShift.Subscript
-        )
-    )
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),
         small = RoundedCornerShape(8.dp),
@@ -134,7 +104,7 @@ fun AppTheme(
 
     MaterialTheme(
         colorScheme = colors,
-        typography = typography,
+        typography = CameraTypography,
         shapes = shapes,
         content = content
     )

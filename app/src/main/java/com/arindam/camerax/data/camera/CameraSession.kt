@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.ImageFormat
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
@@ -30,19 +31,25 @@ import androidx.camera.core.Camera
 import androidx.camera.core.CameraEffect
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.DynamicRange
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.LowLightBoostState
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
 import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.effects.OverlayEffect
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.mlkit.vision.MlKitAnalyzer
-import androidx.camera.video.FallbackStrategy
+import androidx.camera.video.ExperimentalPersistentRecording
 import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.HighSpeedVideoSessionConfig
+import androidx.camera.video.PendingRecording
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
@@ -53,19 +60,24 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.net.toFile
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
+import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.PhysicalZoom
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.StillFormat
+import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.ZoomInfo
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.util.commons.Constants
@@ -108,6 +120,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var videoCapture: VideoCapture<Recorder>? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var recording: Recording? = null
+    private var highSpeedSession = false
     private var overlayEffect: OverlayEffect? = null
     private var colorProcessor: ColorFilterProcessor? = null
     private var faceDetector: FaceDetector? = null
@@ -115,6 +128,18 @@ class CameraSession(private val context: Context) : CameraRepository {
     @Volatile private var latestFaces: List<Rect> = emptyList()
     private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
     override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
+    private val _lowLightBoost = MutableStateFlow(LowLightBoost.OFF)
+    override val lowLightBoost: StateFlow<LowLightBoost> = _lowLightBoost.asStateFlow()
+    private var lowLightBoostLiveData: LiveData<Int>? = null
+    private val lowLightBoostObserver = Observer<Int> { value ->
+        _lowLightBoost.value = when (value) {
+            LowLightBoostState.ACTIVE -> LowLightBoost.ACTIVE
+            LowLightBoostState.INACTIVE -> LowLightBoost.INACTIVE
+            else -> LowLightBoost.OFF
+        }
+    }
+    private var flashMode: FlashMode = FlashMode.OFF
+    private var lowLightBoostRequested = true
     private var stillFormat: StillFormat = StillFormat.JPEG
     private var motionStill: File? = null
     private var motionVideo: File? = null
@@ -122,6 +147,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var motionOnError: ((String) -> Unit)? = null
     private var motionAwaitingVideo = false
     private var previewBoosted = false
+    private var userExposureIndex: Int? = null
 
     suspend fun initialize() {
         if (cameraProvider != null) return
@@ -138,6 +164,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     }
 
     @MainThread
+    @OptIn(ExperimentalCamera2Interop::class)
     override suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult {
         val previewHost = host as? PreviewViewHost
             ?: throw IllegalArgumentException("Unsupported camera host")
@@ -146,16 +173,32 @@ class CameraSession(private val context: Context) : CameraRepository {
         boundPreviewView = previewView
         initialize()
         val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
+        if (config.retainRecording && canRetainRecording()) {
+            return rebindWhileRecording(previewHost, config)
+        }
         provider.unbindAll()
         releaseEffects()
+        highSpeedSession = false
+        imageCapture = null
+        videoCapture = null
+        imageAnalysis = null
+        preview = null
 
         previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        previewView.scaleType = if (config.slowMotion || config.captureAspect == CaptureAspect.FULL) {
+            PreviewView.ScaleType.FILL_CENTER
+        } else {
+            PreviewView.ScaleType.FIT_CENTER
+        }
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
         val baseSelector = selectorFor(config)
         val manager = extensionsManager
-        val useExtension = config.extension != CameraExtension.NONE &&
+        val stillInfo = runCatching { provider.getCameraInfo(baseSelector) }.getOrNull()
+        val useRaw = config.rawCapture && !config.slowMotion && stillInfo?.supportsRawJpeg() == true
+        val useExtension = !useRaw &&
+            !config.slowMotion &&
+            config.extension != CameraExtension.NONE &&
             config.cameraId == null &&
             manager != null &&
             manager.isExtensionAvailable(baseSelector, config.extension.toExtensionMode())
@@ -165,7 +208,28 @@ class CameraSession(private val context: Context) : CameraRepository {
             baseSelector
         }
 
+        if (config.slowMotion) {
+            stillFormat = StillFormat.JPEG
+            val bound = bindHighSpeed(provider, lifecycleOwner, selector, previewView, rotation, config)
+            if (bound != null) {
+                camera = bound.camera
+                highSpeedSession = true
+                return finishBind(
+                    config = config,
+                    slowMotionSupported = true,
+                    slowMotionFps = bound.fps
+                )
+            }
+            Logger.warning(TAG, "High-speed bind failed; falling back to standard session")
+        }
+
         val previewBuilder = Preview.Builder().setTargetRotation(rotation)
+        config.captureAspect.toResolutionSelector()?.let { previewBuilder.setResolutionSelector(it) }
+        val cameraInfo = stillInfo
+        val wantStab = config.videoStabilization && !useExtension
+        val previewStab = wantStab && isPreviewStabilizationSupported(cameraInfo)
+        val videoStab = wantStab && isVideoStabilizationSupported(cameraInfo)
+        previewBuilder.setPreviewStabilizationEnabled(previewStab)
         attachNightModeMonitor(previewBuilder)
         val preview = previewBuilder.build().also { it.surfaceProvider = previewView.surfaceProvider }
         this.preview = preview
@@ -174,7 +238,31 @@ class CameraSession(private val context: Context) : CameraRepository {
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setFlashMode(config.flash.toImageCaptureMode())
             .setTargetRotation(rotation)
-        val resolved = resolveStillFormat(provider.getCameraInfo(selector))
+        val useFullSensor = useRaw &&
+            config.rawFullSensor &&
+            stillInfo?.supportsFullSensorRaw(context) == true
+        if (useFullSensor) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Camera2Interop.Extender(captureBuilder).setCaptureRequestOption(
+                    CaptureRequest.SENSOR_PIXEL_MODE,
+                    CameraMetadata.SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION
+                )
+            }
+            captureBuilder.setResolutionSelector(
+                ResolutionSelector.Builder()
+                    .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
+                    .build()
+            )
+        } else {
+            config.captureAspect.toResolutionSelector()?.let { captureBuilder.setResolutionSelector(it) }
+        }
+        val resolved = resolveStillOutput(
+            info = runCatching { provider.getCameraInfo(selector) }.getOrNull()
+                ?: stillInfo
+                ?: provider.getCameraInfo(baseSelector),
+            ultraHdr = config.ultraHdr && !useRaw,
+            rawCapture = useRaw
+        )
         stillFormat = resolved.second
         if (resolved.first != ImageCapture.OUTPUT_FORMAT_JPEG) {
             captureBuilder.setOutputFormat(resolved.first)
@@ -183,22 +271,18 @@ class CameraSession(private val context: Context) : CameraRepository {
         imageCapture = capture
 
         val recorder = Recorder.Builder()
-            .setQualitySelector(
-                QualitySelector.from(
-                    Quality.FHD,
-                    FallbackStrategy.lowerQualityOrHigherThan(Quality.HD)
-                )
-            )
+            .setQualitySelector(config.videoQuality.toQualitySelector())
             .build()
-        val video = VideoCapture.withOutput(recorder)
+        val videoRange = resolveVideoHdrRange(cameraInfo, config)
+        val video = buildVideoCapture(recorder, videoStab, videoRange)
         videoCapture = video
 
-        val analysis = if (config.faceDetection && !useExtension) {
-            ImageAnalysis.Builder()
+        val analysis = if (config.faceDetection && !useExtension && !useRaw) {
+            val analysisBuilder = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setTargetRotation(rotation)
-                .build()
-                .also { setupFaceAnalyzer(it) }
+            config.captureAspect.toResolutionSelector()?.let { analysisBuilder.setResolutionSelector(it) }
+            analysisBuilder.build().also { setupFaceAnalyzer(it) }
         } else {
             null
         }
@@ -207,8 +291,8 @@ class CameraSession(private val context: Context) : CameraRepository {
         val includeVideo = !useExtension
         val includeAnalysis = analysis != null
         val effects = buildEffects(
-            colorFilter = config.colorFilter,
-            faceDetection = config.faceDetection && !useExtension,
+            colorFilter = if (useRaw) ColorFilterType.NONE else config.colorFilter,
+            faceDetection = config.faceDetection && !useExtension && !useRaw,
             includeVideo = includeVideo
         )
 
@@ -224,27 +308,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         )
         if (!includeVideo) videoCapture = null
 
-        applyTorch(config.flash)
-        val zoom = camera?.cameraInfo?.zoomState?.value
-        val limits = exposureLimits()
-        val facing = if (config.lens == CameraLens.FRONT) {
-            CameraSelector.LENS_FACING_FRONT
-        } else {
-            CameraSelector.LENS_FACING_BACK
-        }
-        return CameraBindResult(
-            hasFlash = camera?.cameraInfo?.hasFlashUnit() == true,
-            minZoom = zoom?.minZoomRatio ?: 1f,
-            maxZoom = zoom?.maxZoomRatio ?: 1f,
-            zoomRatio = zoom?.zoomRatio ?: 1f,
-            videoAvailable = videoCapture != null,
-            supportedExtensions = supportedExtensions(config.lens.toSelector()),
-            stillFormat = stillFormat,
-            ultraHdrEnabled = stillFormat != StillFormat.JPEG,
-            nightIndicatorSupported = Build.VERSION.SDK_INT >= 36,
-            exposureLimits = limits,
-            physicalZooms = discoverPhysicalZooms(facing),
-            boundCameraId = config.cameraId
+        return finishBind(
+            config = config,
+            slowMotionSupported = isHighSpeedSupportedAnywhere(),
+            slowMotionFps = 0
         )
     }
 
@@ -256,7 +323,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
     ) {
-        if (motionPhoto && videoCapture != null) {
+        if (motionPhoto && stillFormat != StillFormat.RAW_JPEG && videoCapture != null) {
             captureMotionPhoto(outputDirectory, lens, colorFilter, onSaved, onError)
             return
         }
@@ -266,6 +333,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     override fun startRecording(
         outputDirectory: File,
         muted: Boolean,
+        persistent: Boolean,
         onEvent: (RecordingEvent) -> Unit,
         onError: (String) -> Unit
     ): File? {
@@ -276,11 +344,15 @@ class CameraSession(private val context: Context) : CameraRepository {
         recording?.stop()
         val videoFile = createFile(outputDirectory, Constants.FILE.VIDEO_EXTENSION)
         val output = FileOutputOptions.Builder(videoFile).build()
-        val pending = capture.output.prepareRecording(context, output)
-        val withAudio = PermissionChecker.checkSelfPermission(
-            context,
-            Manifest.permission.RECORD_AUDIO
-        ) == PermissionChecker.PERMISSION_GRANTED
+        val pending = persistentPending(
+            capture.output.prepareRecording(context, output),
+            persist = persistent
+        )
+        val withAudio = !highSpeedSession &&
+            PermissionChecker.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PermissionChecker.PERMISSION_GRANTED
         val active = if (withAudio) pending.withAudioEnabled() else pending
         startRecordingService()
         recording = active.start(ContextCompat.getMainExecutor(context)) { event ->
@@ -319,8 +391,15 @@ class CameraSession(private val context: Context) : CameraRepository {
     }
 
     override fun setFlash(mode: FlashMode) {
+        flashMode = mode
         imageCapture?.flashMode = mode.toImageCaptureMode()
         applyTorch(mode)
+        applyLowLightBoost()
+    }
+
+    override fun setLowLightBoost(enabled: Boolean) {
+        lowLightBoostRequested = enabled
+        applyLowLightBoost()
     }
 
     override fun setZoomRatio(ratio: Float): ZoomInfo? {
@@ -387,6 +466,12 @@ class CameraSession(private val context: Context) : CameraRepository {
         camera2.setCaptureRequestOptions(builder.build())
     }
 
+    override fun setExposureCompensation(index: Int) {
+        userExposureIndex = index
+        val range = camera?.cameraInfo?.exposureState?.exposureCompensationRange ?: return
+        camera?.cameraControl?.setExposureCompensationIndex(index.coerceIn(range.lower, range.upper))
+    }
+
     override fun release() {
         recording?.stop()
         recording = null
@@ -400,6 +485,8 @@ class CameraSession(private val context: Context) : CameraRepository {
         colorProcessor?.release()
         colorProcessor = null
         _nightScene.value = NightScene.UNKNOWN
+        stopWatchingLowLightBoost()
+        _lowLightBoost.value = LowLightBoost.OFF
         previewBoosted = false
         clearMotionCapture()
     }
@@ -457,6 +544,8 @@ class CameraSession(private val context: Context) : CameraRepository {
     }
 
     private fun applyLowLightPreviewBoost(scene: NightScene) {
+        if (userExposureIndex != null) return
+        if (lowLightBoostRequested && camera?.cameraInfo?.isLowLightBoostSupported == true) return
         val exposure = camera?.cameraInfo?.exposureState ?: return
         val range = exposure.exposureCompensationRange
         if (scene == NightScene.RECOMMENDED && !previewBoosted && range.upper > 0) {
@@ -482,6 +571,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         onError: (String) -> Unit
     ) {
         val capture = imageCapture ?: return onError("Camera is not ready")
+        if (stillFormat == StillFormat.RAW_JPEG) {
+            takeRawJpeg(capture, outputDirectory, lens, onSaved, onError)
+            return
+        }
         val extension = if (stillFormat == StillFormat.HEIC_ULTRA_HDR) {
             Constants.FILE.HEIC_EXTENSION
         } else {
@@ -513,6 +606,51 @@ class CameraSession(private val context: Context) : CameraRepository {
         )
     }
 
+    private fun takeRawJpeg(
+        capture: ImageCapture,
+        outputDirectory: File,
+        lens: CameraLens,
+        onSaved: (File) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val stamp = SimpleDateFormat(Constants.FILE.FILENAME_FORMAT, Locale.US)
+            .format(System.currentTimeMillis())
+        val jpegFile = File(outputDirectory, stamp + Constants.FILE.PHOTO_EXTENSION)
+        val dngFile = File(outputDirectory, stamp + Constants.FILE.DNG_EXTENSION)
+        val metadata = ImageCapture.Metadata().apply {
+            isReversedHorizontal = lens == CameraLens.FRONT
+        }
+        val jpegOptions = ImageCapture.OutputFileOptions.Builder(jpegFile)
+            .setMetadata(metadata)
+            .build()
+        val dngOptions = ImageCapture.OutputFileOptions.Builder(dngFile)
+            .setMetadata(metadata)
+            .build()
+        var pendingJpeg: File? = null
+        var pendingDng: File? = null
+        capture.takePicture(
+            dngOptions,
+            jpegOptions,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    val file = output.savedUri?.toFile()
+                    when (output.imageFormat) {
+                        ImageFormat.JPEG -> pendingJpeg = file ?: jpegFile
+                        else -> pendingDng = file ?: dngFile
+                    }
+                    val jpeg = pendingJpeg
+                    if (jpeg != null && pendingDng != null) onSaved(jpeg)
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Logger.error(TAG, "RAW capture failed: ${exception.message}")
+                    onError(exception.message ?: "RAW capture failed")
+                }
+            }
+        )
+    }
+
     private fun captureMotionPhoto(
         outputDirectory: File,
         lens: CameraLens,
@@ -527,6 +665,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val videoFile = startRecording(
             outputDirectory = outputDirectory,
             muted = true,
+            persistent = false,
             onEvent = {},
             onError = { message ->
                 motionAwaitingVideo = false
@@ -609,27 +748,17 @@ class CameraSession(private val context: Context) : CameraRepository {
         )
     }
 
-    private fun resolveStillFormat(info: CameraInfo): Pair<Int, StillFormat> {
-        val supported = runCatching {
-            ImageCapture.getImageCaptureCapabilities(info).supportedOutputFormats
-        }.getOrDefault(emptySet())
-        val heic = heicUltraHdrFormat()
-        if (heic != null && heic in supported) return heic to StillFormat.HEIC_ULTRA_HDR
-        if (ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in supported) {
-            return ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR to StillFormat.JPEG_ULTRA_HDR
-        }
-        return ImageCapture.OUTPUT_FORMAT_JPEG to StillFormat.JPEG
-    }
-
-    private fun heicUltraHdrFormat(): Int? =
-        ImageCapture::class.java.fields
-            .firstOrNull { it.name.contains("HEIC", ignoreCase = true) }
-            ?.let { runCatching { it.getInt(null) }.getOrNull() }
-
     @OptIn(ExperimentalCamera2Interop::class)
     private fun exposureLimits(): ExposureLimits {
         val bound = camera ?: return ExposureLimits()
-        if (Build.VERSION.SDK_INT < 36) return ExposureLimits()
+        val exposure = bound.cameraInfo.exposureState
+        val evRange = exposure.exposureCompensationRange
+        val evMin = evRange.lower
+        val evMax = evRange.upper
+        val evStep = exposure.exposureCompensationStep.toFloat()
+        if (Build.VERSION.SDK_INT < 36) {
+            return ExposureLimits(evMin = evMin, evMax = evMax, evStep = evStep)
+        }
         val info = Camera2CameraInfo.from(bound.cameraInfo)
         val modes = info.getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_PRIORITY_MODES)
         val iso = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE)
@@ -650,7 +779,10 @@ class CameraSession(private val context: Context) : CameraRepository {
             isoMax = iso?.upper ?: 3200,
             shutterMinNanos = shutter?.lower ?: 1_000_000L,
             shutterMaxNanos = shutter?.upper ?: 250_000_000L,
-            supportedPriorities = priorities
+            supportedPriorities = priorities,
+            evMin = evMin,
+            evMax = evMax,
+            evStep = evStep
         )
     }
 
@@ -726,6 +858,41 @@ class CameraSession(private val context: Context) : CameraRepository {
         return effects
     }
 
+    private fun canRetainRecording(): Boolean =
+        recording != null && videoCapture != null && preview != null && !highSpeedSession
+
+    @OptIn(ExperimentalPersistentRecording::class)
+    private fun persistentPending(pending: PendingRecording, persist: Boolean): PendingRecording {
+        if (!persist || highSpeedSession || motionAwaitingVideo) return pending
+        return pending.asPersistentRecording()
+    }
+
+    private fun rebindWhileRecording(
+        host: PreviewViewHost,
+        config: CameraBindConfig
+    ): CameraBindResult {
+        val lifecycleOwner = host.lifecycleOwner
+        val previewView = host.previewView
+        boundPreviewView = previewView
+        val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
+        val previewUseCase = preview ?: throw IllegalStateException("Preview missing")
+        val video = videoCapture ?: throw IllegalStateException("Video capture missing")
+        previewUseCase.surfaceProvider = previewView.surfaceProvider
+        val selector = selectorFor(config)
+        provider.unbindAll()
+        camera = try {
+            provider.bindToLifecycle(lifecycleOwner, selector, previewUseCase, video)
+        } catch (error: Exception) {
+            Logger.warning(TAG, "Flip while recording failed: ${error.message}")
+            throw error
+        }
+        return finishBind(
+            config = config,
+            slowMotionSupported = isHighSpeedSupportedAnywhere(),
+            slowMotionFps = 0
+        )
+    }
+
     private fun bindWithFallback(
         provider: ProcessCameraProvider,
         lifecycleOwner: LifecycleOwner,
@@ -772,6 +939,190 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
         throw lastError ?: IllegalStateException("Unable to bind camera")
     }
+
+    private fun bindHighSpeed(
+        provider: ProcessCameraProvider,
+        lifecycleOwner: LifecycleOwner,
+        selector: CameraSelector,
+        previewView: PreviewView,
+        rotation: Int,
+        config: CameraBindConfig
+    ): HighSpeedBind? {
+        val cameraInfo = runCatching { provider.getCameraInfo(selector) }.getOrNull() ?: return null
+        val capabilities = Recorder.getHighSpeedVideoCapabilities(cameraInfo) ?: return null
+        val supported = capabilities.getSupportedQualities(DynamicRange.SDR)
+        if (supported.isEmpty()) return null
+        val requested = config.slowMotionQuality.toQuality()
+        val preferred = (listOf(requested) + listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
+            .distinct()
+            .filter { it in supported }
+            .ifEmpty { supported }
+        val previewUseCase = Preview.Builder()
+            .setTargetRotation(rotation)
+            .build()
+            .also { it.surfaceProvider = previewView.surfaceProvider }
+        val recorder = Recorder.Builder()
+            .setQualitySelector(QualitySelector.fromOrderedList(preferred))
+            .build()
+        val video = VideoCapture.withOutput(recorder)
+        val sessionBuilder = HighSpeedVideoSessionConfig.Builder(video)
+            .setPreview(previewUseCase)
+            .setSlowMotionEnabled(true)
+        val ranges = cameraInfo.getSupportedFrameRateRanges(sessionBuilder.build())
+        val requestedFps = config.slowMotionRate.fps
+        val fpsRange = if (requestedFps > 0) {
+            ranges.firstOrNull { it.upper == requestedFps || it.lower == requestedFps }
+                ?: ranges.minByOrNull { kotlin.math.abs(it.upper - requestedFps) }
+        } else {
+            ranges.maxByOrNull { it.upper }
+        } ?: return null
+        sessionBuilder.setFrameRateRange(fpsRange)
+        return try {
+            provider.unbindAll()
+            val bound = provider.bindToLifecycle(lifecycleOwner, selector, sessionBuilder.build())
+            this.preview = previewUseCase
+            this.videoCapture = video
+            this.imageCapture = null
+            this.imageAnalysis = null
+            HighSpeedBind(camera = bound, fps = fpsRange.upper)
+        } catch (error: Exception) {
+            Logger.warning(TAG, "High-speed session bind failed: ${error.message}")
+            null
+        }
+    }
+
+    private fun isHighSpeedSupportedAnywhere(): Boolean {
+        val provider = cameraProvider ?: return false
+        return provider.availableCameraInfos.any { info -> isHighSpeedSupported(info) }
+    }
+
+    private fun isHighSpeedSupported(info: CameraInfo?): Boolean {
+        if (info == null) return false
+        val capabilities = Recorder.getHighSpeedVideoCapabilities(info) ?: return false
+        return capabilities.getSupportedQualities(DynamicRange.SDR).isNotEmpty()
+    }
+
+    private fun resolveVideoHdrRange(info: CameraInfo?, config: CameraBindConfig): DynamicRange {
+        if (config.slowMotion || info == null) return DynamicRange.SDR
+        val requested = config.videoHdrRange.toDynamicRange()
+        val supported = runCatching {
+            Recorder.getVideoCapabilities(info).supportedDynamicRanges
+        }.getOrDefault(emptySet())
+        return if (requested in supported) requested else DynamicRange.SDR
+    }
+
+    private fun isPreviewStabilizationSupported(info: CameraInfo?): Boolean {
+        if (info == null) return false
+        return runCatching {
+            Preview.getPreviewCapabilities(info).isStabilizationSupported
+        }.getOrDefault(false)
+    }
+
+    private fun isVideoStabilizationSupported(info: CameraInfo?): Boolean {
+        if (info == null) return false
+        return runCatching {
+            Recorder.getVideoCapabilities(info).isStabilizationSupported
+        }.getOrDefault(false)
+    }
+
+    private fun buildVideoCapture(
+        recorder: Recorder,
+        stabilize: Boolean,
+        range: DynamicRange = DynamicRange.SDR
+    ): VideoCapture<Recorder> = VideoCapture.Builder(recorder)
+        .setVideoStabilizationEnabled(stabilize)
+        .setDynamicRange(range)
+        .build()
+
+    private fun toBindResult(
+        config: CameraBindConfig,
+        slowMotionSupported: Boolean,
+        slowMotionFps: Int
+    ): CameraBindResult {
+        val zoom = camera?.cameraInfo?.zoomState?.value
+        val facing = if (config.lens == CameraLens.FRONT) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+        val info = camera?.cameraInfo
+        return CameraBindResult(
+            hasFlash = camera?.cameraInfo?.hasFlashUnit() == true,
+            minZoom = zoom?.minZoomRatio ?: 1f,
+            maxZoom = zoom?.maxZoomRatio ?: 1f,
+            zoomRatio = zoom?.zoomRatio ?: 1f,
+            videoAvailable = videoCapture != null,
+            supportedExtensions = supportedExtensions(config.lens.toSelector()),
+            stillFormat = stillFormat,
+            ultraHdrEnabled = stillFormat == StillFormat.JPEG_ULTRA_HDR ||
+                stillFormat == StillFormat.HEIC_ULTRA_HDR,
+            nightIndicatorSupported = Build.VERSION.SDK_INT >= 36,
+            exposureLimits = exposureLimits(),
+            physicalZooms = discoverPhysicalZooms(facing),
+            boundCameraId = config.cameraId,
+            slowMotionSupported = slowMotionSupported,
+            slowMotionFps = slowMotionFps,
+            videoStabilizationSupported = isPreviewStabilizationSupported(info) ||
+                isVideoStabilizationSupported(info),
+            videoStabilizationActive = preview?.isPreviewStabilizationEnabled == true,
+            lowLightBoostSupported = info?.isLowLightBoostSupported == true,
+            videoHdrRange = videoCapture?.dynamicRange?.toVideoHdrRange() ?: VideoHdrRange.SDR
+        )
+    }
+
+    private fun finishBind(
+        config: CameraBindConfig,
+        slowMotionSupported: Boolean,
+        slowMotionFps: Int
+    ): CameraBindResult {
+        flashMode = config.flash
+        lowLightBoostRequested = config.lowLightBoost
+        applyTorch(config.flash)
+        watchLowLightBoost()
+        applyLowLightBoost()
+        return toBindResult(config, slowMotionSupported, slowMotionFps)
+    }
+
+    private fun watchLowLightBoost() {
+        stopWatchingLowLightBoost()
+        val live = camera?.cameraInfo?.lowLightBoostState ?: run {
+            _lowLightBoost.value = LowLightBoost.OFF
+            return
+        }
+        lowLightBoostLiveData = live
+        live.observeForever(lowLightBoostObserver)
+        _lowLightBoost.value = when (live.value) {
+            LowLightBoostState.ACTIVE -> LowLightBoost.ACTIVE
+            LowLightBoostState.INACTIVE -> LowLightBoost.INACTIVE
+            else -> LowLightBoost.OFF
+        }
+    }
+
+    private fun stopWatchingLowLightBoost() {
+        lowLightBoostLiveData?.removeObserver(lowLightBoostObserver)
+        lowLightBoostLiveData = null
+    }
+
+    private fun applyLowLightBoost() {
+        val cam = camera ?: return
+        val supported = cam.cameraInfo.isLowLightBoostSupported
+        val enable = lowLightBoostRequested &&
+            supported &&
+            !highSpeedSession &&
+            flashMode != FlashMode.TORCH
+        if (!supported && !enable) {
+            _lowLightBoost.value = LowLightBoost.OFF
+            return
+        }
+        val future = cam.cameraControl.enableLowLightBoostAsync(enable)
+        future.addListener({
+            runCatching { future.get() }.onFailure { error ->
+                Logger.warning(TAG, "Low light boost failed: ${error.message}")
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+
+    private data class HighSpeedBind(val camera: Camera, val fps: Int)
 
     private fun releaseEffects() {
         overlayEffect?.clearOnDrawListener()

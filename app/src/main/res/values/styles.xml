@@ -16,7 +16,7 @@
 
     <style name="Widget.Catalog.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="rippleColor">@color/blue_100</item>
-        <item name="fontFamily">@font/work_sans</item>
+        <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:textColor">@color/color_on_surface_emphasis_high</item>
     </style>
 

@@ -12,10 +12,18 @@
     <string name="capture_mode_night">Night</string>
     <string name="mode_photo">Photo</string>
     <string name="mode_video">Video</string>
+    <string name="mode_slow_motion">Slo-mo</string>
     <string name="mode_effects">Effects</string>
     <string name="mode_panorama">Pano</string>
     <string name="panorama_hint">Tap shutter, then pan slowly</string>
     <string name="panorama_panning">Panning · %1$d frames</string>
+    <string name="slow_motion_fps">Slo-mo · %1$d fps</string>
+    <string name="slow_motion_unsupported">This device doesn\'t support slow motion</string>
+    <string name="video_stabilization_on">Stabilized</string>
+    <string name="low_light_boost_on">Low light boost</string>
+    <string name="video_hdr_hlg">HLG</string>
+    <string name="video_hdr_hdr10">HDR10</string>
+    <string name="video_hdr_hdr10_plus">HDR10+</string>
     <string name="playback_speed">Speed %1$sx</string>
     <string name="flash_off">Flash off</string>
     <string name="flash_on">Flash on</string>
@@ -40,7 +48,8 @@
     <string name="extension_beauty">Beauty</string>
     <string name="filter_none">Original</string>
     <string name="filter_mono">Mono</string>
-    <string name="filter_vintage">Vintage</string>
+    <string name="filter_invert">Invert</string>
+    <string name="filter_vintage">Sepia</string>
     <string name="filter_cool">Cool</string>
     <string name="filter_warm">Warm</string>
     <string name="filter_vivid">Vivid</string>
@@ -51,16 +60,22 @@
     <string name="night_mode_active">Night mode</string>
     <string name="ultrahdr">Ultra HDR</string>
     <string name="ultrahdr_heic">Ultra HDR HEIC</string>
+    <string name="raw_dng">RAW / DNG</string>
     <string name="ae_auto">AE</string>
     <string name="ae_iso">ISO</string>
     <string name="ae_shutter">Shutter</string>
     <string name="iso_value">ISO %1$d</string>
     <string name="shutter_value">%1$s</string>
+    <string name="exposure_ev">EV %1$s</string>
+    <string name="exposure_button">Exposure</string>
     <string name="motion_photo_badge">Motion photo</string>
     <string name="play_motion_photo">Play motion photo</string>
     <string name="recording_notification_channel">Recording</string>
     <string name="recording_notification_title">Recording video</string>
     <string name="recording_notification_text">CameraX is capturing video</string>
+    <string name="capture_review_retake">Retake</string>
+    <string name="capture_review_keep">Done</string>
+    <string name="capture_review_photo">Captured photo</string>
     <string name="video_content_desc">Recorded video</string>
     <string name="play_video">Play video</string>
     <string name="delete_title">Confirm</string>
@@ -86,29 +101,81 @@
     <!-- Preference Keys -->
     <string name="pref_key_theme" translatable="false">key_theme</string>
     <string name="pref_key_theme_default" translatable="false">on</string>
-    <string-array name="pref_key_theme_popup" translatable="false">
-        <item>Light</item>
-        <item>Dark</item>
-        <item>System default</item>
-    </string-array>
-    <string-array name="pref_key_theme_popup_values" translatable="false">
-        <item>off</item>
-        <item>on</item>
-        <item>system</item>
-    </string-array>
+    <string name="pref_key_capture_confirm" translatable="false">key_capture_confirm</string>
+    <string name="pref_key_capture_aspect" translatable="false">key_capture_aspect</string>
+    <string name="pref_key_video_quality" translatable="false">key_video_quality</string>
+    <string name="pref_key_video_hdr" translatable="false">key_video_hdr</string>
+    <string name="pref_key_video_stabilization" translatable="false">key_video_stabilization</string>
+    <string name="pref_key_slow_motion_quality" translatable="false">key_slow_motion_quality</string>
+    <string name="pref_key_slow_motion_fps" translatable="false">key_slow_motion_fps</string>
+    <string name="pref_key_ultra_hdr" translatable="false">key_ultra_hdr</string>
+    <string name="pref_key_raw_capture" translatable="false">key_raw_capture</string>
+    <string name="pref_key_raw_full_sensor" translatable="false">key_raw_full_sensor</string>
+    <string name="pref_key_flip_while_recording" translatable="false">key_flip_while_recording</string>
+    <string name="pref_key_low_light_boost" translatable="false">key_low_light_boost</string>
 
     <!-- Preferences -->
     <string name="pref_title_theme">Theme</string>
+    <string name="pref_title_camera">Camera</string>
     <string name="pref_title_links">Links</string>
     <string name="pref_title_about">About</string>
 
     <string name="pref_title_theme_mode">Theme</string>
     <string name="pref_subtitle_theme_mode">Select a dark or light theme.</string>
+    <string name="pref_theme_light">Light</string>
+    <string name="pref_theme_dark">Dark</string>
+    <string name="pref_theme_system">System</string>
+    <string name="pref_title_capture_confirm">Capture confirmation</string>
+    <string name="pref_subtitle_capture_confirm">Review each photo or video before saving</string>
+    <string name="pref_title_ultra_hdr">Ultra HDR</string>
+    <string name="pref_subtitle_ultra_hdr">Gain-map stills when the camera supports it</string>
+    <string name="pref_title_raw_capture">RAW / DNG</string>
+    <string name="pref_subtitle_raw_capture">Save Adobe DNG plus JPEG in one shot</string>
+    <string name="pref_subtitle_raw_unsupported">This device doesn\'t support RAW capture</string>
+    <string name="pref_title_raw_full_sensor">Full sensor RAW</string>
+    <string name="pref_subtitle_raw_full_sensor">Unbinned DNG size when RAW / DNG is on</string>
+    <string name="pref_subtitle_raw_full_sensor_unsupported">This device doesn\'t support full-sensor RAW</string>
+    <string name="pref_title_capture_aspect">Photo aspect</string>
+    <string name="pref_subtitle_capture_aspect">Frame for preview and stills</string>
+    <string name="pref_aspect_4_3">4:3</string>
+    <string name="pref_aspect_16_9">16:9</string>
+    <string name="pref_aspect_full">Full</string>
+    <string name="pref_title_video_quality">Video quality</string>
+    <string name="pref_subtitle_video_quality">Resolutions this device can record</string>
+    <string name="pref_title_video_hdr">Video HDR</string>
+    <string name="pref_subtitle_video_hdr">Color format for recordings</string>
+    <string name="pref_subtitle_video_hdr_unsupported">This device doesn\'t support HDR video</string>
+    <string name="pref_video_hdr_sdr">SDR</string>
+    <string name="pref_video_hdr_hlg10">HLG 10-bit</string>
+    <string name="pref_video_hdr_hdr10">HDR10</string>
+    <string name="pref_video_hdr_hdr10_plus">HDR10+</string>
+    <string name="pref_title_video_stabilization">Video stabilization</string>
+    <string name="pref_subtitle_video_stabilization">Steadies the viewfinder and recordings</string>
+    <string name="pref_title_flip_while_recording">Flip while recording</string>
+    <string name="pref_subtitle_flip_while_recording">Switch cameras without stopping the clip</string>
+    <string name="pref_title_low_light_boost">Low light boost</string>
+    <string name="pref_subtitle_low_light_boost">Brightens preview and video in the dark</string>
+    <string name="pref_subtitle_low_light_boost_unsupported">This device doesn\'t support low light boost</string>
+    <string name="pref_title_slow_motion_quality">Slo-mo quality</string>
+    <string name="pref_subtitle_slow_motion_quality">Resolution CameraX can use for high-speed capture</string>
+    <string name="pref_title_slow_motion_fps">Slo-mo speed</string>
+    <string name="pref_subtitle_slow_motion_fps">Capture frame rate; higher fps plays back slower</string>
+    <string name="pref_slow_motion_fps_auto">Auto</string>
+    <string name="pref_slow_motion_fps_120">120 fps</string>
+    <string name="pref_slow_motion_fps_240">240 fps</string>
+    <string name="pref_slow_motion_fps_480">480 fps</string>
+    <string name="pref_slow_motion_fps_960">960 fps</string>
+    <string name="pref_video_sd">SD (480p)</string>
+    <string name="pref_video_hd">HD (720p)</string>
+    <string name="pref_video_fhd">FHD (1080p)</string>
+    <string name="pref_video_uhd">4K (2160p)</string>
 
     <string name="pref_title_playstore">PlayStore</string>
     <string name="pref_subtitle_playstore">com.arindam.camerax ↗</string>
     <string name="pref_title_github">GitHub</string>
     <string name="pref_subtitle_github">android-camerax ↗</string>
+    <string name="pref_title_privacy">Privacy Policy</string>
+    <string name="pref_subtitle_privacy">How CameraX uses data ↗</string>
 
     <string name="pref_title_developer">Developer</string>
     <string name="pref_subtitle_developer">Arindam Karmakar ↗</string>
@@ -119,5 +186,6 @@
     <string name="link_playstore" translatable="false">https://play.google.com/store/apps/details?id=com.arindam.camerax</string>
     <string name="link_repository" translatable="false">https://github.com/arindamxd/android-camerax</string>
     <string name="link_developer" translatable="false">https://arindamxd.github.io/</string>
+    <string name="link_privacy" translatable="false">https://arindamxd.github.io/projects/camerax/privacy-policy/</string>
 
 </resources>

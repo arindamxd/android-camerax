@@ -11,9 +11,15 @@ import android.widget.Toast
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.viewModels
+import androidx.preference.PreferenceManager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.CameraX
+import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.domain.model.CaptureAspect
+import com.arindam.camerax.domain.model.SlowMotionRate
+import com.arindam.camerax.domain.model.VideoHdrRange
+import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.ui.theme.AppTheme
@@ -26,7 +32,7 @@ class CameraFragment : BaseFragmentCompose() {
 
     private val viewModel: CameraViewModel by viewModels {
         val app = requireActivity().application as CameraX
-        CameraViewModelFactory(app.container.cameraInteractors)
+        CameraViewModelFactory(app.container.cameraInteractors, app)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +64,30 @@ class CameraFragment : BaseFragmentCompose() {
 
     override fun onResume() {
         super.onResume()
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        viewModel.applyCapturePreferences(
+            confirmEnabled = prefs.getBoolean(getString(R.string.pref_key_capture_confirm), true),
+            aspect = CaptureAspect.fromPref(prefs.getString(getString(R.string.pref_key_capture_aspect), null)),
+            quality = VideoQuality.fromPref(prefs.getString(getString(R.string.pref_key_video_quality), null)),
+            videoHdrRange = VideoHdrRange.fromPref(
+                prefs.getString(getString(R.string.pref_key_video_hdr), null)
+            ),
+            videoStabilization = prefs.getBoolean(getString(R.string.pref_key_video_stabilization), true),
+            slowMotionQuality = VideoQuality.fromPref(
+                prefs.getString(getString(R.string.pref_key_slow_motion_quality), null)
+            ),
+            slowMotionRate = SlowMotionRate.fromPref(
+                prefs.getString(getString(R.string.pref_key_slow_motion_fps), null)
+            ),
+            ultraHdr = prefs.getBoolean(getString(R.string.pref_key_ultra_hdr), true),
+            rawCapture = prefs.getBoolean(getString(R.string.pref_key_raw_capture), false),
+            rawFullSensor = prefs.getBoolean(getString(R.string.pref_key_raw_full_sensor), false),
+            flipWhileRecording = prefs.getBoolean(
+                getString(R.string.pref_key_flip_while_recording),
+                true
+            ),
+            lowLightBoost = prefs.getBoolean(getString(R.string.pref_key_low_light_boost), true)
+        )
         if (!hasPermissions()) {
             navigate(CameraFragmentDirections.actionCameraToPermissions())
         }

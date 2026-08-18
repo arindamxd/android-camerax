@@ -1,0 +1,272 @@
+package com.arindam.camerax.ui.home.camera
+
+import android.widget.VideoView
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
+import coil.compose.rememberAsyncImagePainter
+import com.arindam.camerax.R
+import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.ui.theme.CameraAccent
+import com.arindam.camerax.ui.theme.CameraFontFamily
+import com.arindam.camerax.ui.theme.CameraGlass
+import com.arindam.camerax.ui.theme.CameraMono
+import com.arindam.camerax.ui.theme.CameraOnGlass
+import java.io.File
+
+@Composable
+fun CaptureConfirmOverlay(
+    review: CaptureReview,
+    onRetake: () -> Unit,
+    onKeep: () -> Unit
+) {
+    BackHandler(onBack = onKeep)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(2f)
+            .background(Color.Black)
+    ) {
+        when {
+            review.isVideo -> ReviewVideo(file = review.file)
+            review.isMotionPhoto -> ReviewMotionStill(file = review.file)
+            else -> Image(
+                painter = rememberAsyncImagePainter(model = review.file),
+                contentDescription = stringResource(R.string.capture_review_photo),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures))
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .minimumInteractiveComponentSize()
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(CameraGlass)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = false),
+                        onClick = onKeep
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back_button_alt),
+                    tint = CameraOnGlass,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            if (review.isMotionPhoto) {
+                Text(
+                    text = stringResource(R.string.motion_photo_badge),
+                    color = CameraAccent,
+                    fontFamily = CameraMono,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CameraGlass)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+
+            Text(
+                text = review.metadataLabel(
+                    formatText = review.formatLabelRes?.let { stringResource(it) }
+                ),
+                color = Color.White.copy(alpha = 0.55f),
+                fontFamily = CameraMono,
+                fontSize = 10.sp,
+                letterSpacing = 0.06.em,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 20.dp, bottom = 92.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ReviewActionPill(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Refresh,
+                    label = stringResource(R.string.capture_review_retake),
+                    filled = false,
+                    onClick = onRetake
+                )
+                ReviewActionPill(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Check,
+                    label = stringResource(R.string.capture_review_keep),
+                    filled = true,
+                    onClick = onKeep
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewActionPill(
+    icon: ImageVector,
+    label: String,
+    filled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(26.dp)
+    val contentColor = if (filled) Color.Black else Color.White
+    val base = modifier
+        .height(52.dp)
+        .clip(shape)
+    val styled = if (filled) {
+        base.background(CameraAccent)
+    } else {
+        base
+            .background(Color.White.copy(alpha = 0.04f))
+            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
+    }
+    Row(
+        modifier = styled.clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = label,
+            color = contentColor,
+            fontFamily = CameraFontFamily,
+            fontSize = 14.sp,
+            fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun ReviewMotionStill(file: File) {
+    val context = LocalContext.current
+    var playing by remember(file) { mutableStateOf(false) }
+    val clip = remember(file) {
+        File(context.cacheDir, "review_motion_${file.nameWithoutExtension}.mp4")
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { playing = !playing }
+    ) {
+        if (playing) {
+            val extracted = remember(file) {
+                runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
+            }
+            if (extracted != null) {
+                ReviewVideo(file = extracted)
+            } else {
+                playing = false
+            }
+        } else {
+            Image(
+                painter = rememberAsyncImagePainter(model = file),
+                contentDescription = stringResource(R.string.capture_review_photo),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReviewVideo(file: File) {
+    val videoView = remember(file) { mutableStateOf<VideoView?>(null) }
+    AndroidView(
+        factory = { context ->
+            VideoView(context).apply {
+                setVideoPath(file.absolutePath)
+                setOnPreparedListener { player ->
+                    player.isLooping = true
+                    start()
+                }
+                setOnClickListener {
+                    if (isPlaying) pause() else start()
+                }
+                videoView.value = this
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+    DisposableEffect(file) {
+        onDispose { videoView.value?.stopPlayback() }
+    }
+}

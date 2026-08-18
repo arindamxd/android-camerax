@@ -7,6 +7,7 @@ import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
@@ -16,6 +17,7 @@ import java.io.File
 interface CameraRepository {
 
     val nightScene: StateFlow<NightScene>
+    val lowLightBoost: StateFlow<LowLightBoost>
 
     suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult
 
@@ -31,6 +33,7 @@ interface CameraRepository {
     fun startRecording(
         outputDirectory: File,
         muted: Boolean,
+        persistent: Boolean = false,
         onEvent: (RecordingEvent) -> Unit,
         onError: (String) -> Unit
     ): File?
@@ -40,11 +43,13 @@ interface CameraRepository {
     fun stopRecording()
     fun muteRecording(muted: Boolean)
     fun setFlash(mode: FlashMode)
+    fun setLowLightBoost(enabled: Boolean)
     fun setZoomRatio(ratio: Float): ZoomInfo?
     fun tapToFocus(x: Float, y: Float)
     fun setColorFilter(type: ColorFilterType)
     fun setTargetRotation(rotation: Int)
     fun setExposure(priority: ExposurePriority, iso: Int, shutterNanos: Long)
+    fun setExposureCompensation(index: Int)
     fun release()
 }
 

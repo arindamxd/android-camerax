@@ -58,6 +58,7 @@ import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraGlass
+import com.arindam.camerax.ui.theme.CameraMono
 import java.io.File
 
 /**
@@ -254,6 +255,17 @@ private fun GalleryPager(
                     if (motion) {
                         GalleryMotionOverlay(file = file)
                     }
+                    if (file.extension.equals("dng", ignoreCase = true)) {
+                        Text(
+                            text = stringResource(R.string.raw_dng),
+                            color = CameraAccent,
+                            fontFamily = CameraMono,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -281,6 +293,7 @@ private fun GalleryMotionOverlay(file: File) {
                 if (playing) R.string.motion_photo_badge else R.string.play_motion_photo
             ),
             color = CameraAccent,
+            fontFamily = CameraMono,
             fontSize = 12.sp,
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -312,6 +325,7 @@ private fun PlaybackSpeedRow(
             Text(
                 text = if (value == 1f) "1x" else "${value}x",
                 color = if (selected) CameraAccent else Color.White,
+                fontFamily = CameraMono,
                 fontSize = 12.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(14.dp))

@@ -20,6 +20,7 @@ object MediaStorePublisher {
             val mime = when (file.extension.lowercase()) {
                 "mp4" -> "video/mp4"
                 "heic" -> "image/heic"
+                "dng" -> "image/x-adobe-dng"
                 else -> "image/jpeg"
             }
             val collection = if (video) {

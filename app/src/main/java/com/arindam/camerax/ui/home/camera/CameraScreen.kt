@@ -171,12 +171,20 @@ fun CameraScreen(
                     onTimerClicked = viewModel::cycleTimer,
                     onGridClicked = viewModel::toggleGrid,
                     onMotionClicked = viewModel::toggleMotionPhoto,
-                    onSettingsClicked = onSettingsClicked
+                    onSettingsClicked = onSettingsClicked,
+                    onExposurePrioritySelected = viewModel::setExposurePriority,
+                    onIsoChanged = viewModel::setIso,
+                    onShutterChanged = viewModel::setShutterNanos,
+                    onCompensationChanged = viewModel::setExposureCompensation
                 )
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         NightSceneBanner(state)
                         PanoramaBanner(state)
+                        SlowMotionBanner(state)
+                        StabilizationBanner(state)
+                        VideoHdrBanner(state)
+                        LowLightBoostBanner(state)
                         RecordingHud(
                             state = state,
                             onPauseClicked = viewModel::pauseOrResume,
@@ -191,13 +199,6 @@ fun CameraScreen(
                     .zIndex(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                HybridAeControls(
-                    state = state,
-                    onPrioritySelected = viewModel::setExposurePriority,
-                    onIsoChanged = viewModel::setIso,
-                    onShutterChanged = viewModel::setShutterNanos
-                )
-                Spacer(Modifier.height(8.dp))
                 ZoomChips(state = state, onZoomSelected = viewModel::setZoom)
                 Spacer(Modifier.height(8.dp))
                 CameraFooter(
@@ -208,11 +209,17 @@ fun CameraScreen(
                     onShutterClicked = { viewModel.onShutter(previewView) },
                     onGalleryClicked = onGalleryClicked,
                     onFilterSelected = viewModel::setColorFilter,
-                    onExtensionSelected = viewModel::setExtension,
-                    onFaceDetectionClicked = viewModel::toggleFaceDetection
+                    onExtensionSelected = viewModel::setExtension
                 )
             }
             CountdownOverlay(state.countdownRemaining)
+            state.review?.let { review ->
+                CaptureConfirmOverlay(
+                    review = review,
+                    onRetake = viewModel::retakeCapture,
+                    onKeep = viewModel::keepCapture
+                )
+            }
         }
     }
 }
@@ -246,8 +253,7 @@ private fun CameraChromePreview() {
                     onShutterClicked = {},
                     onGalleryClicked = {},
                     onFilterSelected = {},
-                    onExtensionSelected = {},
-                    onFaceDetectionClicked = {}
+                    onExtensionSelected = {}
                 )
             }
         }

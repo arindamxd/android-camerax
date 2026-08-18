@@ -26,7 +26,7 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
 
         <!-- Typography -->
-        <item name="android:fontFamily">@font/work_sans</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="textAppearanceHeadline2">@style/TextAppearance.CameraX.Headline2</item>
         <item name="textAppearanceHeadline3">@style/TextAppearance.CameraX.Headline3</item>
         <item name="textAppearanceHeadline4">@style/TextAppearance.CameraX.Headline4</item>

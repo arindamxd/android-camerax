@@ -9,6 +9,7 @@ import com.arindam.camerax.domain.usecase.BindCamera
 import com.arindam.camerax.domain.usecase.CapturePhoto
 import com.arindam.camerax.domain.usecase.GetLatestMedia
 import com.arindam.camerax.domain.usecase.MuteRecording
+import com.arindam.camerax.domain.usecase.ObserveLowLightBoost
 import com.arindam.camerax.domain.usecase.ObserveNightScene
 import com.arindam.camerax.domain.usecase.PauseRecording
 import com.arindam.camerax.domain.usecase.PublishMedia
@@ -16,7 +17,9 @@ import com.arindam.camerax.domain.usecase.ReleaseCamera
 import com.arindam.camerax.domain.usecase.ResumeRecording
 import com.arindam.camerax.domain.usecase.SetColorFilter
 import com.arindam.camerax.domain.usecase.SetExposure
+import com.arindam.camerax.domain.usecase.SetExposureCompensation
 import com.arindam.camerax.domain.usecase.SetFlash
+import com.arindam.camerax.domain.usecase.SetLowLightBoost
 import com.arindam.camerax.domain.usecase.SetTargetRotation
 import com.arindam.camerax.domain.usecase.SetZoom
 import com.arindam.camerax.domain.usecase.StartRecording
@@ -37,12 +40,15 @@ class AppContainer(context: Context) {
         stopRecording = StopRecording(cameraRepository),
         muteRecording = MuteRecording(cameraRepository),
         setFlash = SetFlash(cameraRepository),
+        setLowLightBoost = SetLowLightBoost(cameraRepository),
         setZoom = SetZoom(cameraRepository),
         tapToFocus = TapToFocus(cameraRepository),
         setColorFilter = SetColorFilter(cameraRepository),
         setTargetRotation = SetTargetRotation(cameraRepository),
         setExposure = SetExposure(cameraRepository),
+        setExposureCompensation = SetExposureCompensation(cameraRepository),
         observeNightScene = ObserveNightScene(cameraRepository),
+        observeLowLightBoost = ObserveLowLightBoost(cameraRepository),
         releaseCamera = ReleaseCamera(cameraRepository),
         getLatestMedia = GetLatestMedia(mediaRepository),
         stitchPanorama = StitchPanorama(mediaRepository),
@@ -59,12 +65,15 @@ data class CameraInteractors(
     val stopRecording: StopRecording,
     val muteRecording: MuteRecording,
     val setFlash: SetFlash,
+    val setLowLightBoost: SetLowLightBoost,
     val setZoom: SetZoom,
     val tapToFocus: TapToFocus,
     val setColorFilter: SetColorFilter,
     val setTargetRotation: SetTargetRotation,
     val setExposure: SetExposure,
+    val setExposureCompensation: SetExposureCompensation,
     val observeNightScene: ObserveNightScene,
+    val observeLowLightBoost: ObserveLowLightBoost,
     val releaseCamera: ReleaseCamera,
     val getLatestMedia: GetLatestMedia,
     val stitchPanorama: StitchPanorama,

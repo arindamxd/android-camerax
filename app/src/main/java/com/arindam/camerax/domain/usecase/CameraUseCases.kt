@@ -7,6 +7,7 @@ import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
+import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
@@ -34,9 +35,10 @@ class StartRecording(private val repository: CameraRepository) {
     operator fun invoke(
         outputDirectory: File,
         muted: Boolean,
+        persistent: Boolean = false,
         onEvent: (RecordingEvent) -> Unit,
         onError: (String) -> Unit
-    ): File? = repository.startRecording(outputDirectory, muted, onEvent, onError)
+    ): File? = repository.startRecording(outputDirectory, muted, persistent, onEvent, onError)
 }
 
 class PauseRecording(private val repository: CameraRepository) {
@@ -59,6 +61,10 @@ class SetFlash(private val repository: CameraRepository) {
     operator fun invoke(mode: FlashMode) = repository.setFlash(mode)
 }
 
+class SetLowLightBoost(private val repository: CameraRepository) {
+    operator fun invoke(enabled: Boolean) = repository.setLowLightBoost(enabled)
+}
+
 class SetZoom(private val repository: CameraRepository) {
     operator fun invoke(ratio: Float): ZoomInfo? = repository.setZoomRatio(ratio)
 }
@@ -79,8 +85,16 @@ class SetExposure(private val repository: CameraRepository) {
     operator fun invoke(priority: ExposurePriority, iso: Int, shutterNanos: Long) = repository.setExposure(priority, iso, shutterNanos)
 }
 
+class SetExposureCompensation(private val repository: CameraRepository) {
+    operator fun invoke(index: Int) = repository.setExposureCompensation(index)
+}
+
 class ObserveNightScene(private val repository: CameraRepository) {
     operator fun invoke(): StateFlow<NightScene> = repository.nightScene
+}
+
+class ObserveLowLightBoost(private val repository: CameraRepository) {
+    operator fun invoke(): StateFlow<LowLightBoost> = repository.lowLightBoost
 }
 
 class ReleaseCamera(private val repository: CameraRepository) {

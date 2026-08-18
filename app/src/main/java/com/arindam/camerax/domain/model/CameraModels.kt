@@ -3,6 +3,7 @@ package com.arindam.camerax.domain.model
 enum class CameraMode {
     PHOTO,
     VIDEO,
+    SLOW_MOTION,
     EFFECTS,
     PANORAMA
 }
@@ -51,6 +52,7 @@ enum class CameraExtension {
 enum class ColorFilterType {
     NONE,
     MONO,
+    INVERT,
     VINTAGE,
     COOL,
     WARM,
@@ -72,7 +74,59 @@ enum class ExposurePriority {
 enum class StillFormat {
     JPEG,
     JPEG_ULTRA_HDR,
-    HEIC_ULTRA_HDR
+    HEIC_ULTRA_HDR,
+    RAW_JPEG
+}
+
+enum class CaptureAspect(val prefValue: String) {
+    RATIO_4_3("4_3"),
+    RATIO_16_9("16_9"),
+    FULL("full");
+
+    companion object {
+        fun fromPref(value: String?): CaptureAspect =
+            entries.firstOrNull { it.prefValue == value } ?: RATIO_4_3
+    }
+}
+
+enum class VideoQuality(val prefValue: String) {
+    SD("sd"),
+    HD("hd"),
+    FHD("fhd"),
+    UHD("uhd");
+
+    companion object {
+        fun fromPref(value: String?): VideoQuality =
+            entries.firstOrNull { it.prefValue == value } ?: FHD
+    }
+}
+
+enum class VideoHdrRange(val prefValue: String) {
+    SDR("sdr"),
+    HLG10("hlg10"),
+    HDR10("hdr10"),
+    HDR10_PLUS("hdr10_plus");
+
+    companion object {
+        fun fromPref(value: String?): VideoHdrRange =
+            entries.firstOrNull { it.prefValue == value } ?: SDR
+    }
+}
+
+enum class SlowMotionRate(val prefValue: String, val fps: Int) {
+    AUTO("auto", 0),
+    FPS_120("120", 120),
+    FPS_240("240", 240),
+    FPS_480("480", 480),
+    FPS_960("960", 960);
+
+    companion object {
+        fun fromPref(value: String?): SlowMotionRate =
+            entries.firstOrNull { it.prefValue == value } ?: AUTO
+
+        fun forFrameRates(frameRates: List<Int>): List<SlowMotionRate> =
+            listOf(AUTO) + entries.filter { rate -> rate.fps > 0 && rate.fps in frameRates }
+    }
 }
 
 data class ExposureLimits(
@@ -80,7 +134,10 @@ data class ExposureLimits(
     val isoMax: Int = 3200,
     val shutterMinNanos: Long = 1_000_000L,
     val shutterMaxNanos: Long = 250_000_000L,
-    val supportedPriorities: Set<ExposurePriority> = setOf(ExposurePriority.AUTO)
+    val supportedPriorities: Set<ExposurePriority> = setOf(ExposurePriority.AUTO),
+    val evMin: Int = 0,
+    val evMax: Int = 0,
+    val evStep: Float = 0f
 )
 
 data class FocusPoint(val x: Float, val y: Float)
@@ -96,7 +153,19 @@ data class CameraBindConfig(
     val extension: CameraExtension,
     val colorFilter: ColorFilterType,
     val faceDetection: Boolean,
-    val cameraId: String? = null
+    val cameraId: String? = null,
+    val captureAspect: CaptureAspect = CaptureAspect.RATIO_4_3,
+    val videoQuality: VideoQuality = VideoQuality.FHD,
+    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
+    val slowMotion: Boolean = false,
+    val slowMotionQuality: VideoQuality = VideoQuality.FHD,
+    val slowMotionRate: SlowMotionRate = SlowMotionRate.AUTO,
+    val videoStabilization: Boolean = true,
+    val ultraHdr: Boolean = true,
+    val rawCapture: Boolean = false,
+    val rawFullSensor: Boolean = false,
+    val lowLightBoost: Boolean = true,
+    val retainRecording: Boolean = false
 )
 
 data class CameraBindResult(
@@ -111,8 +180,20 @@ data class CameraBindResult(
     val nightIndicatorSupported: Boolean = false,
     val exposureLimits: ExposureLimits = ExposureLimits(),
     val physicalZooms: List<PhysicalZoom> = emptyList(),
-    val boundCameraId: String? = null
+    val boundCameraId: String? = null,
+    val slowMotionSupported: Boolean = false,
+    val slowMotionFps: Int = 0,
+    val videoStabilizationSupported: Boolean = false,
+    val videoStabilizationActive: Boolean = false,
+    val lowLightBoostSupported: Boolean = false,
+    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR
 )
+
+enum class LowLightBoost {
+    OFF,
+    INACTIVE,
+    ACTIVE
+}
 
 data class ZoomInfo(
     val ratio: Float,

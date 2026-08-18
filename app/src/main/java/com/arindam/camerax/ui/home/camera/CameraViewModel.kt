@@ -1,25 +1,38 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.drawable.ColorDrawable
+import android.media.MediaMetadataRetriever
 import android.os.Build
 import androidx.camera.view.PreviewView
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.arindam.camerax.R
+import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.data.camera.PreviewViewHost
+import com.arindam.camerax.data.camera.slowMotionOptions
 import com.arindam.camerax.di.CameraInteractors
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CameraMode
+import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposurePriority
+import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
+import com.arindam.camerax.domain.model.SlowMotionRate
+import com.arindam.camerax.domain.model.StillFormat
+import com.arindam.camerax.domain.model.VideoHdrRange
+import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
+import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.log.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,7 +52,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class CameraViewModel(
-    private val interactors: CameraInteractors
+    private val interactors: CameraInteractors,
+    private val appContext: Context
 ) : ViewModel() {
 
     private val bindMutex = Mutex()
@@ -55,6 +69,8 @@ class CameraViewModel(
     private var launchIntentApplied = false
     private var externalCapture = ExternalCaptureRequest()
     private var manualExtension = false
+    private var captureConfirmEnabled = true
+    private var flipWhileRecordingEnabled = true
     private val panoramaFrames = mutableListOf<File>()
     private var lastPanoramaYaw: Float? = null
     private var panoramaCaptureBusy = false
@@ -64,6 +80,17 @@ class CameraViewModel(
             interactors.observeNightScene().debounce(800).collect { scene ->
                 _uiState.update { it.copy(nightScene = scene) }
                 applyAutoNight(scene)
+            }
+        }
+        viewModelScope.launch {
+            interactors.observeLowLightBoost().collect { boost ->
+                _uiState.update { it.copy(lowLightBoostActive = boost == LowLightBoost.ACTIVE) }
+            }
+        }
+        viewModelScope.launch {
+            val supported = slowMotionOptions(appContext).available
+            if (supported) {
+                _uiState.update { it.copy(slowMotionSupported = true) }
             }
         }
     }
@@ -86,7 +113,22 @@ class CameraViewModel(
                             extension = state.extension,
                             colorFilter = state.colorFilter,
                             faceDetection = state.faceDetectionEnabled,
-                            cameraId = state.cameraId
+                            cameraId = state.cameraId,
+                            captureAspect = state.captureAspect,
+                            videoQuality = state.videoQuality,
+                            videoHdrRange = state.videoHdrRange,
+                            slowMotion = state.mode == CameraMode.SLOW_MOTION,
+                            slowMotionQuality = state.slowMotionQuality,
+                            slowMotionRate = state.slowMotionRate,
+                            videoStabilization = state.videoStabilization,
+                            ultraHdr = state.ultraHdr,
+                            rawCapture = state.rawCapture,
+                            rawFullSensor = state.rawFullSensor,
+                            lowLightBoost = state.lowLightBoost,
+                            retainRecording = flipWhileRecordingEnabled &&
+                                state.isRecording &&
+                                !state.motionCapturing &&
+                                state.mode != CameraMode.SLOW_MOTION
                         )
                     )
                     _uiState.update {
@@ -105,8 +147,30 @@ class CameraViewModel(
                                 result.exposureLimits.shutterMinNanos,
                                 result.exposureLimits.shutterMaxNanos
                             ),
+                            exposureCompensation = if (result.exposureLimits.evMax >
+                                result.exposureLimits.evMin
+                            ) {
+                                it.exposureCompensation.coerceIn(
+                                    result.exposureLimits.evMin,
+                                    result.exposureLimits.evMax
+                                )
+                            } else {
+                                0
+                            },
                             physicalZooms = result.physicalZooms,
                             cameraId = result.boundCameraId ?: it.cameraId,
+                            slowMotionSupported = result.slowMotionSupported || it.slowMotionSupported,
+                            slowMotionFps = result.slowMotionFps,
+                            mode = if (it.mode == CameraMode.SLOW_MOTION &&
+                                !result.slowMotionSupported
+                            ) {
+                                CameraMode.VIDEO
+                            } else {
+                                it.mode
+                            },
+                            videoStabilizationActive = result.videoStabilizationActive,
+                            lowLightBoostSupported = result.lowLightBoostSupported,
+                            videoHdrBound = result.videoHdrRange,
                             message = null
                         )
                     }
@@ -115,6 +179,7 @@ class CameraViewModel(
                         _uiState.value.iso,
                         _uiState.value.shutterNanos
                     )
+                    interactors.setExposureCompensation(_uiState.value.exposureCompensation)
                 } catch (error: Exception) {
                     Logger.error(TAG, "Bind failed: ${error.message}")
                     val state = _uiState.value
@@ -181,21 +246,45 @@ class CameraViewModel(
 
     fun setMode(mode: CameraMode) {
         if (_uiState.value.isRecording || _uiState.value.motionCapturing || _uiState.value.lockCaptureMode) return
+        if (mode == CameraMode.SLOW_MOTION && !_uiState.value.slowMotionSupported) return
         if (_uiState.value.panoramaActive) finishPanorama()
         countdownJob?.cancel()
-        val clearExtension = mode == CameraMode.VIDEO && _uiState.value.extension != CameraExtension.NONE
+        val previous = _uiState.value.mode
+        val recordsVideo = mode == CameraMode.VIDEO || mode == CameraMode.SLOW_MOTION
+        val clearExtension = recordsVideo && _uiState.value.extension != CameraExtension.NONE
+        val slowMotionChanged = previous == CameraMode.SLOW_MOTION || mode == CameraMode.SLOW_MOTION
         _uiState.update {
             it.copy(
                 mode = mode,
                 countdownRemaining = null,
-                extension = if (clearExtension) CameraExtension.NONE else it.extension,
-                bindRevision = if (clearExtension) it.bindRevision + 1 else it.bindRevision
+                extension = if (clearExtension || mode == CameraMode.SLOW_MOTION) {
+                    CameraExtension.NONE
+                } else {
+                    it.extension
+                },
+                autoNightActive = if (mode == CameraMode.SLOW_MOTION) false else it.autoNightActive,
+                motionPhotoEnabled = if (mode == CameraMode.SLOW_MOTION) false else it.motionPhotoEnabled,
+                faceDetectionEnabled = if (mode == CameraMode.SLOW_MOTION) false else it.faceDetectionEnabled,
+                colorFilter = if (mode == CameraMode.SLOW_MOTION) {
+                    ColorFilterType.NONE
+                } else {
+                    it.colorFilter
+                },
+                bindRevision = if (slowMotionChanged || clearExtension) {
+                    it.bindRevision + 1
+                } else {
+                    it.bindRevision
+                }
             )
         }
     }
 
     fun toggleLens() {
-        if (_uiState.value.isRecording || _uiState.value.motionCapturing || _uiState.value.panoramaActive) return
+        val state = _uiState.value
+        if (state.motionCapturing || state.panoramaActive) return
+        if (state.isRecording &&
+            (!flipWhileRecordingEnabled || state.mode != CameraMode.VIDEO)
+        ) return
         _uiState.update {
             it.copy(
                 lens = it.lens.toggle(),
@@ -225,7 +314,10 @@ class CameraViewModel(
         val physical = _uiState.value.physicalZooms.minByOrNull {
             kotlin.math.abs(it.label - ratio)
         }?.takeIf { kotlin.math.abs(it.label - ratio) < 0.12f }
-        if (physical != null && physical.cameraId != _uiState.value.cameraId) {
+        if (physical != null &&
+            physical.cameraId != _uiState.value.cameraId &&
+            !_uiState.value.isRecording
+        ) {
             _uiState.update {
                 it.copy(
                     cameraId = physical.cameraId,
@@ -270,7 +362,9 @@ class CameraViewModel(
     }
 
     fun toggleMotionPhoto() {
-        if (_uiState.value.isRecording || _uiState.value.motionCapturing || _uiState.value.lockCaptureMode) return
+        if (_uiState.value.isRecording || _uiState.value.motionCapturing ||
+            _uiState.value.lockCaptureMode || _uiState.value.rawCapture
+        ) return
         val enabled = !_uiState.value.motionPhotoEnabled
         val dropExtension = enabled && _uiState.value.extension != CameraExtension.NONE
         if (dropExtension) manualExtension = false
@@ -308,6 +402,13 @@ class CameraViewModel(
         interactors.setExposure(ExposurePriority.SHUTTER, _uiState.value.iso, value)
     }
 
+    fun setExposureCompensation(index: Int) {
+        val limits = _uiState.value.exposureLimits
+        val value = index.coerceIn(limits.evMin, limits.evMax)
+        _uiState.update { it.copy(exposureCompensation = value) }
+        interactors.setExposureCompensation(value)
+    }
+
     fun setColorFilter(type: ColorFilterType) {
         val previous = _uiState.value.colorFilter
         _uiState.update { it.copy(colorFilter = type) }
@@ -330,8 +431,10 @@ class CameraViewModel(
 
     fun onShutter(previewView: PreviewView) {
         val state = _uiState.value
+        if (state.review != null) return
         if (state.motionCapturing) return
-        if (state.mode == CameraMode.VIDEO) {
+        if (state.mode == CameraMode.VIDEO || state.mode == CameraMode.SLOW_MOTION) {
+            if (state.mode == CameraMode.SLOW_MOTION && !state.slowMotionSupported) return
             if (state.isRecording) stopRecording() else startRecording()
             return
         }
@@ -369,6 +472,80 @@ class CameraViewModel(
         _uiState.update { it.copy(message = null) }
     }
 
+    fun keepCapture() {
+        val review = _uiState.value.review ?: return
+        publishAndFinish(review.file, review.isVideo)
+        review.companions.forEach { interactors.publishMedia(it) }
+        _uiState.update { it.copy(thumbnail = review.file, review = null) }
+    }
+
+    fun retakeCapture() {
+        val review = _uiState.value.review ?: return
+        review.file.delete()
+        review.companions.forEach { it.delete() }
+        _uiState.update { it.copy(review = null) }
+    }
+
+    fun setCaptureConfirmEnabled(enabled: Boolean) {
+        captureConfirmEnabled = enabled
+    }
+
+    fun applyCapturePreferences(
+        confirmEnabled: Boolean,
+        aspect: CaptureAspect,
+        quality: VideoQuality,
+        videoHdrRange: VideoHdrRange,
+        videoStabilization: Boolean,
+        slowMotionQuality: VideoQuality,
+        slowMotionRate: SlowMotionRate,
+        ultraHdr: Boolean,
+        rawCapture: Boolean,
+        rawFullSensor: Boolean,
+        flipWhileRecording: Boolean,
+        lowLightBoost: Boolean
+    ) {
+        captureConfirmEnabled = confirmEnabled
+        flipWhileRecordingEnabled = flipWhileRecording
+        val state = _uiState.value
+        if (state.flipWhileRecording != flipWhileRecording) {
+            _uiState.update { it.copy(flipWhileRecording = flipWhileRecording) }
+        }
+        if (state.lowLightBoost != lowLightBoost) {
+            _uiState.update { it.copy(lowLightBoost = lowLightBoost) }
+            interactors.setLowLightBoost(lowLightBoost)
+        }
+        if (state.captureAspect == aspect &&
+            state.videoQuality == quality &&
+            state.videoHdrRange == videoHdrRange &&
+            state.videoStabilization == videoStabilization &&
+            state.slowMotionQuality == slowMotionQuality &&
+            state.slowMotionRate == slowMotionRate &&
+            state.ultraHdr == ultraHdr &&
+            state.rawCapture == rawCapture &&
+            state.rawFullSensor == rawFullSensor
+        ) return
+        val dropExtension = rawCapture && state.extension != CameraExtension.NONE
+        if (dropExtension) manualExtension = false
+        _uiState.update {
+            it.copy(
+                captureAspect = aspect,
+                videoQuality = quality,
+                videoHdrRange = videoHdrRange,
+                videoStabilization = videoStabilization,
+                slowMotionQuality = slowMotionQuality,
+                slowMotionRate = slowMotionRate,
+                ultraHdr = ultraHdr,
+                rawCapture = rawCapture,
+                rawFullSensor = rawFullSensor,
+                lowLightBoost = lowLightBoost,
+                motionPhotoEnabled = if (rawCapture) false else it.motionPhotoEnabled,
+                extension = if (dropExtension) CameraExtension.NONE else it.extension,
+                autoNightActive = if (dropExtension) false else it.autoNightActive,
+                bindRevision = it.bindRevision + 1
+            )
+        }
+    }
+
     override fun onCleared() {
         countdownJob?.cancel()
         interactors.releaseCamera()
@@ -390,8 +567,10 @@ class CameraViewModel(
 
     private fun takePhoto(previewView: PreviewView) {
         val directory = outputDirectory ?: return
-        val motion = _uiState.value.motionPhotoEnabled ||
-                externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO
+        val motion = !_uiState.value.rawCapture &&
+            _uiState.value.stillFormat != StillFormat.RAW_JPEG &&
+            (_uiState.value.motionPhotoEnabled ||
+                externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO)
         if (motion) _uiState.update { it.copy(motionCapturing = true) }
         interactors.capturePhoto(
             outputDirectory = directory,
@@ -399,14 +578,12 @@ class CameraViewModel(
             colorFilter = _uiState.value.colorFilter,
             motionPhoto = motion,
             onSaved = { file ->
-                _uiState.update {
-                    it.copy(
-                        thumbnail = file,
-                        captureFlashToken = it.captureFlashToken + 1,
+                completeCapture(file, video = false) {
+                    copy(
+                        captureFlashToken = captureFlashToken + 1,
                         motionCapturing = false
                     )
                 }
-                interactors.publishMedia(file)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     previewView.postDelayed({
                         previewView.foreground = ColorDrawable(android.graphics.Color.WHITE)
@@ -415,11 +592,6 @@ class CameraViewModel(
                             ANIMATION_FAST_MILLIS
                         )
                     }, ANIMATION_SLOW_MILLIS)
-                }
-                if (externalCapture.kind == ExternalCaptureKind.IMAGE_CAPTURE ||
-                    externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO
-                ) {
-                    _externalCaptureReady.tryEmit(file)
                 }
             },
             onError = { message ->
@@ -433,6 +605,7 @@ class CameraViewModel(
         pendingVideoFile = interactors.startRecording(
             outputDirectory = directory,
             muted = _uiState.value.isMuted,
+            persistent = flipWhileRecordingEnabled && _uiState.value.mode == CameraMode.VIDEO,
             onEvent = { event -> handleRecordEvent(event) },
             onError = { message -> _uiState.update { it.copy(message = message) } }
         )
@@ -458,23 +631,24 @@ class CameraViewModel(
             is RecordingEvent.Finalized -> {
                 val file = pendingVideoFile
                 pendingVideoFile = null
-                _uiState.update {
-                    it.copy(
-                        isRecording = false,
-                        isPaused = false,
-                        recordingNanos = 0L,
-                        thumbnail = if (event.success) file ?: it.thumbnail else it.thumbnail,
-                        message = if (event.success) null else "Video capture failed"
-                    )
-                }
                 if (event.success && file != null) {
-                    interactors.publishMedia(file)
-                }
-                if (event.success &&
-                    externalCapture.kind == ExternalCaptureKind.VIDEO_CAPTURE &&
-                    file != null
-                ) {
-                    _externalCaptureReady.tryEmit(file)
+                    completeCapture(file, video = true) {
+                        copy(
+                            isRecording = false,
+                            isPaused = false,
+                            recordingNanos = 0L,
+                            message = null
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isRecording = false,
+                            isPaused = false,
+                            recordingNanos = 0L,
+                            message = if (event.success) null else "Video capture failed"
+                        )
+                    }
                 }
             }
         }
@@ -484,7 +658,9 @@ class CameraViewModel(
         val state = _uiState.value
         if (manualExtension ||
             state.motionPhotoEnabled ||
+            state.rawCapture ||
             state.mode == CameraMode.VIDEO ||
+            state.mode == CameraMode.SLOW_MOTION ||
             state.mode == CameraMode.PANORAMA ||
             state.panoramaActive ||
             state.isRecording ||
@@ -591,8 +767,7 @@ class CameraViewModel(
                 frames.forEach { frame ->
                     if (frame != file) frame.delete()
                 }
-                interactors.publishMedia(file)
-                _uiState.update { it.copy(thumbnail = file) }
+                completeCapture(file, video = false)
             } catch (error: Exception) {
                 Logger.error(TAG, "Panorama stitch failed: ${error.message}")
                 _uiState.update {
@@ -607,6 +782,85 @@ class CameraViewModel(
         while (delta > 180f) delta -= 360f
         while (delta < -180f) delta += 360f
         return delta
+    }
+
+    private fun completeCapture(
+        file: File,
+        video: Boolean,
+        extra: CameraUiState.() -> CameraUiState = { this }
+    ) {
+        if (captureConfirmEnabled) {
+            _uiState.update { extra(it).copy(review = captureReview(file, video)) }
+            return
+        }
+        publishAndFinish(file, video)
+        companionStill(file, video).forEach { interactors.publishMedia(it) }
+        _uiState.update { extra(it).copy(thumbnail = file, review = null) }
+    }
+
+    private fun publishAndFinish(file: File, video: Boolean) {
+        interactors.publishMedia(file)
+        if (externalCapture.kind == ExternalCaptureKind.IMAGE_CAPTURE ||
+            externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO ||
+            (externalCapture.kind == ExternalCaptureKind.VIDEO_CAPTURE && video)
+        ) {
+            _externalCaptureReady.tryEmit(file)
+        }
+    }
+
+    private fun captureReview(file: File, video: Boolean): CaptureReview {
+        val motion = !video && MotionPhotoMuxer.isMotionPhoto(file)
+        val (width, height, durationNanos) = mediaInfo(file, video)
+        val format = _uiState.value.stillFormat
+        val formatRes = when {
+            video || motion -> null
+            format == StillFormat.HEIC_ULTRA_HDR -> R.string.ultrahdr_heic
+            format == StillFormat.JPEG_ULTRA_HDR -> R.string.ultrahdr
+            format == StillFormat.RAW_JPEG -> R.string.raw_dng
+            else -> null
+        }
+        return CaptureReview(
+            file = file,
+            isVideo = video,
+            isMotionPhoto = motion,
+            width = width,
+            height = height,
+            durationLabel = durationNanos?.let { formatRecordingTime(it) },
+            formatLabelRes = formatRes,
+            companions = companionStill(file, video)
+        )
+    }
+
+    private fun companionStill(file: File, video: Boolean): List<File> {
+        if (video) return emptyList()
+        val dng = File(file.parentFile, file.nameWithoutExtension + Constants.FILE.DNG_EXTENSION)
+        return if (dng.exists() && dng != file) listOf(dng) else emptyList()
+    }
+
+    private fun mediaInfo(file: File, video: Boolean): Triple<Int, Int, Long?> {
+        if (video) {
+            val retriever = MediaMetadataRetriever()
+            return try {
+                retriever.setDataSource(file.absolutePath)
+                val width = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
+                )?.toIntOrNull() ?: 0
+                val height = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
+                )?.toIntOrNull() ?: 0
+                val durationMs = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION
+                )?.toLongOrNull() ?: 0L
+                Triple(width, height, durationMs * 1_000_000L)
+            } catch (_: Exception) {
+                Triple(0, 0, null)
+            } finally {
+                retriever.release()
+            }
+        }
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, options)
+        return Triple(options.outWidth, options.outHeight, null)
     }
 
     companion object {

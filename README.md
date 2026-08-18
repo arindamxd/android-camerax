@@ -71,7 +71,7 @@ app/src/main/java/com/arindam/camerax/
   domain/repository/     CameraRepository, MediaRepository
   domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
   data/camera/           CameraSession, ColorFilterProcessor, Overlay + CameraX mappers
-  data/media/            FileMediaRepository (latest jpg/mp4)
+  data/media/            FileMediaRepository (latest jpg/heic/dng/mp4)
   data/local/            SharedPreferences
   di/                    AppContainer
   ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
@@ -122,7 +122,7 @@ In Android Studio: **Run → Edit Configurations → Add** → `Android JUnit` (
 
 ## Stretch (not in this app yet)
 
-Slow-mo (`HighSpeedVideoSessionConfig`), ConcurrentCamera (front + back), RAW/DNG, full photo editor.
+ConcurrentCamera (front + back), full photo editor.
 
 ## Contributing
 

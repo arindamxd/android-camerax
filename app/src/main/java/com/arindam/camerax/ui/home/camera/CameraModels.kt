@@ -10,20 +10,25 @@ import com.arindam.camerax.R
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CameraMode
+import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.PhysicalZoom
+import com.arindam.camerax.domain.model.SlowMotionRate
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
+import com.arindam.camerax.domain.model.VideoHdrRange
+import com.arindam.camerax.domain.model.VideoQuality
 import java.io.File
 
 val CameraMode.labelRes: Int
     @StringRes get() = when (this) {
         CameraMode.PHOTO -> R.string.mode_photo
         CameraMode.VIDEO -> R.string.mode_video
+        CameraMode.SLOW_MOTION -> R.string.mode_slow_motion
         CameraMode.EFFECTS -> R.string.mode_effects
         CameraMode.PANORAMA -> R.string.mode_panorama
     }
@@ -63,6 +68,7 @@ val ColorFilterType.labelRes: Int
     @StringRes get() = when (this) {
         ColorFilterType.NONE -> R.string.filter_none
         ColorFilterType.MONO -> R.string.filter_mono
+        ColorFilterType.INVERT -> R.string.filter_invert
         ColorFilterType.VINTAGE -> R.string.filter_vintage
         ColorFilterType.COOL -> R.string.filter_cool
         ColorFilterType.WARM -> R.string.filter_warm
@@ -99,14 +105,33 @@ data class CameraUiState(
     val motionCapturing: Boolean = false,
     val ultraHdrEnabled: Boolean = false,
     val stillFormat: StillFormat = StillFormat.JPEG,
+    val captureAspect: CaptureAspect = CaptureAspect.RATIO_4_3,
+    val videoQuality: VideoQuality = VideoQuality.FHD,
+    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
+    val videoHdrBound: VideoHdrRange = VideoHdrRange.SDR,
+    val videoStabilization: Boolean = true,
+    val videoStabilizationActive: Boolean = false,
+    val slowMotionQuality: VideoQuality = VideoQuality.FHD,
+    val slowMotionRate: SlowMotionRate = SlowMotionRate.AUTO,
+    val ultraHdr: Boolean = true,
+    val rawCapture: Boolean = false,
+    val rawFullSensor: Boolean = false,
     val exposurePriority: ExposurePriority = ExposurePriority.AUTO,
     val exposureLimits: ExposureLimits = ExposureLimits(),
     val iso: Int = 100,
     val shutterNanos: Long = 16_666_667L,
+    val exposureCompensation: Int = 0,
     val panoramaActive: Boolean = false,
     val panoramaFrames: Int = 0,
     val cameraId: String? = null,
     val physicalZooms: List<PhysicalZoom> = emptyList(),
+    val slowMotionSupported: Boolean = false,
+    val slowMotionFps: Int = 0,
+    val lowLightBoost: Boolean = true,
+    val lowLightBoostSupported: Boolean = false,
+    val lowLightBoostActive: Boolean = false,
+    val flipWhileRecording: Boolean = true,
+    val review: CaptureReview? = null,
     val message: String? = null
 ) {
     val zoomChips: List<Float>
@@ -126,6 +151,35 @@ data class CameraUiState(
                 if (maxZoom >= 4.5f) add(5f)
             }.distinct()
         }
+
+    val visibleModes: List<CameraMode>
+        get() = if (slowMotionSupported) {
+            CameraMode.entries
+        } else {
+            CameraMode.entries.filter { it != CameraMode.SLOW_MOTION }
+        }
+
+    val showsExposureControls: Boolean
+        get() = mode != CameraMode.SLOW_MOTION &&
+            mode != CameraMode.PANORAMA &&
+            (exposureLimits.supportedPriorities.size >= 2 ||
+                exposureLimits.evMax > exposureLimits.evMin)
+}
+
+data class CaptureReview(
+    val file: File,
+    val isVideo: Boolean,
+    val isMotionPhoto: Boolean,
+    val width: Int,
+    val height: Int,
+    val durationLabel: String? = null,
+    @StringRes val formatLabelRes: Int? = null,
+    val companions: List<File> = emptyList()
+) {
+    fun metadataLabel(formatText: String?): String {
+        val size = if (width > 0 && height > 0) "$width × $height" else null
+        return listOfNotNull(durationLabel, size, formatText).joinToString(" · ")
+    }
 }
 
 enum class ExternalCaptureKind {

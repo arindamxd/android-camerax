@@ -26,10 +26,11 @@ object Constants {
 
     object FILE {
         internal const val FILE_NAME_KEY = "file_name"
-        internal val EXTENSION_WHITELIST = arrayOf("jpg", "jpeg", "heic", "mp4")
+        internal val EXTENSION_WHITELIST = arrayOf("jpg", "jpeg", "heic", "dng", "mp4")
         internal const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         internal const val PHOTO_EXTENSION = ".jpg"
         internal const val HEIC_EXTENSION = ".heic"
+        internal const val DNG_EXTENSION = ".dng"
         internal const val VIDEO_EXTENSION = ".mp4"
     }
 
