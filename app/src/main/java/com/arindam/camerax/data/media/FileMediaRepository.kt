@@ -18,7 +18,7 @@ class FileMediaRepository(private val context: Context) : MediaRepository {
         return files.firstOrNull { file ->
             file.nameWithoutExtension == newest.nameWithoutExtension &&
                 (file.extension.equals("jpg", ignoreCase = true) ||
-                    file.extension.equals("jpeg", ignoreCase = true))
+                file.extension.equals("jpeg", ignoreCase = true))
         } ?: newest
     }
 

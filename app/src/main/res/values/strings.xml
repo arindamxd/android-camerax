@@ -24,6 +24,7 @@
     <string name="video_hdr_hlg">HLG</string>
     <string name="video_hdr_hdr10">HDR10</string>
     <string name="video_hdr_hdr10_plus">HDR10+</string>
+    <string name="video_hdr_dolby">Dolby Vision</string>
     <string name="playback_speed">Speed %1$sx</string>
     <string name="flash_off">Flash off</string>
     <string name="flash_on">Flash on</string>
@@ -116,7 +117,10 @@
 
     <!-- Preferences -->
     <string name="pref_title_theme">Theme</string>
-    <string name="pref_title_camera">Camera</string>
+    <string name="pref_title_photo">Photo</string>
+    <string name="pref_title_video">Video</string>
+    <string name="pref_title_slow_motion">Slo-mo</string>
+    <string name="pref_title_general">General</string>
     <string name="pref_title_links">Links</string>
     <string name="pref_title_about">About</string>
 
@@ -128,7 +132,8 @@
     <string name="pref_title_capture_confirm">Capture confirmation</string>
     <string name="pref_subtitle_capture_confirm">Review each photo or video before saving</string>
     <string name="pref_title_ultra_hdr">Ultra HDR</string>
-    <string name="pref_subtitle_ultra_hdr">Gain-map stills when the camera supports it</string>
+    <string name="pref_subtitle_ultra_hdr">Gain-map HDR stills (JPEG / HEIC)</string>
+    <string name="pref_subtitle_ultra_hdr_unsupported">This device doesn\'t support Ultra HDR stills</string>
     <string name="pref_title_raw_capture">RAW / DNG</string>
     <string name="pref_subtitle_raw_capture">Save Adobe DNG plus JPEG in one shot</string>
     <string name="pref_subtitle_raw_unsupported">This device doesn\'t support RAW capture</string>
@@ -143,14 +148,16 @@
     <string name="pref_title_video_quality">Video quality</string>
     <string name="pref_subtitle_video_quality">Resolutions this device can record</string>
     <string name="pref_title_video_hdr">Video HDR</string>
-    <string name="pref_subtitle_video_hdr">Color format for recordings</string>
+    <string name="pref_subtitle_video_hdr">HLG / HDR10 dynamic range for recordings</string>
     <string name="pref_subtitle_video_hdr_unsupported">This device doesn\'t support HDR video</string>
     <string name="pref_video_hdr_sdr">SDR</string>
     <string name="pref_video_hdr_hlg10">HLG 10-bit</string>
     <string name="pref_video_hdr_hdr10">HDR10</string>
     <string name="pref_video_hdr_hdr10_plus">HDR10+</string>
+    <string name="pref_video_hdr_dolby">Dolby Vision</string>
     <string name="pref_title_video_stabilization">Video stabilization</string>
     <string name="pref_subtitle_video_stabilization">Steadies the viewfinder and recordings</string>
+    <string name="pref_subtitle_video_stabilization_unsupported">This device doesn\'t support video stabilization</string>
     <string name="pref_title_flip_while_recording">Flip while recording</string>
     <string name="pref_subtitle_flip_while_recording">Switch cameras without stopping the clip</string>
     <string name="pref_title_low_light_boost">Low light boost</string>

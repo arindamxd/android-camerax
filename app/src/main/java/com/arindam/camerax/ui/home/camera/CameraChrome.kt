@@ -63,6 +63,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -373,6 +374,7 @@ fun VideoHdrBanner(state: CameraUiState) {
         VideoHdrRange.HLG10 -> R.string.video_hdr_hlg
         VideoHdrRange.HDR10 -> R.string.video_hdr_hdr10
         VideoHdrRange.HDR10_PLUS -> R.string.video_hdr_hdr10_plus
+        VideoHdrRange.DOLBY_VISION -> R.string.video_hdr_dolby
         VideoHdrRange.SDR -> null
     }
     AnimatedVisibility(
@@ -447,7 +449,7 @@ fun ExposureControls(
 ) {
     val limits = state.exposureLimits
     val showHybrid = limits.supportedPriorities.size >= 2
-    val showEv = limits.evMax > limits.evMin
+    val showEv = limits.evSupported && limits.evMax > limits.evMin
     if (!showHybrid && !showEv) return
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -678,26 +680,29 @@ fun CameraFooter(
                 onFilterSelected = onFilterSelected,
                 onExtensionSelected = onExtensionSelected
             )
-            DiscretePager(
-                items = state.visibleModes,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (compact) 28.dp else 36.dp),
-                itemFraction = 0.28f,
-                overshootFraction = 0.75f,
-                initialIndex = state.visibleModes.indexOf(state.mode).coerceAtLeast(0),
-                itemSpacing = 8.dp,
-                onItemSelected = onModeSelected
-            ) { item ->
-                val selected = item == state.mode
-                Text(
-                    text = stringResource(item.labelRes).uppercase(),
-                    color = if (selected) CameraAccent else CameraOnGlassMuted,
-                    fontFamily = CameraMono,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = if (compact) 11.sp else 13.sp,
-                    letterSpacing = 1.2.sp
-                )
+            val modes = state.visibleModes
+            key(state.slowMotionSupported) {
+                DiscretePager(
+                    items = modes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (compact) 28.dp else 36.dp),
+                    itemFraction = 0.28f,
+                    overshootFraction = 0.75f,
+                    initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
+                    itemSpacing = 8.dp,
+                    onItemSelected = onModeSelected
+                ) { item ->
+                    val selected = item == state.mode
+                    Text(
+                        text = stringResource(item.labelRes).uppercase(),
+                        color = if (selected) CameraAccent else CameraOnGlassMuted,
+                        fontFamily = CameraMono,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (compact) 11.sp else 13.sp,
+                        letterSpacing = 1.2.sp
+                    )
+                }
             }
             Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
         }

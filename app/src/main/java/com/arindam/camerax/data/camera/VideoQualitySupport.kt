@@ -1,6 +1,9 @@
 package com.arindam.camerax.data.camera
 
 import android.content.Context
+import android.util.Range
+import androidx.camera.core.CameraInfo
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -14,6 +17,9 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+
+/** Matches CameraX `HighSpeedVideoSessionConfig`: high-speed is at least 120 FPS. */
+internal const val MIN_HIGH_SPEED_FPS = 120
 
 suspend fun supportedVideoQualities(context: Context): List<VideoQuality> {
     val provider: ProcessCameraProvider? = suspendCoroutine { continuation ->
@@ -75,6 +81,43 @@ data class SlowMotionOptions(
     val available: Boolean get() = qualities.isNotEmpty() && frameRates.isNotEmpty()
 }
 
+/**
+ * CameraX Slow-mo sample (`camerax-slowmotion`): [Recorder.getHighSpeedVideoCapabilities],
+ * SDR quality, then [HighSpeedVideoSessionConfig] (preview + video) frame rates.
+ * Preview+video high-speed sessions only advertise **fixed** ranges (120/120, 240/240, …).
+ * Variable AE ranges such as 30–120 are regular video, not slow motion.
+ */
+fun CameraInfo.highSpeedSlowMotionOptions(): SlowMotionOptions {
+    val capabilities = runCatching {
+        Recorder.getHighSpeedVideoCapabilities(this)
+    }.getOrNull() ?: return SlowMotionOptions()
+    val hsQualities = capabilities.getSupportedQualities(DynamicRange.SDR)
+    val quality = hsQualities.firstOrNull() ?: return SlowMotionOptions()
+    val qualities = hsQualities.mapNotNull { item -> item.toVideoQuality() }
+    if (qualities.isEmpty()) return SlowMotionOptions()
+    val frameRates = runCatching {
+        val recorder = Recorder.Builder()
+            .setQualitySelector(QualitySelector.from(quality))
+            .build()
+        val video = VideoCapture.withOutput(recorder)
+        val preview = Preview.Builder().build()
+        val probe = HighSpeedVideoSessionConfig(video, preview)
+        getSupportedFrameRateRanges(probe).highSpeedFrameRateRanges().map { range -> range.upper }
+    }.getOrDefault(emptyList())
+    if (frameRates.isEmpty()) return SlowMotionOptions()
+    return SlowMotionOptions(
+        qualities = VideoQuality.entries.filter { it in qualities.toSet() },
+        frameRates = frameRates.distinct().sorted()
+    )
+}
+
+fun CameraInfo.supportsHighSpeedSlowMotion(): Boolean = highSpeedSlowMotionOptions().available
+
+internal fun Collection<Range<Int>>.highSpeedFrameRateRanges(): List<Range<Int>> =
+    filter { range -> range.lower == range.upper && range.upper >= MIN_HIGH_SPEED_FPS }
+        .distinct()
+        .sortedBy { it.upper }
+
 suspend fun slowMotionOptions(context: Context): SlowMotionOptions {
     val provider: ProcessCameraProvider? = suspendCoroutine { continuation ->
         val future = ProcessCameraProvider.getInstance(context)
@@ -83,32 +126,11 @@ suspend fun slowMotionOptions(context: Context): SlowMotionOptions {
         }, ContextCompat.getMainExecutor(context))
     }
     if (provider == null) return SlowMotionOptions()
-    val qualities = linkedSetOf<VideoQuality>()
-    val frameRates = linkedSetOf<Int>()
-    provider.availableCameraInfos.forEach { info ->
-        val capabilities = runCatching {
-            Recorder.getHighSpeedVideoCapabilities(info)
-        }.getOrNull() ?: return@forEach
-        val hsQualities = capabilities.getSupportedQualities(DynamicRange.SDR)
-        hsQualities.mapNotNull { quality -> quality.toVideoQuality() }.forEach { qualities += it }
-        if (hsQualities.isEmpty()) return@forEach
-        runCatching {
-            val recorder = Recorder.Builder()
-                .setQualitySelector(QualitySelector.fromOrderedList(hsQualities))
-                .build()
-            val video = VideoCapture.withOutput(recorder)
-            val preview = Preview.Builder().build()
-            val probe = HighSpeedVideoSessionConfig.Builder(video)
-                .setPreview(preview)
-                .setSlowMotionEnabled(true)
-                .build()
-            info.getSupportedFrameRateRanges(probe).forEach { range -> frameRates += range.upper }
-        }
-    }
-    return SlowMotionOptions(
-        qualities = VideoQuality.entries.filter { it in qualities },
-        frameRates = frameRates.sorted()
-    )
+    val back = CameraSelector.DEFAULT_BACK_CAMERA
+        .filter(provider.availableCameraInfos)
+        .firstOrNull()
+        ?: return SlowMotionOptions()
+    return back.highSpeedSlowMotionOptions()
 }
 
 suspend fun isVideoStabilizationSupported(context: Context): Boolean {
@@ -120,13 +142,9 @@ suspend fun isVideoStabilizationSupported(context: Context): Boolean {
     }
     if (provider == null) return false
     return provider.availableCameraInfos.any { info ->
-        val preview = runCatching {
-            Preview.getPreviewCapabilities(info).isStabilizationSupported
-        }.getOrDefault(false)
-        val video = runCatching {
+        runCatching {
             Recorder.getVideoCapabilities(info).isStabilizationSupported
         }.getOrDefault(false)
-        preview || video
     }
 }
 

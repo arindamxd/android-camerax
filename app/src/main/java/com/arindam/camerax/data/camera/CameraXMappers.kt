@@ -81,6 +81,7 @@ fun VideoHdrRange.toDynamicRange(): DynamicRange = when (this) {
     VideoHdrRange.HLG10 -> DynamicRange.HLG_10_BIT
     VideoHdrRange.HDR10 -> DynamicRange.HDR10_10_BIT
     VideoHdrRange.HDR10_PLUS -> DynamicRange.HDR10_PLUS_10_BIT
+    VideoHdrRange.DOLBY_VISION -> DynamicRange.DOLBY_VISION_10_BIT
 }
 
 fun DynamicRange.toVideoHdrRange(): VideoHdrRange? = when (this) {
@@ -88,6 +89,7 @@ fun DynamicRange.toVideoHdrRange(): VideoHdrRange? = when (this) {
     DynamicRange.HLG_10_BIT -> VideoHdrRange.HLG10
     DynamicRange.HDR10_10_BIT -> VideoHdrRange.HDR10
     DynamicRange.HDR10_PLUS_10_BIT -> VideoHdrRange.HDR10_PLUS
+    DynamicRange.DOLBY_VISION_10_BIT -> VideoHdrRange.DOLBY_VISION
     else -> null
 }
 
@@ -100,12 +102,8 @@ fun CameraInfo.supportedStillFormats(): Set<Int> = runCatching {
     ImageCapture.getImageCaptureCapabilities(this).supportedOutputFormats
 }.getOrDefault(emptySet())
 
-fun CameraInfo.supportsUltraHdr(): Boolean {
-    val formats = supportedStillFormats()
-    val heic = heicUltraHdrOutputFormat()
-    return ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in formats ||
-        (heic != null && heic in formats)
-}
+fun CameraInfo.supportsUltraHdr(): Boolean =
+    ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in supportedStillFormats()
 
 fun CameraInfo.supportsRawJpeg(): Boolean =
     ImageCapture.OUTPUT_FORMAT_RAW_JPEG in supportedStillFormats()
@@ -117,17 +115,12 @@ fun CameraInfo.supportsFullSensorRaw(context: Context): Boolean {
     val logical = runCatching { manager?.getCameraCharacteristics(camera2.cameraId) }.getOrNull()
     val caps = logical?.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
         ?: camera2.getCameraCharacteristic(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
-    if (caps?.contains(
-            CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_ULTRA_HIGH_RESOLUTION_SENSOR
-        ) == true
-    ) {
+    if (caps?.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_ULTRA_HIGH_RESOLUTION_SENSOR) == true) {
         return true
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val maxMap = logical?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION)
-            ?: camera2.getCameraCharacteristic(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION
-            )
+            ?: camera2.getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION)
         if (maxMap?.getOutputSizes(ImageFormat.RAW_SENSOR)?.isNotEmpty() == true) return true
     }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P || logical == null || manager == null) {

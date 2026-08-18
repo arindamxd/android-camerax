@@ -66,7 +66,7 @@ class CameraFragment : BaseFragmentCompose() {
         super.onResume()
         val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         viewModel.applyCapturePreferences(
-            confirmEnabled = prefs.getBoolean(getString(R.string.pref_key_capture_confirm), true),
+            confirmEnabled = prefs.getBoolean(getString(R.string.pref_key_capture_confirm), false),
             aspect = CaptureAspect.fromPref(prefs.getString(getString(R.string.pref_key_capture_aspect), null)),
             quality = VideoQuality.fromPref(prefs.getString(getString(R.string.pref_key_video_quality), null)),
             videoHdrRange = VideoHdrRange.fromPref(
@@ -84,7 +84,7 @@ class CameraFragment : BaseFragmentCompose() {
             rawFullSensor = prefs.getBoolean(getString(R.string.pref_key_raw_full_sensor), false),
             flipWhileRecording = prefs.getBoolean(
                 getString(R.string.pref_key_flip_while_recording),
-                true
+                false
             ),
             lowLightBoost = prefs.getBoolean(getString(R.string.pref_key_low_light_boost), true)
         )

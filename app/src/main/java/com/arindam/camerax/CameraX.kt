@@ -27,7 +27,10 @@ class CameraX : Application() {
     /* Handle Theme */
     private fun handleDayNightTheme() {
         val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        preferences.getString(getString(R.string.pref_key_theme), getString(R.string.pref_key_theme_default))?.apply {
+        preferences.getString(
+            getString(R.string.pref_key_theme),
+            getString(R.string.pref_key_theme_default)
+        )?.apply {
             val mode = NightMode.valueOf(this.uppercase(Locale.US))
             AppCompatDelegate.setDefaultNightMode(mode.value)
         }

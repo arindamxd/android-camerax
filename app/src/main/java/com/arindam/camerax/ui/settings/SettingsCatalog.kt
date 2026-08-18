@@ -62,33 +62,91 @@ fun settingsSections(
         )
     ),
     SettingsSection(
-        titleRes = R.string.pref_title_camera,
+        titleRes = R.string.pref_title_general,
         items = listOf(
             SettingsRow.Toggle(
                 keyRes = R.string.pref_key_capture_confirm,
                 titleRes = R.string.pref_title_capture_confirm,
                 subtitleRes = R.string.pref_subtitle_capture_confirm,
                 icon = Icons.Outlined.PhotoCamera,
-                defaultOn = true
+                defaultOn = false
             ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_low_light_boost,
+                titleRes = R.string.pref_title_low_light_boost,
+                subtitleRes = if (lowLightBoostAvailable) {
+                    R.string.pref_subtitle_low_light_boost
+                } else {
+                    R.string.pref_subtitle_low_light_boost_unsupported
+                },
+                icon = Icons.Outlined.NightsStay,
+                defaultOn = true,
+                enabled = lowLightBoostAvailable
+            )
+        )
+    ),
+    SettingsSection(
+        titleRes = R.string.pref_title_photo,
+        items = listOf(
             SettingsRow.Choice(
                 keyRes = R.string.pref_key_capture_aspect,
                 titleRes = R.string.pref_title_capture_aspect,
                 subtitleRes = R.string.pref_subtitle_capture_aspect,
                 icon = Icons.Outlined.Crop,
-                defaultValue = CaptureAspect.RATIO_4_3.prefValue,
+                defaultValue = CaptureAspect.FULL.prefValue,
                 options = listOf(
                     SettingsChoice(R.string.pref_aspect_4_3, CaptureAspect.RATIO_4_3.prefValue),
                     SettingsChoice(R.string.pref_aspect_16_9, CaptureAspect.RATIO_16_9.prefValue),
                     SettingsChoice(R.string.pref_aspect_full, CaptureAspect.FULL.prefValue)
                 )
             ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_ultra_hdr,
+                titleRes = R.string.pref_title_ultra_hdr,
+                subtitleRes = if (ultraHdrAvailable) {
+                    R.string.pref_subtitle_ultra_hdr
+                } else {
+                    R.string.pref_subtitle_ultra_hdr_unsupported
+                },
+                icon = Icons.Outlined.HdrOn,
+                defaultOn = true,
+                enabled = ultraHdrAvailable
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_raw_capture,
+                titleRes = R.string.pref_title_raw_capture,
+                subtitleRes = if (rawCaptureAvailable) {
+                    R.string.pref_subtitle_raw_capture
+                } else {
+                    R.string.pref_subtitle_raw_unsupported
+                },
+                icon = Icons.Outlined.RawOn,
+                defaultOn = false,
+                enabled = rawCaptureAvailable
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_raw_full_sensor,
+                titleRes = R.string.pref_title_raw_full_sensor,
+                subtitleRes = if (fullSensorRawAvailable) {
+                    R.string.pref_subtitle_raw_full_sensor
+                } else {
+                    R.string.pref_subtitle_raw_full_sensor_unsupported
+                },
+                icon = Icons.Outlined.CropFree,
+                defaultOn = false,
+                enabled = fullSensorRawAvailable
+            )
+        )
+    ),
+    SettingsSection(
+        titleRes = R.string.pref_title_video,
+        items = listOf(
             SettingsRow.Choice(
                 keyRes = R.string.pref_key_video_quality,
                 titleRes = R.string.pref_title_video_quality,
                 subtitleRes = R.string.pref_subtitle_video_quality,
                 icon = Icons.Outlined.HighQuality,
-                defaultValue = videoQualities.preferredDefault().prefValue,
+                defaultValue = VideoQuality.FHD.prefValue,
                 options = videoQualities.map { quality ->
                     SettingsChoice(quality.labelRes, quality.prefValue)
                 }
@@ -113,64 +171,29 @@ fun settingsSections(
                 enabled = videoHdrRanges.hasHdr
             ),
             SettingsRow.Toggle(
+                keyRes = R.string.pref_key_video_stabilization,
+                titleRes = R.string.pref_title_video_stabilization,
+                subtitleRes = if (videoStabilizationAvailable) {
+                    R.string.pref_subtitle_video_stabilization
+                } else {
+                    R.string.pref_subtitle_video_stabilization_unsupported
+                },
+                icon = Icons.Outlined.Videocam,
+                defaultOn = true,
+                enabled = videoStabilizationAvailable
+            ),
+            SettingsRow.Toggle(
                 keyRes = R.string.pref_key_flip_while_recording,
                 titleRes = R.string.pref_title_flip_while_recording,
                 subtitleRes = R.string.pref_subtitle_flip_while_recording,
                 icon = Icons.Outlined.Cameraswitch,
-                defaultOn = true
-            ),
-            SettingsRow.Toggle(
-                keyRes = R.string.pref_key_low_light_boost,
-                titleRes = R.string.pref_title_low_light_boost,
-                subtitleRes = if (lowLightBoostAvailable) {
-                    R.string.pref_subtitle_low_light_boost
-                } else {
-                    R.string.pref_subtitle_low_light_boost_unsupported
-                },
-                icon = Icons.Outlined.NightsStay,
-                defaultOn = true,
-                enabled = lowLightBoostAvailable
+                defaultOn = false
             )
-        ) + listOfNotNull(
-            SettingsRow.Toggle(
-                keyRes = R.string.pref_key_ultra_hdr,
-                titleRes = R.string.pref_title_ultra_hdr,
-                subtitleRes = R.string.pref_subtitle_ultra_hdr,
-                icon = Icons.Outlined.HdrOn,
-                defaultOn = true
-            ).takeIf { ultraHdrAvailable },
-            SettingsRow.Toggle(
-                keyRes = R.string.pref_key_raw_capture,
-                titleRes = R.string.pref_title_raw_capture,
-                subtitleRes = if (rawCaptureAvailable) {
-                    R.string.pref_subtitle_raw_capture
-                } else {
-                    R.string.pref_subtitle_raw_unsupported
-                },
-                icon = Icons.Outlined.RawOn,
-                defaultOn = false,
-                enabled = rawCaptureAvailable
-            ),
-            SettingsRow.Toggle(
-                keyRes = R.string.pref_key_raw_full_sensor,
-                titleRes = R.string.pref_title_raw_full_sensor,
-                subtitleRes = if (fullSensorRawAvailable) {
-                    R.string.pref_subtitle_raw_full_sensor
-                } else {
-                    R.string.pref_subtitle_raw_full_sensor_unsupported
-                },
-                icon = Icons.Outlined.CropFree,
-                defaultOn = false,
-                enabled = fullSensorRawAvailable
-            ),
-            SettingsRow.Toggle(
-                keyRes = R.string.pref_key_video_stabilization,
-                titleRes = R.string.pref_title_video_stabilization,
-                subtitleRes = R.string.pref_subtitle_video_stabilization,
-                icon = Icons.Outlined.Videocam,
-                defaultOn = true
-            ).takeIf { videoStabilizationAvailable }
-        ) + listOf(
+        )
+    ),
+    SettingsSection(
+        titleRes = R.string.pref_title_slow_motion,
+        items = listOf(
             SettingsRow.Choice(
                 keyRes = R.string.pref_key_slow_motion_quality,
                 titleRes = R.string.pref_title_slow_motion_quality,
@@ -181,7 +204,11 @@ fun settingsSections(
                 },
                 icon = Icons.Outlined.SlowMotionVideo,
                 defaultValue = slowMotion.qualities.preferredSlowMotionDefault().prefValue,
-                options = slowMotion.qualities.map { quality ->
+                options = (if (slowMotion.available) {
+                    slowMotion.qualities
+                } else {
+                    VideoQuality.entries
+                }).map { quality ->
                     SettingsChoice(quality.labelRes, quality.prefValue)
                 },
                 enabled = slowMotion.available
@@ -196,12 +223,12 @@ fun settingsSections(
                 },
                 icon = Icons.Outlined.Speed,
                 defaultValue = SlowMotionRate.AUTO.prefValue,
-                options = if (slowMotion.available) {
-                    SlowMotionRate.forFrameRates(slowMotion.frameRates).map { rate ->
-                        SettingsChoice(rate.labelRes, rate.prefValue)
-                    }
+                options = (if (slowMotion.available) {
+                    SlowMotionRate.forFrameRates(slowMotion.frameRates)
                 } else {
-                    emptyList()
+                    SlowMotionRate.entries
+                }).map { rate ->
+                    SettingsChoice(rate.labelRes, rate.prefValue)
                 },
                 enabled = slowMotion.available
             )
@@ -310,13 +337,11 @@ private val VideoHdrRange.labelRes: Int
         VideoHdrRange.HLG10 -> R.string.pref_video_hdr_hlg10
         VideoHdrRange.HDR10 -> R.string.pref_video_hdr_hdr10
         VideoHdrRange.HDR10_PLUS -> R.string.pref_video_hdr_hdr10_plus
+        VideoHdrRange.DOLBY_VISION -> R.string.pref_video_hdr_dolby
     }
 
 private val List<VideoHdrRange>.hasHdr: Boolean
     get() = any { it != VideoHdrRange.SDR }
-
-private fun List<VideoQuality>.preferredDefault(): VideoQuality =
-    firstOrNull { it == VideoQuality.FHD } ?: lastOrNull() ?: VideoQuality.FHD
 
 private fun List<VideoQuality>.preferredSlowMotionDefault(): VideoQuality =
     firstOrNull { it == VideoQuality.FHD }

@@ -310,7 +310,11 @@ class CameraSession(private val context: Context) : CameraRepository {
 
         return finishBind(
             config = config,
-            slowMotionSupported = isHighSpeedSupportedAnywhere(),
+            slowMotionSupported = if (config.slowMotion) {
+                false
+            } else {
+                isHighSpeedSupported(camera?.cameraInfo)
+            },
             slowMotionFps = 0
         )
     }
@@ -467,8 +471,10 @@ class CameraSession(private val context: Context) : CameraRepository {
     }
 
     override fun setExposureCompensation(index: Int) {
+        val exposure = camera?.cameraInfo?.exposureState ?: return
+        if (!exposure.isExposureCompensationSupported) return
         userExposureIndex = index
-        val range = camera?.cameraInfo?.exposureState?.exposureCompensationRange ?: return
+        val range = exposure.exposureCompensationRange
         camera?.cameraControl?.setExposureCompensationIndex(index.coerceIn(range.lower, range.upper))
     }
 
@@ -547,6 +553,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         if (userExposureIndex != null) return
         if (lowLightBoostRequested && camera?.cameraInfo?.isLowLightBoostSupported == true) return
         val exposure = camera?.cameraInfo?.exposureState ?: return
+        if (!exposure.isExposureCompensationSupported) return
         val range = exposure.exposureCompensationRange
         if (scene == NightScene.RECOMMENDED && !previewBoosted && range.upper > 0) {
             camera?.cameraControl?.setExposureCompensationIndex(
@@ -752,12 +759,18 @@ class CameraSession(private val context: Context) : CameraRepository {
     private fun exposureLimits(): ExposureLimits {
         val bound = camera ?: return ExposureLimits()
         val exposure = bound.cameraInfo.exposureState
+        val evSupported = exposure.isExposureCompensationSupported
         val evRange = exposure.exposureCompensationRange
-        val evMin = evRange.lower
-        val evMax = evRange.upper
-        val evStep = exposure.exposureCompensationStep.toFloat()
+        val evMin = if (evSupported) evRange.lower else 0
+        val evMax = if (evSupported) evRange.upper else 0
+        val evStep = if (evSupported) exposure.exposureCompensationStep.toFloat() else 0f
         if (Build.VERSION.SDK_INT < 36) {
-            return ExposureLimits(evMin = evMin, evMax = evMax, evStep = evStep)
+            return ExposureLimits(
+                evSupported = evSupported,
+                evMin = evMin,
+                evMax = evMax,
+                evStep = evStep
+            )
         }
         val info = Camera2CameraInfo.from(bound.cameraInfo)
         val modes = info.getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_PRIORITY_MODES)
@@ -780,6 +793,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             shutterMinNanos = shutter?.lower ?: 1_000_000L,
             shutterMaxNanos = shutter?.upper ?: 250_000_000L,
             supportedPriorities = priorities,
+            evSupported = evSupported,
             evMin = evMin,
             evMax = evMax,
             evStep = evStep
@@ -888,7 +902,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
         return finishBind(
             config = config,
-            slowMotionSupported = isHighSpeedSupportedAnywhere(),
+            slowMotionSupported = isHighSpeedSupported(camera?.cameraInfo),
             slowMotionFps = 0
         )
     }
@@ -953,33 +967,34 @@ class CameraSession(private val context: Context) : CameraRepository {
         val supported = capabilities.getSupportedQualities(DynamicRange.SDR)
         if (supported.isEmpty()) return null
         val requested = config.slowMotionQuality.toQuality()
-        val preferred = (listOf(requested) + listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
-            .distinct()
-            .filter { it in supported }
-            .ifEmpty { supported }
+        val quality = (listOf(requested) + supported).firstOrNull { it in supported } ?: return null
         val previewUseCase = Preview.Builder()
             .setTargetRotation(rotation)
             .build()
             .also { it.surfaceProvider = previewView.surfaceProvider }
         val recorder = Recorder.Builder()
-            .setQualitySelector(QualitySelector.fromOrderedList(preferred))
+            .setQualitySelector(QualitySelector.from(quality))
             .build()
         val video = VideoCapture.withOutput(recorder)
-        val sessionBuilder = HighSpeedVideoSessionConfig.Builder(video)
-            .setPreview(previewUseCase)
-            .setSlowMotionEnabled(true)
-        val ranges = cameraInfo.getSupportedFrameRateRanges(sessionBuilder.build())
+        val probe = HighSpeedVideoSessionConfig(video, previewUseCase)
+        val ranges = cameraInfo.getSupportedFrameRateRanges(probe).highSpeedFrameRateRanges()
+        if (ranges.isEmpty()) return null
         val requestedFps = config.slowMotionRate.fps
         val fpsRange = if (requestedFps > 0) {
-            ranges.firstOrNull { it.upper == requestedFps || it.lower == requestedFps }
-                ?: ranges.minByOrNull { kotlin.math.abs(it.upper - requestedFps) }
+            ranges.firstOrNull { it.upper == requestedFps }
+                ?: ranges.maxByOrNull { it.upper }
         } else {
             ranges.maxByOrNull { it.upper }
         } ?: return null
-        sessionBuilder.setFrameRateRange(fpsRange)
+        val session = HighSpeedVideoSessionConfig(
+            videoCapture = video,
+            preview = previewUseCase,
+            frameRateRange = fpsRange,
+            isSlowMotionEnabled = true
+        )
         return try {
             provider.unbindAll()
-            val bound = provider.bindToLifecycle(lifecycleOwner, selector, sessionBuilder.build())
+            val bound = provider.bindToLifecycle(lifecycleOwner, selector, session)
             this.preview = previewUseCase
             this.videoCapture = video
             this.imageCapture = null
@@ -991,15 +1006,9 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
     }
 
-    private fun isHighSpeedSupportedAnywhere(): Boolean {
-        val provider = cameraProvider ?: return false
-        return provider.availableCameraInfos.any { info -> isHighSpeedSupported(info) }
-    }
-
     private fun isHighSpeedSupported(info: CameraInfo?): Boolean {
         if (info == null) return false
-        val capabilities = Recorder.getHighSpeedVideoCapabilities(info) ?: return false
-        return capabilities.getSupportedQualities(DynamicRange.SDR).isNotEmpty()
+        return info.supportsHighSpeedSlowMotion()
     }
 
     private fun resolveVideoHdrRange(info: CameraInfo?, config: CameraBindConfig): DynamicRange {

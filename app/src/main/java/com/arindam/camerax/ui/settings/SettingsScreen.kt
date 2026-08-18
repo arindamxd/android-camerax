@@ -244,12 +244,15 @@ private fun SettingsRowView(
             var selected by remember(key) {
                 mutableStateOf(prefs.getString(key, row.defaultValue) ?: row.defaultValue)
             }
-            Column(Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (row.enabled) 1f else 0.38f)
+            ) {
                 SettingsBaseRow(
                     icon = row.icon,
                     title = stringResource(row.titleRes),
-                    subtitle = stringResource(row.subtitleRes),
-                    enabled = row.enabled
+                    subtitle = stringResource(row.subtitleRes)
                 )
                 if (row.options.isNotEmpty()) {
                     FlowRow(
@@ -279,7 +282,10 @@ private fun SettingsRowView(
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = CameraAccent,
-                                    selectedLabelColor = Color.Black
+                                    selectedLabelColor = Color.Black,
+                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledSelectedContainerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         }

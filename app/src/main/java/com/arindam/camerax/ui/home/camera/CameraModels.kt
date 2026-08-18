@@ -24,6 +24,9 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import java.io.File
 
+private val CameraModesWithoutSlowMotion: List<CameraMode> =
+    CameraMode.entries.filter { it != CameraMode.SLOW_MOTION }
+
 val CameraMode.labelRes: Int
     @StringRes get() = when (this) {
         CameraMode.PHOTO -> R.string.mode_photo
@@ -105,7 +108,7 @@ data class CameraUiState(
     val motionCapturing: Boolean = false,
     val ultraHdrEnabled: Boolean = false,
     val stillFormat: StillFormat = StillFormat.JPEG,
-    val captureAspect: CaptureAspect = CaptureAspect.RATIO_4_3,
+    val captureAspect: CaptureAspect = CaptureAspect.FULL,
     val videoQuality: VideoQuality = VideoQuality.FHD,
     val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
     val videoHdrBound: VideoHdrRange = VideoHdrRange.SDR,
@@ -130,7 +133,7 @@ data class CameraUiState(
     val lowLightBoost: Boolean = true,
     val lowLightBoostSupported: Boolean = false,
     val lowLightBoostActive: Boolean = false,
-    val flipWhileRecording: Boolean = true,
+    val flipWhileRecording: Boolean = false,
     val review: CaptureReview? = null,
     val message: String? = null
 ) {
@@ -156,14 +159,14 @@ data class CameraUiState(
         get() = if (slowMotionSupported) {
             CameraMode.entries
         } else {
-            CameraMode.entries.filter { it != CameraMode.SLOW_MOTION }
+            CameraModesWithoutSlowMotion
         }
 
     val showsExposureControls: Boolean
         get() = mode != CameraMode.SLOW_MOTION &&
             mode != CameraMode.PANORAMA &&
             (exposureLimits.supportedPriorities.size >= 2 ||
-                exposureLimits.evMax > exposureLimits.evMin)
+                exposureLimits.evSupported)
 }
 
 data class CaptureReview(

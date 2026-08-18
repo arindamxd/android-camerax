@@ -69,8 +69,8 @@ class CameraViewModel(
     private var launchIntentApplied = false
     private var externalCapture = ExternalCaptureRequest()
     private var manualExtension = false
-    private var captureConfirmEnabled = true
-    private var flipWhileRecordingEnabled = true
+    private var captureConfirmEnabled = false
+    private var flipWhileRecordingEnabled = false
     private val panoramaFrames = mutableListOf<File>()
     private var lastPanoramaYaw: Float? = null
     private var panoramaCaptureBusy = false
@@ -89,8 +89,15 @@ class CameraViewModel(
         }
         viewModelScope.launch {
             val supported = slowMotionOptions(appContext).available
-            if (supported) {
-                _uiState.update { it.copy(slowMotionSupported = true) }
+            _uiState.update { state ->
+                state.copy(
+                    slowMotionSupported = supported,
+                    mode = if (state.mode == CameraMode.SLOW_MOTION && !supported) {
+                        CameraMode.VIDEO
+                    } else {
+                        state.mode
+                    }
+                )
             }
         }
     }
@@ -147,9 +154,7 @@ class CameraViewModel(
                                 result.exposureLimits.shutterMinNanos,
                                 result.exposureLimits.shutterMaxNanos
                             ),
-                            exposureCompensation = if (result.exposureLimits.evMax >
-                                result.exposureLimits.evMin
-                            ) {
+                            exposureCompensation = if (result.exposureLimits.evSupported) {
                                 it.exposureCompensation.coerceIn(
                                     result.exposureLimits.evMin,
                                     result.exposureLimits.evMax
@@ -159,7 +164,8 @@ class CameraViewModel(
                             },
                             physicalZooms = result.physicalZooms,
                             cameraId = result.boundCameraId ?: it.cameraId,
-                            slowMotionSupported = result.slowMotionSupported || it.slowMotionSupported,
+                            slowMotionSupported = result.slowMotionSupported &&
+                                (it.slowMotionSupported || result.slowMotionFps > 0),
                             slowMotionFps = result.slowMotionFps,
                             mode = if (it.mode == CameraMode.SLOW_MOTION &&
                                 !result.slowMotionSupported
@@ -167,6 +173,13 @@ class CameraViewModel(
                                 CameraMode.VIDEO
                             } else {
                                 it.mode
+                            },
+                            bindRevision = if (it.mode == CameraMode.SLOW_MOTION &&
+                                !result.slowMotionSupported
+                            ) {
+                                it.bindRevision + 1
+                            } else {
+                                it.bindRevision
                             },
                             videoStabilizationActive = result.videoStabilizationActive,
                             lowLightBoostSupported = result.lowLightBoostSupported,

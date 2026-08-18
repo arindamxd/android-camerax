@@ -85,7 +85,7 @@ enum class CaptureAspect(val prefValue: String) {
 
     companion object {
         fun fromPref(value: String?): CaptureAspect =
-            entries.firstOrNull { it.prefValue == value } ?: RATIO_4_3
+            entries.firstOrNull { it.prefValue == value } ?: FULL
     }
 }
 
@@ -105,7 +105,8 @@ enum class VideoHdrRange(val prefValue: String) {
     SDR("sdr"),
     HLG10("hlg10"),
     HDR10("hdr10"),
-    HDR10_PLUS("hdr10_plus");
+    HDR10_PLUS("hdr10_plus"),
+    DOLBY_VISION("dolby_vision");
 
     companion object {
         fun fromPref(value: String?): VideoHdrRange =
@@ -135,6 +136,7 @@ data class ExposureLimits(
     val shutterMinNanos: Long = 1_000_000L,
     val shutterMaxNanos: Long = 250_000_000L,
     val supportedPriorities: Set<ExposurePriority> = setOf(ExposurePriority.AUTO),
+    val evSupported: Boolean = false,
     val evMin: Int = 0,
     val evMax: Int = 0,
     val evStep: Float = 0f
@@ -154,7 +156,7 @@ data class CameraBindConfig(
     val colorFilter: ColorFilterType,
     val faceDetection: Boolean,
     val cameraId: String? = null,
-    val captureAspect: CaptureAspect = CaptureAspect.RATIO_4_3,
+    val captureAspect: CaptureAspect = CaptureAspect.FULL,
     val videoQuality: VideoQuality = VideoQuality.FHD,
     val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
     val slowMotion: Boolean = false,

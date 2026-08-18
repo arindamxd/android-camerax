@@ -92,6 +92,7 @@ class ColorFilterProcessor : SurfaceProcessor, SurfaceTexture.OnFrameAvailableLi
             outputSurface = surface
             outputEglSurface = EGL14.eglCreateWindowSurface(
                 eglDisplay,
+
                 eglConfig,
                 surface,
                 intArrayOf(EGL14.EGL_NONE),

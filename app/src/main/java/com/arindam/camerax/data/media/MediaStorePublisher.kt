@@ -13,6 +13,8 @@ import java.io.File
  */
 object MediaStorePublisher {
 
+    private const val TAG = "MediaStorePublisher"
+
     fun publish(context: Context, file: File): Boolean {
         if (!file.exists() || file.length() <= 0L) return false
         return runCatching {
@@ -69,6 +71,4 @@ object MediaStorePublisher {
             Logger.warning(TAG, "MediaStore publish failed: ${error.message}")
         }.getOrDefault(false)
     }
-
-    private const val TAG = "MediaStorePublisher"
 }

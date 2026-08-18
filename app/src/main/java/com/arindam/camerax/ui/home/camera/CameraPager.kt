@@ -62,7 +62,7 @@ fun <T : Any> DiscretePager(
     require(itemFraction > 0f && itemFraction <= 1f) { "Item fraction must be in the (0f, 1f] range" }
     require(overshootFraction > 0f && itemFraction <= 1f) { "Overshoot fraction must be in the (0f, 1f] range" }
     val scope = rememberCoroutineScope()
-    val state = rememberPagerState()
+    val state = remember(items) { PagerState() }
     state.currentIndex = initialIndex
     state.numberOfItems = items.size
     state.itemFraction = itemFraction
@@ -125,9 +125,6 @@ fun <T : Any> DiscretePager(
         state.snapTo(initialIndex)
     }
 }
-
-@Composable
-private fun rememberPagerState(): PagerState = remember { PagerState() }
 
 private fun Constraints.dimension(orientation: Orientation) = when (orientation) {
     Orientation.Horizontal -> maxWidth
