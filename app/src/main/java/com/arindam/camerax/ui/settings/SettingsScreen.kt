@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,9 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -164,39 +164,39 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
         }
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
             sections.forEach { section ->
-                item(key = "header_${section.titleRes}") {
-                    Text(
-                        text = stringResource(section.titleRes).uppercase(Locale.US),
-                        color = CameraAccent,
-                        fontFamily = CameraMono,
-                        fontSize = 11.sp,
-                        letterSpacing = 1.4.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp)
-                    )
-                }
-                item(key = "card_${section.titleRes}") {
-                    SettingsGroupCard {
-                        section.items.forEachIndexed { index, row ->
-                            SettingsRowView(
-                                row = row,
-                                prefs = prefs,
-                                showDivider = index < section.items.lastIndex
-                            )
-                        }
+                Text(
+                    text = stringResource(section.titleRes).uppercase(Locale.US),
+                    color = CameraAccent,
+                    fontFamily = CameraMono,
+                    fontSize = 11.sp,
+                    letterSpacing = 1.4.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp)
+                )
+                SettingsGroupCard {
+                    section.items.forEachIndexed { index, row ->
+                        SettingsRowView(
+                            row = row,
+                            prefs = prefs,
+                            showDivider = index < section.items.lastIndex
+                        )
                     }
                 }
             }
         }
     }
 }
+
+private fun Modifier.disabledAlpha(enabled: Boolean): Modifier =
+    if (enabled) this else alpha(0.38f)
 
 @Composable
 private fun SettingsGroupCard(content: @Composable () -> Unit) {
@@ -260,7 +260,7 @@ private fun SettingsRowView(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(if (row.enabled) 1f else 0.38f)
+                    .disabledAlpha(row.enabled)
             ) {
                 SettingsBaseRow(
                     icon = row.icon,
@@ -353,7 +353,7 @@ private fun SettingsBaseRow(
 ) {
     val rowModifier = Modifier
         .fillMaxWidth()
-        .alpha(if (enabled) 1f else 0.38f)
+        .disabledAlpha(enabled)
         .then(
             if (onClick != null) {
                 Modifier.clickable(enabled = enabled, onClick = onClick)
