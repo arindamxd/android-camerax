@@ -1,11 +1,13 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.drawable.ColorDrawable
 import android.media.MediaMetadataRetriever
 import android.os.Build
+import android.view.animation.PathInterpolator
 import androidx.camera.view.PreviewView
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.LifecycleOwner
@@ -21,11 +23,15 @@ import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CameraMode
+import com.arindam.camerax.domain.model.CameraModeCatalog
+import com.arindam.camerax.domain.model.CaptureAction
 import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
+import com.arindam.camerax.domain.model.PhysicalZoom
+import com.arindam.camerax.domain.model.profile
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.SlowMotionRate
 import com.arindam.camerax.domain.model.StillFormat
@@ -52,6 +58,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.exp
+import kotlin.math.ln
 
 class CameraViewModel(
     private val interactors: CameraInteractors,
@@ -67,6 +75,8 @@ class CameraViewModel(
     private var outputDirectory: File? = null
     private var countdownJob: Job? = null
     private var focusJob: Job? = null
+    private var zoomAnimator: ValueAnimator? = null
+    private var zoomGestureAnchor = 1f
     private var pendingVideoFile: File? = null
     private var launchIntentApplied = false
     private var externalCapture = ExternalCaptureRequest()
@@ -93,14 +103,15 @@ class CameraViewModel(
             val supported = slowMotionOptions(appContext).available
             val concurrent = isConcurrentCameraSupported(appContext)
             _uiState.update { state ->
+                val resolved = CameraModeCatalog.resolve(
+                    mode = state.mode,
+                    slowMotionSupported = supported,
+                    concurrentSupported = concurrent
+                )
                 state.copy(
                     slowMotionSupported = supported,
                     concurrentSupported = concurrent,
-                    mode = when {
-                        state.mode == CameraMode.SLOW_MOTION && !supported -> CameraMode.VIDEO
-                        state.mode == CameraMode.DUAL && !concurrent -> CameraMode.PHOTO
-                        else -> state.mode
-                    }
+                    mode = resolved
                 )
             }
         }
@@ -120,6 +131,7 @@ class CameraViewModel(
             bindMutex.withLock {
                 try {
                     val state = _uiState.value
+                    val profile = state.mode.profile()
                     val result = interactors.bindCamera(
                         host = PreviewViewHost(lifecycleOwner, previewView, pipPreviewView),
                         config = CameraBindConfig(
@@ -131,7 +143,7 @@ class CameraViewModel(
                             captureAspect = state.captureAspect,
                             videoQuality = state.videoQuality,
                             videoHdrRange = state.videoHdrRange,
-                            slowMotion = state.mode == CameraMode.SLOW_MOTION,
+                            slowMotion = profile.bindSlowMotion,
                             slowMotionQuality = state.slowMotionQuality,
                             slowMotionRate = state.slowMotionRate,
                             videoStabilization = state.videoStabilization,
@@ -142,14 +154,19 @@ class CameraViewModel(
                             retainRecording = flipWhileRecordingEnabled &&
                                 state.isRecording &&
                                 !state.motionCapturing &&
-                                state.mode != CameraMode.SLOW_MOTION,
-                            concurrent = state.mode == CameraMode.DUAL,
-                            videoFps60 = state.videoFps60 &&
-                                state.mode != CameraMode.SLOW_MOTION &&
-                                state.mode != CameraMode.DUAL
+                                profile.allowsPersistentRecording,
+                            concurrent = profile.bindConcurrent,
+                            videoFps60 = state.videoFps60 && profile.allowsFps60
                         )
                     )
                     _uiState.update {
+                        val resolved = CameraModeCatalog.resolve(
+                            mode = it.mode,
+                            slowMotionSupported = result.slowMotionSupported &&
+                                (it.slowMotionSupported || result.slowMotionFps > 0),
+                            concurrentSupported = result.concurrentSupported || it.concurrentSupported
+                        )
+                        val modeChanged = resolved != it.mode
                         it.copy(
                             hasFlash = result.hasFlash,
                             minZoom = result.minZoom,
@@ -174,7 +191,7 @@ class CameraViewModel(
                                 0
                             },
                             physicalZooms = result.physicalZooms,
-                            cameraId = result.boundCameraId ?: it.cameraId,
+                            cameraId = result.boundCameraId,
                             slowMotionSupported = result.slowMotionSupported &&
                                 (it.slowMotionSupported || result.slowMotionFps > 0),
                             slowMotionFps = result.slowMotionFps,
@@ -184,21 +201,8 @@ class CameraViewModel(
                             concurrentSupported = result.concurrentSupported || it.concurrentSupported,
                             videoFps60Supported = result.videoFps60Supported,
                             videoFps60Active = result.videoFps60Active,
-                            mode = when {
-                                it.mode == CameraMode.SLOW_MOTION && !result.slowMotionSupported ->
-                                    CameraMode.VIDEO
-                                it.mode == CameraMode.DUAL && !result.concurrentSupported ->
-                                    CameraMode.PHOTO
-                                else -> it.mode
-                            },
-                            bindRevision = if (
-                                (it.mode == CameraMode.SLOW_MOTION && !result.slowMotionSupported) ||
-                                (it.mode == CameraMode.DUAL && !result.concurrentSupported)
-                            ) {
-                                it.bindRevision + 1
-                            } else {
-                                it.bindRevision
-                            },
+                            mode = resolved,
+                            bindRevision = if (modeChanged) it.bindRevision + 1 else it.bindRevision,
                             message = null
                         )
                     }
@@ -208,6 +212,15 @@ class CameraViewModel(
                         _uiState.value.shutterNanos
                     )
                     interactors.setExposureCompensation(_uiState.value.exposureCompensation)
+                    val requestedId = state.cameraId
+                    val boundId = result.boundCameraId
+                    if (requestedId != null && boundId != requestedId) {
+                        val wanted = result.physicalZooms.find { it.cameraId == requestedId }
+                            ?: state.physicalZooms.find { it.cameraId == requestedId }
+                        if (wanted != null && wanted.label <= 0.7f && result.minZoom <= 0.7f) {
+                            applyDigitalZoom(result.minZoom)
+                        }
+                    }
                 } catch (error: Exception) {
                     Logger.error(TAG, "Bind failed: ${error.message}")
                     val state = _uiState.value
@@ -274,29 +287,32 @@ class CameraViewModel(
 
     fun setMode(mode: CameraMode) {
         if (_uiState.value.isRecording || _uiState.value.motionCapturing || _uiState.value.lockCaptureMode) return
-        if (mode == CameraMode.SLOW_MOTION && !_uiState.value.slowMotionSupported) return
-        if (mode == CameraMode.DUAL && !_uiState.value.concurrentSupported) return
-        if (_uiState.value.panoramaActive) finishPanorama()
+        val state = _uiState.value
+        val profile = mode.profile()
+        if (!profile.isAvailable(state.slowMotionSupported, state.concurrentSupported)) return
+        if (state.panoramaActive) finishPanorama()
         countdownJob?.cancel()
-        val previous = _uiState.value.mode
-        val recordsVideo = mode == CameraMode.VIDEO || mode == CameraMode.SLOW_MOTION
-        val clearExtension = recordsVideo && _uiState.value.extension != CameraExtension.NONE
-        val restricted = mode == CameraMode.SLOW_MOTION || mode == CameraMode.DUAL
-        val rebind = previous == CameraMode.SLOW_MOTION || mode == CameraMode.SLOW_MOTION ||
-            previous == CameraMode.DUAL || mode == CameraMode.DUAL ||
-            clearExtension
+        val previous = state.mode.profile()
+        val clearExtension = (profile.captureAction == CaptureAction.VIDEO ||
+            profile.clearsSessionExtras) &&
+            state.extension != CameraExtension.NONE
+        val rebind = previous.rebindOnEnter || profile.rebindOnEnter || clearExtension
         _uiState.update {
             it.copy(
                 mode = mode,
                 countdownRemaining = null,
-                extension = if (clearExtension || restricted) {
+                extension = if (clearExtension || profile.clearsSessionExtras) {
                     CameraExtension.NONE
                 } else {
                     it.extension
                 },
-                autoNightActive = if (restricted) false else it.autoNightActive,
-                motionPhotoEnabled = if (restricted) false else it.motionPhotoEnabled,
-                colorFilter = if (restricted) ColorFilterType.NONE else it.colorFilter,
+                autoNightActive = if (profile.clearsSessionExtras) false else it.autoNightActive,
+                motionPhotoEnabled = if (profile.clearsSessionExtras) false else it.motionPhotoEnabled,
+                colorFilter = if (profile.clearsSessionExtras) {
+                    ColorFilterType.NONE
+                } else {
+                    it.colorFilter
+                },
                 bindRevision = if (rebind) it.bindRevision + 1 else it.bindRevision
             )
         }
@@ -304,10 +320,11 @@ class CameraViewModel(
 
     fun toggleLens() {
         val state = _uiState.value
-        if (state.mode == CameraMode.DUAL) return
+        val profile = state.mode.profile()
+        if (!profile.showsFlip) return
         if (state.motionCapturing || state.panoramaActive) return
         if (state.isRecording &&
-            (!flipWhileRecordingEnabled || state.mode != CameraMode.VIDEO)
+            (!flipWhileRecordingEnabled || !profile.allowsPersistentRecording)
         ) return
         _uiState.update {
             it.copy(
@@ -335,22 +352,69 @@ class CameraViewModel(
     }
 
     fun setZoom(ratio: Float) {
-        val physical = _uiState.value.physicalZooms.minByOrNull {
-            kotlin.math.abs(it.label - ratio)
-        }?.takeIf { kotlin.math.abs(it.label - ratio) < 0.12f }
-        if (physical != null &&
-            physical.cameraId != _uiState.value.cameraId &&
-            !_uiState.value.isRecording
-        ) {
-            _uiState.update {
-                it.copy(
-                    cameraId = physical.cameraId,
-                    zoomRatio = physical.label,
-                    bindRevision = it.bindRevision + 1
-                )
-            }
+        cancelZoomAnimation()
+        val physical = matchingPhysicalCamera(ratio)
+        if (physical != null) {
+            switchPhysicalCamera(physical)
             return
         }
+        val state = _uiState.value
+        val target = if (ratio <= 0.7f) {
+            state.minZoom
+        } else {
+            ratio.coerceIn(state.minZoom, state.maxZoom)
+        }
+        val start = state.zoomRatio
+        if (kotlin.math.abs(start - target) < 0.01f) return
+        zoomAnimator = ValueAnimator.ofFloat(start, target).apply {
+            duration = 280
+            interpolator = PathInterpolator(0.4f, 0f, 0.2f, 1f)
+            addUpdateListener { animation ->
+                applyDigitalZoom(animation.animatedValue as Float)
+            }
+            start()
+        }
+    }
+
+    fun beginZoomGesture() {
+        cancelZoomAnimation()
+        zoomGestureAnchor = _uiState.value.zoomRatio
+    }
+
+    fun zoomByPinch(scale: Float) {
+        applyDigitalZoom(zoomGestureAnchor * scale)
+    }
+
+    fun zoomByDrag(deltaY: Float, viewportHeight: Float) {
+        if (viewportHeight <= 0f) return
+        val state = _uiState.value
+        val min = state.minZoom.coerceAtLeast(0.1f)
+        val max = state.maxZoom.coerceAtLeast(min + 0.01f)
+        val span = ln(max) - ln(min)
+        val logAnchor = ln(zoomGestureAnchor.coerceIn(min, max))
+        val travel = (-deltaY / viewportHeight).coerceIn(-1.4f, 1.4f)
+        applyDigitalZoom(exp((logAnchor + travel * span).coerceIn(ln(min), ln(max))))
+    }
+
+    private fun matchingPhysicalCamera(ratio: Float) = _uiState.value.physicalZooms.minByOrNull {
+        kotlin.math.abs(it.label - ratio)
+    }?.takeIf {
+        kotlin.math.abs(it.label - ratio) < 0.12f &&
+            it.cameraId != _uiState.value.cameraId &&
+            !_uiState.value.isRecording
+    }
+
+    private fun switchPhysicalCamera(physical: PhysicalZoom) {
+        _uiState.update {
+            it.copy(
+                cameraId = physical.cameraId,
+                zoomRatio = physical.label,
+                bindRevision = it.bindRevision + 1
+            )
+        }
+    }
+
+    private fun applyDigitalZoom(ratio: Float) {
         interactors.setZoom(ratio)?.let { zoom ->
             _uiState.update {
                 it.copy(zoomRatio = zoom.ratio, minZoom = zoom.min, maxZoom = zoom.max)
@@ -358,8 +422,9 @@ class CameraViewModel(
         }
     }
 
-    fun pinchZoom(scale: Float) {
-        setZoom(_uiState.value.zoomRatio * scale)
+    private fun cancelZoomAnimation() {
+        zoomAnimator?.cancel()
+        zoomAnimator = null
     }
 
     fun tapToFocus(previewView: PreviewView, offset: Offset) {
@@ -386,8 +451,10 @@ class CameraViewModel(
     }
 
     fun toggleMotionPhoto() {
-        if (_uiState.value.isRecording || _uiState.value.motionCapturing ||
-            _uiState.value.lockCaptureMode || _uiState.value.rawCapture
+        val state = _uiState.value
+        if (state.isRecording || state.motionCapturing ||
+            state.lockCaptureMode || state.rawCapture ||
+            !state.mode.profile().allowsMotionPhoto
         ) return
         val enabled = !_uiState.value.motionPhotoEnabled
         val dropExtension = enabled && _uiState.value.extension != CameraExtension.NONE
@@ -449,20 +516,22 @@ class CameraViewModel(
         val state = _uiState.value
         if (state.review != null) return
         if (state.motionCapturing) return
-        if (state.mode == CameraMode.VIDEO || state.mode == CameraMode.SLOW_MOTION) {
-            if (state.mode == CameraMode.SLOW_MOTION && !state.slowMotionSupported) return
-            if (state.isRecording) stopRecording() else startRecording()
-            return
-        }
-        if (state.mode == CameraMode.PANORAMA) {
-            if (state.panoramaActive) finishPanorama() else startPanorama(previewView)
-            return
-        }
-        if (state.countdownRemaining != null) return
-        if (state.timer.seconds > 0) {
-            startCountdown { takePhoto(previewView) }
-        } else {
-            takePhoto(previewView)
+        when (state.captureAction) {
+            CaptureAction.VIDEO -> {
+                if (state.showsSlowMotionFps && !state.slowMotionSupported) return
+                if (state.isRecording) stopRecording() else startRecording()
+            }
+            CaptureAction.PANORAMA -> {
+                if (state.panoramaActive) finishPanorama() else startPanorama(previewView)
+            }
+            CaptureAction.STILL -> {
+                if (state.countdownRemaining != null) return
+                if (state.timer.seconds > 0) {
+                    startCountdown { takePhoto(previewView) }
+                } else {
+                    takePhoto(previewView)
+                }
+            }
         }
     }
 
@@ -479,6 +548,7 @@ class CameraViewModel(
     }
 
     fun toggleMute() {
+        if (!_uiState.value.allowsAudioMute) return
         val muted = !_uiState.value.isMuted
         _uiState.update { it.copy(isMuted = muted) }
         if (_uiState.value.isRecording) interactors.muteRecording(muted)
@@ -567,6 +637,7 @@ class CameraViewModel(
 
     override fun onCleared() {
         countdownJob?.cancel()
+        cancelZoomAnimation()
         interactors.releaseCamera()
         super.onCleared()
     }
@@ -624,7 +695,8 @@ class CameraViewModel(
         pendingVideoFile = interactors.startRecording(
             outputDirectory = directory,
             muted = _uiState.value.isMuted,
-            persistent = flipWhileRecordingEnabled && _uiState.value.mode == CameraMode.VIDEO,
+            persistent = flipWhileRecordingEnabled &&
+                _uiState.value.mode.profile().allowsPersistentRecording,
             onEvent = { event -> handleRecordEvent(event) },
             onError = { message -> _uiState.update { it.copy(message = message) } }
         )
@@ -678,10 +750,7 @@ class CameraViewModel(
         if (manualExtension ||
             state.motionPhotoEnabled ||
             state.rawCapture ||
-            state.mode == CameraMode.VIDEO ||
-            state.mode == CameraMode.SLOW_MOTION ||
-            state.mode == CameraMode.PANORAMA ||
-            state.mode == CameraMode.DUAL ||
+            !state.mode.profile().allowsNightAuto ||
             state.panoramaActive ||
             state.isRecording ||
             state.motionCapturing ||

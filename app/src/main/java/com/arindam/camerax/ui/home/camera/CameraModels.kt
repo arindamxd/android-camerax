@@ -10,6 +10,8 @@ import com.arindam.camerax.R
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CameraMode
+import com.arindam.camerax.domain.model.CameraModeCatalog
+import com.arindam.camerax.domain.model.CaptureAction
 import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.ColorFilterType
 import com.arindam.camerax.domain.model.ExposureLimits
@@ -145,56 +147,89 @@ data class CameraUiState(
             val physical = physicalZooms.map { it.label }
             if (physical.size >= 2) {
                 return (physical + listOfNotNull(
+                    0.5f.takeIf { minZoom <= 0.7f && physical.none { it <= 0.7f } },
                     1f.takeIf { 1f !in physical },
                     2f.takeIf { maxZoom >= 1.9f && 2f !in physical },
                     5f.takeIf { maxZoom >= 4.5f && 5f !in physical }
                 )).distinct().sorted()
             }
             return buildList {
-                if (minZoom <= 0.7f) add(minZoom.coerceAtLeast(0.5f))
+                if (minZoom <= 0.7f) add(0.5f)
                 add(1f)
                 if (maxZoom >= 1.9f) add(2f)
                 if (maxZoom >= 4.5f) add(5f)
             }.distinct()
         }
 
-    val visibleModes: List<CameraMode>
-        get() = CameraMode.entries.filter { mode ->
-            when (mode) {
-                CameraMode.SLOW_MOTION -> slowMotionSupported
-                CameraMode.DUAL -> concurrentSupported
-                else -> true
+    val activeZoomChip: Float
+        get() {
+            val bound = cameraId?.let { id ->
+                physicalZooms.firstOrNull { it.cameraId == id }
             }
+            // Physical cameras report CameraX 1.0 at their native FOV (0.5x / 2x).
+            val equivalent = (bound?.label ?: 1f) * zoomRatio
+            return zoomChips.minByOrNull { kotlin.math.abs(it - equivalent) } ?: equivalent
         }
 
+    val visibleModes: List<CameraMode>
+        get() = CameraModeCatalog.visibleModes(slowMotionSupported, concurrentSupported)
+
+    private val profile get() = CameraModeCatalog.profile(mode)
+
     val showsFlash: Boolean
-        get() = hasFlash && mode != CameraMode.PANORAMA
+        get() = hasFlash && profile.showsFlash
 
     val showsTimer: Boolean
-        get() = mode == CameraMode.PHOTO || mode == CameraMode.EFFECTS
+        get() = profile.showsTimer
 
     val showsGrid: Boolean
-        get() = mode != CameraMode.DUAL
+        get() = profile.showsGrid
 
     val showsMotion: Boolean
-        get() = mode == CameraMode.PHOTO && !rawCapture
+        get() = profile.showsMotion && profile.allowsMotionPhoto && !rawCapture
 
     val showsZoomChips: Boolean
-        get() = mode != CameraMode.DUAL && mode != CameraMode.PANORAMA
+        get() = profile.showsZoom
 
     val showsStillBadge: Boolean
-        get() = (mode == CameraMode.PHOTO || mode == CameraMode.EFFECTS) &&
+        get() = profile.showsStillBadge &&
             (stillFormat == StillFormat.RAW_JPEG || ultraHdrEnabled)
 
     val showsVideoStatus: Boolean
-        get() = mode == CameraMode.VIDEO
+        get() = profile.showsVideoStatus
 
     val showsExposureControls: Boolean
-        get() = mode != CameraMode.SLOW_MOTION &&
-            mode != CameraMode.PANORAMA &&
-            mode != CameraMode.DUAL &&
+        get() = profile.showsExposure &&
             (exposureLimits.supportedPriorities.size >= 2 ||
                 exposureLimits.evSupported)
+
+    val showsFilters: Boolean
+        get() = profile.showsFilters
+
+    val showsPip: Boolean
+        get() = profile.showsPip
+
+    val showsNightHint: Boolean
+        get() = profile.showsNightHint
+
+    val showsLowLightBoost: Boolean
+        get() = profile.showsLowLightBoost
+
+    val allowsAudioMute: Boolean
+        get() = profile.allowsAudioMute
+
+    val captureAction: CaptureAction
+        get() = profile.captureAction
+
+    val showsFlipControl: Boolean
+        get() = profile.showsFlip &&
+            (!isRecording || (flipWhileRecording && profile.allowsPersistentRecording))
+
+    val recordsVideo: Boolean
+        get() = profile.captureAction == CaptureAction.VIDEO
+
+    val showsSlowMotionFps: Boolean
+        get() = profile.bindSlowMotion
 }
 
 data class CaptureReview(

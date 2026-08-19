@@ -11,7 +11,8 @@ Play Store camera app (`com.arindam.camerax`) built with Jetpack CameraX 1.6.1. 
 ui (presentation) → domain ← data
 ```
 
-- `domain/model` — camera models with no CameraX / Compose types (`NightScene`, `ExposurePriority`, `StillFormat`, `ExposureLimits`)
+- `domain/model` — camera models with no CameraX / Compose types (`NightScene`, `ExposurePriority`, `StillFormat`, `ExposureLimits`, `CameraModeProfile`)
+- `domain/model/CameraModeCatalog` — **add a new pager mode here**: one `CameraMode` value + one `CameraModeProfile` (chrome flags, `CaptureAction`, bind flags). Then add a string label in the UI `CameraMode.labelRes` mapping. Implement a new CameraX session type in `CameraSession` only if the profile’s bind flags are not enough.
 - `domain/repository` — `CameraRepository`, `MediaRepository`
 - `domain/usecase` — `CapturePhoto` (incl. `motionPhoto`), `StartRecording`, `BindCamera`, `SetExposure`, `ObserveNightScene`, `SetTargetRotation`, `StitchPanorama`, recording/zoom/flash/filter interactors
 - `data/camera/CameraSession` — CameraX implementation of `CameraRepository`

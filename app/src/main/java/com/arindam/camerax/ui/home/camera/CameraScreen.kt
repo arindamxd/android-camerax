@@ -11,12 +11,12 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,10 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -92,7 +94,7 @@ fun CameraScreen(
             viewModel.bind(
                 lifecycleOwner,
                 previewView,
-                pipPreviewView.takeIf { state.mode == com.arindam.camerax.domain.model.CameraMode.DUAL }
+                pipPreviewView.takeIf { state.showsPip }
             )
             previewView.display?.rotation?.let(viewModel::updateTargetRotation)
         }
@@ -159,13 +161,13 @@ fun CameraScreen(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize()
             )
-            if (state.mode == com.arindam.camerax.domain.model.CameraMode.DUAL) {
+            if (state.showsPip) {
                 AndroidView(
                     factory = { pipPreviewView },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .zIndex(0.5f)
-                        .padding(end = 16.dp, bottom = 216.dp)
+                        .padding(end = 16.dp, bottom = 228.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .border(1.5.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(16.dp))
                         .width(108.dp)
@@ -176,14 +178,52 @@ fun CameraScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(0f)
-                    .pointerInput(state.isRecording) {
-                        detectTapGestures { offset ->
-                            viewModel.tapToFocus(previewView, offset)
-                        }
-                    }
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            viewModel.pinchZoom(zoom)
+                    .pointerInput(previewView, state.showsZoomChips) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown()
+                            val start = down.position
+                            val slop = viewConfiguration.touchSlop
+                            var dragged = false
+                            var pinch = false
+                            var cumulativeZoom = 1f
+                            if (state.showsZoomChips) {
+                                viewModel.beginZoomGesture()
+                            }
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                if (pressed.isEmpty()) break
+                                if (state.showsZoomChips && pressed.size >= 2) {
+                                    pinch = true
+                                    dragged = true
+                                    cumulativeZoom *= event.calculateZoom()
+                                    viewModel.zoomByPinch(cumulativeZoom)
+                                    pressed.forEach { change ->
+                                        if (change.positionChanged()) change.consume()
+                                    }
+                                } else if (state.showsZoomChips && !pinch) {
+                                    val pointer = pressed.first()
+                                    val dx = pointer.position.x - start.x
+                                    val dy = pointer.position.y - start.y
+                                    if (abs(dx) > slop || abs(dy) > slop) {
+                                        if (abs(dy) >= abs(dx)) {
+                                            dragged = true
+                                            viewModel.zoomByDrag(dy, size.height.toFloat())
+                                            if (pointer.positionChanged()) pointer.consume()
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                } else {
+                                    val pointer = pressed.first()
+                                    val dx = pointer.position.x - start.x
+                                    val dy = pointer.position.y - start.y
+                                    if (abs(dx) > slop || abs(dy) > slop) dragged = true
+                                }
+                            }
+                            if (!dragged) {
+                                viewModel.tapToFocus(previewView, start)
+                            }
                         }
                     }
             )
@@ -211,14 +251,7 @@ fun CameraScreen(
                 )
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        NightSceneBanner(state)
-                        DualBanner(state)
-                        PanoramaBanner(state)
-                        SlowMotionBanner(state)
-                        StabilizationBanner(state)
-                        VideoHdrBanner(state)
-                        Fps60Banner(state)
-                        LowLightBoostBanner(state)
+                        LiveStatusStrip(state)
                         RecordingHud(
                             state = state,
                             onPauseClicked = viewModel::pauseOrResume,
@@ -233,8 +266,6 @@ fun CameraScreen(
                     .zIndex(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ZoomChips(state = state, onZoomSelected = viewModel::setZoom)
-                Spacer(Modifier.height(8.dp))
                 CameraFooter(
                     state = state,
                     compact = compact,
@@ -243,7 +274,8 @@ fun CameraScreen(
                     onShutterClicked = { viewModel.onShutter(previewView) },
                     onGalleryClicked = onGalleryClicked,
                     onFilterSelected = viewModel::setColorFilter,
-                    onExtensionSelected = viewModel::setExtension
+                    onExtensionSelected = viewModel::setExtension,
+                    onZoomSelected = viewModel::setZoom
                 )
             }
             CountdownOverlay(state.countdownRemaining)

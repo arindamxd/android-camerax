@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
@@ -58,7 +59,9 @@ import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraGlass
+import com.arindam.camerax.ui.theme.CameraGlassStrong
 import com.arindam.camerax.ui.theme.CameraMono
+import com.arindam.camerax.ui.theme.CameraOnGlass
 import java.io.File
 
 /**
@@ -138,19 +141,26 @@ private fun GalleryHeader(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(start = 10.dp, top = 10.dp)
+            .padding(start = 12.dp, top = 8.dp)
     ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_back),
+        Box(
             modifier = Modifier
                 .size(48.dp)
-                .padding(10.dp)
+                .clip(CircleShape)
+                .background(CameraGlassStrong)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = remember { ripple(bounded = false) }
                 ) { navigateBack.invoke() },
-            contentDescription = stringResource(R.string.back_button_alt)
-        )
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_back),
+                modifier = Modifier.size(22.dp),
+                tint = CameraOnGlass,
+                contentDescription = stringResource(R.string.back_button_alt)
+            )
+        }
     }
 }
 
@@ -175,52 +185,50 @@ private fun GalleryFooter(
     )
 
     Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.Bottom,
-        modifier = Modifier.fillMaxWidth()
+        horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 20.dp)
     ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .weight(1F)
-                .padding(start = 100.dp, bottom = 20.dp)
-        ) {
-            if (dataList.value.isEmpty()) return@Column
-            Icon(
-                painter = painterResource(id = R.drawable.ic_share),
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(10.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = remember { ripple(bounded = false) }
-                    ) { onShareClicked.invoke(pagerState.currentPage) },
-            contentDescription = stringResource(R.string.share_button_alt)
-            )
-        }
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .weight(1F)
-                .padding(end = 100.dp, bottom = 20.dp)
-        ) {
-            if (dataList.value.isEmpty()) return@Column
-            Icon(
-                painter = painterResource(id = R.drawable.ic_delete),
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(10.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = remember { ripple(bounded = false) }
-                    ) {
-                        showDialog.value = true
-                    },
-            contentDescription = stringResource(R.string.delete_button_alt)
-            )
-        }
+        if (dataList.value.isEmpty()) return@Row
+        GalleryActionButton(
+            icon = R.drawable.ic_share,
+            contentDescription = stringResource(R.string.share_button_alt),
+            onClick = { onShareClicked.invoke(pagerState.currentPage) }
+        )
+        GalleryActionButton(
+            icon = R.drawable.ic_delete,
+            contentDescription = stringResource(R.string.delete_button_alt),
+            onClick = { showDialog.value = true }
+        )
+    }
+}
+
+@Composable
+private fun GalleryActionButton(
+    icon: Int,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(CircleShape)
+            .background(CameraGlassStrong)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = remember { ripple(bounded = false) },
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = icon),
+            modifier = Modifier.size(22.dp),
+            tint = CameraOnGlass,
+            contentDescription = contentDescription
+        )
     }
 }
 
@@ -324,11 +332,12 @@ private fun PlaybackSpeedRow(
             val selected = kotlin.math.abs(speed - value) < 0.01f
             Text(
                 text = if (value == 1f) "1x" else "${value}x",
-                color = if (selected) CameraAccent else Color.White,
+                color = if (selected) Color.Black else Color.White,
                 fontFamily = CameraMono,
                 fontSize = 12.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(14.dp))
+                    .background(if (selected) CameraAccent else Color.Transparent)
                     .clickable { onSpeedSelected(value) }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             )

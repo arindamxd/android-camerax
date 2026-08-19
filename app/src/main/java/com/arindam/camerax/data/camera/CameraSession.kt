@@ -186,9 +186,19 @@ class CameraSession(private val context: Context) : CameraRepository {
             return bindConcurrent(provider, previewHost, config, rotation)
         }
 
-        val baseSelector = selectorFor(config)
+        val requestedSelector = selectorFor(config)
+        val requestedInfo = runCatching { provider.getCameraInfo(requestedSelector) }.getOrNull()
+        val baseSelector = if (requestedInfo != null) {
+            requestedSelector
+        } else {
+            if (!config.cameraId.isNullOrBlank()) {
+                Logger.warning(TAG, "Falling back from camera ${config.cameraId} to default lens")
+            }
+            config.lens.toSelector()
+        }
         val manager = extensionsManager
-        val stillInfo = runCatching { provider.getCameraInfo(baseSelector) }.getOrNull()
+        val stillInfo = requestedInfo
+            ?: runCatching { provider.getCameraInfo(baseSelector) }.getOrNull()
         val useRaw = config.rawCapture && !config.slowMotion && stillInfo?.supportsRawJpeg() == true
         val useExtension = !useRaw &&
             !config.slowMotion &&
@@ -390,12 +400,12 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     override fun setZoomRatio(ratio: Float): ZoomInfo? {
         val state = camera?.cameraInfo?.zoomState?.value ?: return null
-        camera?.cameraControl?.setZoomRatio(ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio))
-        val updated = camera?.cameraInfo?.zoomState?.value ?: state
+        val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
+        camera?.cameraControl?.setZoomRatio(clamped)
         return ZoomInfo(
-            ratio = updated.zoomRatio,
-            min = updated.minZoomRatio,
-            max = updated.maxZoomRatio
+            ratio = clamped,
+            min = state.minZoomRatio,
+            max = state.maxZoomRatio
         )
     }
 
@@ -486,7 +496,11 @@ class CameraSession(private val context: Context) : CameraRepository {
         if (id.isNullOrBlank()) return config.lens.toSelector()
         return CameraSelector.Builder()
             .addCameraFilter { infos ->
-                infos.filter { Camera2CameraInfo.from(it).cameraId == id }.ifEmpty { infos }
+                val match = infos.filter { Camera2CameraInfo.from(it).cameraId == id }
+                if (match.isEmpty()) {
+                    Logger.warning(TAG, "Camera id $id is not independently bindable")
+                }
+                match
             }
             .build()
     }
@@ -1103,7 +1117,9 @@ class CameraSession(private val context: Context) : CameraRepository {
             nightIndicatorSupported = Build.VERSION.SDK_INT >= 36,
             exposureLimits = exposureLimits(),
             physicalZooms = discoverPhysicalZooms(facing),
-            boundCameraId = config.cameraId,
+            boundCameraId = runCatching {
+                camera?.let { Camera2CameraInfo.from(it.cameraInfo).cameraId }
+            }.getOrNull(),
             slowMotionSupported = slowMotionSupported,
             slowMotionFps = slowMotionFps,
             videoStabilizationSupported = isPreviewStabilizationSupported(info) ||

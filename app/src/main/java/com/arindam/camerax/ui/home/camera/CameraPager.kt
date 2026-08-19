@@ -2,8 +2,10 @@ package com.arindam.camerax.ui.home.camera
 
 import androidx.annotation.FloatRange
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.gestures.Orientation
@@ -29,6 +31,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
@@ -42,7 +45,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.roundToInt
-import kotlin.math.sign
 
 @Composable
 fun <T : Any> DiscretePager(
@@ -121,8 +123,8 @@ fun <T : Any> DiscretePager(
         }
     }
 
-    LaunchedEffect(key1 = items, key2 = initialIndex) {
-        state.snapTo(initialIndex)
+    LaunchedEffect(items) {
+        state.snapTo(initialIndex.coerceIn(0, items.lastIndex))
     }
 }
 
@@ -178,20 +180,45 @@ private class PagerState {
     var listener: (Int) -> Unit by mutableStateOf({})
     val dragOffset = Animatable(0f)
 
-    private val animationSpec = SpringSpec<Float>(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessLow,
+    private val settleSpec = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+    private val tapSpec = tween<Float>(
+        durationMillis = 280,
+        easing = FastOutSlowInEasing
     )
 
+    fun emitIndex(offset: Float) {
+        val step = (itemDimension + itemSpacing).coerceAtLeast(1f)
+        val index = (offset / step).roundToInt()
+            .coerceIn(0, (numberOfItems - 1).coerceAtLeast(0))
+        if (index != currentIndex) {
+            currentIndex = index
+            listener(index)
+        }
+    }
+
     suspend fun snapTo(index: Int) {
-        dragOffset.snapTo(index.toFloat() * (itemDimension + itemSpacing))
+        val dest = index.coerceIn(0, (numberOfItems - 1).coerceAtLeast(0))
+        dragOffset.snapTo(dest * (itemDimension + itemSpacing))
+        currentIndex = dest
+    }
+
+    suspend fun animateTo(index: Int, velocity: Float = 0f) {
+        val dest = index.coerceIn(0, (numberOfItems - 1).coerceAtLeast(0))
+        val target = dest * (itemDimension + itemSpacing)
+        dragOffset.animateTo(
+            targetValue = target,
+            animationSpec = if (velocity.absoluteValue > 80f) settleSpec else tapSpec,
+            initialVelocity = velocity
+        ) {
+            emitIndex(value)
+        }
+        emitIndex(dragOffset.value)
     }
 
     val inputModifier = Modifier.pointerInput(numberOfItems) {
-        fun itemIndex(offset: Int): Int = (offset / (itemDimension + itemSpacing))
-            .roundToInt()
-            .coerceIn(0, numberOfItems - 1)
-
         fun indexAtPosition(x: Float, y: Float): Int {
             val dimension = when (orientation) {
                 Orientation.Horizontal -> size.width
@@ -216,14 +243,6 @@ private class PagerState {
             return best.coerceIn(0, numberOfItems - 1)
         }
 
-        fun updateIndex(offset: Float) {
-            val index = itemIndex(offset.roundToInt())
-            if (index != currentIndex) {
-                currentIndex = index
-                listener(index)
-            }
-        }
-
         fun calculateOffsetLimit(): OffsetLimit {
             val dimension = when (orientation) {
                 Orientation.Horizontal -> size.width
@@ -240,6 +259,7 @@ private class PagerState {
             val tracker = VelocityTracker()
             val decay = splineBasedDecay<Float>(this)
             val down = awaitFirstDown()
+            scope?.launch { dragOffset.stop() }
             val start = down.position
             var dragged = false
             val slop = viewConfiguration.touchSlop
@@ -256,8 +276,9 @@ private class PagerState {
                         dragOffset.snapTo(
                             (dragOffset.value - dragChange).coerceIn(offsetLimit.min, offsetLimit.max)
                         )
-                        updateIndex(dragOffset.value)
+                        emitIndex(dragOffset.value)
                     }
+                    if (change.positionChanged()) change.consume()
                     tracker.addPosition(change.uptimeMillis, change.position)
                 }
             }
@@ -268,26 +289,19 @@ private class PagerState {
             if (!dragged) {
                 val tapped = indexAtPosition(start.x, start.y)
                 scope?.launch {
-                    snapTo(tapped)
-                    updateIndex(dragOffset.value)
+                    animateTo(tapped)
                 }
                 return@awaitEachGesture
             }
             val velocity = tracker.calculateVelocity(orientation)
             scope?.launch {
-                var targetOffset = decay.calculateTargetValue(dragOffset.value, -velocity)
-                val remainder = targetOffset.toInt().absoluteValue % itemDimension
-                val extra = if (remainder > itemDimension / 2f) 1 else 0
-                val lastVisibleIndex = (targetOffset.absoluteValue / itemDimension.toFloat()).toInt() + extra
-                targetOffset = (lastVisibleIndex * (itemDimension + itemSpacing) * targetOffset.sign)
-                    .coerceIn(0f, (numberOfItems - 1).toFloat() * (itemDimension + itemSpacing))
-                dragOffset.animateTo(
-                    animationSpec = animationSpec,
-                    targetValue = targetOffset,
-                    initialVelocity = -velocity
-                ) {
-                    updateIndex(value)
-                }
+                val decayTarget = decay.calculateTargetValue(dragOffset.value, -velocity)
+                val maxOffset = (numberOfItems - 1).toFloat() * (itemDimension + itemSpacing)
+                val step = (itemDimension + itemSpacing).coerceAtLeast(1f)
+                val projected = decayTarget.coerceIn(0f, maxOffset)
+                val nearest = (projected / step).roundToInt()
+                    .coerceIn(0, numberOfItems - 1)
+                animateTo(nearest, -velocity)
             }
         }
     }
