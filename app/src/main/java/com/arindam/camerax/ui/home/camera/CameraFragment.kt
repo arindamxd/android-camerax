@@ -8,9 +8,11 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.CameraX
@@ -23,6 +25,8 @@ import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBars
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 import java.io.File
 
 /**
@@ -41,7 +45,8 @@ class CameraFragment : BaseFragmentCompose() {
     }
 
     override fun setComposeView(view: ComposeView) = view.setContent {
-        AppTheme(isDarkTheme = true) {
+        val cameraState by viewModel.uiState.collectAsStateWithLifecycle()
+        AppTheme(isDarkTheme = true, applySystemBars = cameraState.review == null) {
             CameraScreen(
                 outputDirectory = getOutputFileDirectory(),
                 viewModel = viewModel,
@@ -64,6 +69,11 @@ class CameraFragment : BaseFragmentCompose() {
 
     override fun onResume() {
         super.onResume()
+        if (viewModel.uiState.value.review == null) {
+            requireActivity().applyEdgeToEdgeBars(lightIcons = true)
+        } else {
+            requireActivity().applyEdgeToEdgeBarsForNightMode()
+        }
         val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         viewModel.applyCapturePreferences(
             confirmEnabled = prefs.getBoolean(getString(R.string.pref_key_capture_confirm), false),

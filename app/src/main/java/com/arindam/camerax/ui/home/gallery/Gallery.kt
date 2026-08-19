@@ -1,11 +1,14 @@
-@file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalFoundationApi::class)
 
 package com.arindam.camerax.ui.home.gallery
 
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -31,11 +34,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -46,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,19 +59,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.compose.DarkLightPreviews
+import com.arindam.camerax.ui.home.camera.formatRecordingTime
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
-import com.arindam.camerax.ui.theme.CameraGlass
-import com.arindam.camerax.ui.theme.CameraGlassStrong
+import com.arindam.camerax.ui.theme.CameraDanger
+import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
-import com.arindam.camerax.ui.theme.CameraOnGlass
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
 
 /** Full-screen pager over captured files (photos, video, motion, DNG). */
@@ -78,12 +85,22 @@ fun GalleryScreen(
     navigateBack: () -> Unit,
     onShareClicked: (Int) -> Unit
 ) {
+    val chrome = themedOverlayChrome()
     val mediaList = rememberSaveable { mutableStateOf(listOf<File?>()) }
     val pagerState = rememberPagerState(pageCount = { mediaList.value.size })
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var motionPlaying by remember { mutableStateOf(false) }
     val current = mediaList.value.getOrNull(pagerState.currentPage)
     val isMotion = current != null && MotionPhotoMuxer.isMotionPhoto(current)
+    val isVideo = current?.extension?.equals("mp4", ignoreCase = true) == true
+    val formatText = if (current?.extension?.equals("dng", ignoreCase = true) == true) {
+        stringResource(R.string.raw_dng)
+    } else {
+        null
+    }
+    val metadataLabel = remember(current, formatText) {
+        current?.let { galleryMetadataLabel(it, formatText) }.orEmpty()
+    }
 
     LaunchedEffect(dataList) {
         mediaList.value = dataList.toMutableList()
@@ -96,7 +113,7 @@ fun GalleryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(chrome.canvas)
     ) {
         GalleryPager(
             dataList = mediaList,
@@ -111,7 +128,7 @@ fun GalleryScreen(
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)
+                        listOf(chrome.scrim.copy(alpha = 0.55f), Color.Transparent)
                     )
                 )
         )
@@ -122,7 +139,7 @@ fun GalleryScreen(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f))
+                        listOf(Color.Transparent, chrome.scrim.copy(alpha = 0.62f))
                     )
                 )
         )
@@ -143,7 +160,19 @@ fun GalleryScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (current?.extension?.equals("mp4", ignoreCase = true) == true) {
+            if (metadataLabel.isNotEmpty()) {
+                Text(
+                    text = metadataLabel,
+                    color = chrome.muted,
+                    fontFamily = CameraMono,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.06.em,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(start = 20.dp, bottom = if (isVideo) 12.dp else 8.dp)
+                )
+            }
+            if (isVideo) {
                 PlaybackSpeedRow(
                     speed = playbackSpeed,
                     onSpeedSelected = { playbackSpeed = it }
@@ -177,17 +206,18 @@ private fun GalleryHeader(
     onMotionClicked: () -> Unit,
     navigateBack: () -> Unit
 ) {
+    val chrome = themedOverlayChrome()
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(
-                WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-                )
+                WindowInsets.safeDrawing
+                    .union(WindowInsets.systemGestures)
+                    .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
     ) {
         GalleryActionButton(
             icon = R.drawable.ic_back,
@@ -199,12 +229,14 @@ private fun GalleryHeader(
                 text = stringResource(
                     if (motionPlaying) R.string.motion_photo_badge else R.string.play_motion_photo
                 ),
-                color = CameraAccent,
+                color = if (motionPlaying) Color.Black else CameraAccent,
                 fontFamily = CameraMono,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(CameraGlassStrong)
+                    .background(if (motionPlaying) CameraAccent else chrome.glass)
+                    .border(1.dp, chrome.stroke, RoundedCornerShape(20.dp))
                     .clickable(onClick = onMotionClicked)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             )
@@ -261,22 +293,25 @@ private fun GalleryActionButton(
     contentDescription: String,
     onClick: () -> Unit
 ) {
+    val chrome = themedOverlayChrome()
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .minimumInteractiveComponentSize()
+            .size(44.dp)
             .clip(CircleShape)
-            .background(CameraGlassStrong)
+            .background(chrome.glass)
+            .border(1.dp, chrome.stroke, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = remember { ripple(bounded = false) },
+                indication = remember { ripple(bounded = true) },
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             painter = painterResource(id = icon),
-            modifier = Modifier.size(22.dp),
-            tint = CameraOnGlass,
+            modifier = Modifier.size(20.dp),
+            tint = chrome.onGlass,
             contentDescription = contentDescription
         )
     }
@@ -314,17 +349,6 @@ private fun GalleryPager(
                     if (motion) {
                         GalleryMotionOverlay(file = file, playing = motionPlaying)
                     }
-                    if (file.extension.equals("dng", ignoreCase = true)) {
-                        Text(
-                            text = stringResource(R.string.raw_dng),
-                            color = CameraAccent,
-                            fontFamily = CameraMono,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 24.dp)
-                        )
-                    }
                 }
             }
         }
@@ -352,27 +376,48 @@ private fun PlaybackSpeedRow(
     onSpeedSelected: (Float) -> Unit
 ) {
     val speeds = listOf(0.5f, 1f, 1.5f, 2f)
+    val chrome = themedOverlayChrome()
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .padding(bottom = 8.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(CameraGlass)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(bottom = 12.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(chrome.glass)
+            .border(1.dp, chrome.stroke, RoundedCornerShape(28.dp))
+            .padding(4.dp)
     ) {
         speeds.forEach { value ->
             val selected = kotlin.math.abs(speed - value) < 0.01f
-            Text(
-                text = if (value == 1f) "1x" else "${value}x",
-                color = if (selected) Color.Black else Color.White,
-                fontFamily = CameraMono,
-                fontSize = 12.sp,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (selected) CameraAccent else Color.Transparent)
-                    .clickable { onSpeedSelected(value) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            )
+            val label = when {
+                kotlin.math.abs(value - 0.5f) < 0.01f -> ".5×"
+                value % 1f == 0f -> "${value.toInt()}×"
+                else -> "${value}×"
+            }
+            key(value) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (selected) CameraAccent else chrome.chipIdle
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true),
+                            onClick = { onSpeedSelected(value) }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = if (selected) Color.Black else chrome.onGlass,
+                        fontFamily = CameraMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (value < 1f) 11.sp else 12.sp
+                    )
+                }
+            }
         }
     }
 }
@@ -430,26 +475,98 @@ fun DeleteDialog(
 ) {
     if (!show) return
 
-    AlertDialog(
-        onDismissRequest = { onDismiss.invoke() },
-        confirmButton = {
-            TextButton(onClick = {
-                onDismiss.invoke()
-                onConfirmed.invoke()
-            }) {
-                Text(text = stringResource(id = confirmTitle))
+    val shape = RoundedCornerShape(24.dp)
+    val scheme = MaterialTheme.colorScheme
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(scheme.surface)
+                .border(1.dp, scheme.outline.copy(alpha = 0.4f), shape)
+                .padding(20.dp)
+        ) {
+            Text(
+                text = stringResource(id = title),
+                color = scheme.onSurface,
+                fontFamily = CameraFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(id = text),
+                color = scheme.onSurfaceVariant,
+                fontFamily = CameraFontFamily,
+                fontSize = 14.sp
+            )
+            Spacer(Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(id = dismissTitle),
+                    color = scheme.onSurface,
+                    fontFamily = CameraFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+                Text(
+                    text = stringResource(id = confirmTitle),
+                    color = Color.Black,
+                    fontFamily = CameraFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(CameraDanger)
+                        .clickable {
+                            onDismiss.invoke()
+                            onConfirmed.invoke()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { onDismiss.invoke() }) {
-                Text(text = stringResource(id = dismissTitle))
-            }
-        },
-        title = {
-            Text(text = stringResource(id = title))
-        },
-        text = {
-            Text(text = stringResource(id = text))
-        },
-    )
+        }
+    }
+}
+
+private fun galleryMetadataLabel(file: File, formatText: String?): String {
+    val isVideo = file.extension.equals("mp4", ignoreCase = true)
+    val (width, height, durationNanos) = galleryMediaInfo(file, isVideo)
+    val size = if (width > 0 && height > 0) "$width × $height" else null
+    val duration = durationNanos?.let { formatRecordingTime(it) }
+    return listOfNotNull(duration, size, formatText).joinToString(" · ")
+}
+
+private fun galleryMediaInfo(file: File, video: Boolean): Triple<Int, Int, Long?> {
+    if (video) {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(file.absolutePath)
+            val width = retriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
+            )?.toIntOrNull() ?: 0
+            val height = retriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
+            )?.toIntOrNull() ?: 0
+            val durationMs = retriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION
+            )?.toLongOrNull() ?: 0L
+            Triple(width, height, durationMs * 1_000_000L)
+        } catch (_: Exception) {
+            Triple(0, 0, null)
+        } finally {
+            retriever.release()
+        }
+    }
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, options)
+    return Triple(options.outWidth, options.outHeight, null)
 }

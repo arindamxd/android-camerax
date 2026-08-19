@@ -1,11 +1,11 @@
 package com.arindam.camerax.ui.base
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.viewbinding.ViewBinding
 import com.arindam.camerax.ui.home.HomeActivity
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 
 /** AppCompat activity with splash (home) and edge-to-edge. */
 abstract class BaseActivity<T : ViewBinding> : AppCompatActivity() {
@@ -14,7 +14,7 @@ abstract class BaseActivity<T : ViewBinding> : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (this is HomeActivity) installSplashScreen()
-        enableEdgeToEdge()
+        applyEdgeToEdgeBarsForNightMode()
         super.onCreate(savedInstanceState)
         provideBinding().let {
             if (it == null) setContentView(0)

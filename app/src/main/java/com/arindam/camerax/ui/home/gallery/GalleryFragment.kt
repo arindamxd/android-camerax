@@ -12,6 +12,7 @@ import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
 import java.io.File
 import java.util.Locale
@@ -33,9 +34,14 @@ class GalleryFragment : BaseFragmentCompose() {
         }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     }
 
+    override fun onResume() {
+        super.onResume()
+        requireActivity().applyEdgeToEdgeBarsForNightMode()
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     override fun setComposeView(view: ComposeView) = view.setContent {
-        AppTheme(isDarkTheme = true) {
+        AppTheme {
             GalleryScreen(
                 dataList = mediaList,
                 navigateBack = { navigateBack() },

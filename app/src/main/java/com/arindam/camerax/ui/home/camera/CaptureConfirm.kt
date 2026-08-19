@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -41,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -57,9 +60,8 @@ import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
-import com.arindam.camerax.ui.theme.CameraGlass
 import com.arindam.camerax.ui.theme.CameraMono
-import com.arindam.camerax.ui.theme.CameraOnGlass
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
 
 /** Optional Retake / Done overlay after a still or clip. Off by default in Settings. */
@@ -70,11 +72,12 @@ fun CaptureConfirmOverlay(
     onKeep: () -> Unit
 ) {
     BackHandler(onBack = onKeep)
+    val chrome = themedOverlayChrome()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .zIndex(2f)
-            .background(Color.Black)
+            .background(chrome.canvas)
     ) {
         when {
             review.isVideo -> ReviewVideo(file = review.file)
@@ -89,20 +92,50 @@ fun CaptureConfirmOverlay(
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures))
+                .fillMaxWidth()
+                .height(140.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(chrome.scrim.copy(alpha = 0.55f), Color.Transparent)
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, chrome.scrim.copy(alpha = 0.62f))
+                    )
+                )
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing
+                        .union(WindowInsets.systemGestures)
+                        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                )
+                .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
                     .minimumInteractiveComponentSize()
-                    .size(48.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(CameraGlass)
+                    .background(chrome.glass)
+                    .border(1.dp, chrome.stroke, CircleShape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = false),
+                        indication = ripple(bounded = true),
                         onClick = onKeep
                     ),
                 contentAlignment = Alignment.Center
@@ -110,41 +143,44 @@ fun CaptureConfirmOverlay(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back_button_alt),
-                    tint = CameraOnGlass,
-                    modifier = Modifier.size(22.dp)
+                    tint = chrome.onGlass,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-
             if (review.isMotionPhoto) {
                 Text(
                     text = stringResource(R.string.motion_photo_badge),
                     color = CameraAccent,
                     fontFamily = CameraMono,
-                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CameraGlass)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(chrome.glass)
+                        .border(1.dp, chrome.stroke, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 )
+            } else {
+                Spacer(Modifier.size(48.dp))
             }
+        }
 
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures))
+        ) {
             Text(
                 text = review.metadataLabel(
                     formatText = review.formatLabelRes?.let { stringResource(it) }
                 ),
-                color = CameraOnGlass,
+                color = chrome.muted,
                 fontFamily = CameraMono,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 letterSpacing = 0.06.em,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 92.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CameraGlass)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .padding(start = 20.dp, bottom = 92.dp)
             )
 
             Row(
@@ -182,8 +218,9 @@ private fun ReviewActionPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val chrome = themedOverlayChrome()
     val shape = RoundedCornerShape(26.dp)
-    val contentColor = if (filled) Color.Black else Color.White
+    val contentColor = if (filled) Color.Black else chrome.onGlass
     val base = modifier
         .height(52.dp)
         .clip(shape)
@@ -191,8 +228,8 @@ private fun ReviewActionPill(
         base.background(CameraAccent)
     } else {
         base
-            .background(Color.White.copy(alpha = 0.04f))
-            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
+            .background(chrome.glass)
+            .border(1.dp, chrome.stroke, shape)
     }
     Row(
         modifier = styled.clickable(onClick = onClick),

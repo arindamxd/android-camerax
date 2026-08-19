@@ -285,11 +285,13 @@ fun CameraScreen(
             }
             CountdownOverlay(state.countdownRemaining)
             state.review?.let { review ->
-                CaptureConfirmOverlay(
-                    review = review,
-                    onRetake = viewModel::retakeCapture,
-                    onKeep = viewModel::keepCapture
-                )
+                AppTheme {
+                    CaptureConfirmOverlay(
+                        review = review,
+                        onRetake = viewModel::retakeCapture,
+                        onKeep = viewModel::keepCapture
+                    )
+                }
             }
         }
     }

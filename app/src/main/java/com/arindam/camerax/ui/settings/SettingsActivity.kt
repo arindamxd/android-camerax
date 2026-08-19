@@ -1,13 +1,10 @@
 package com.arindam.camerax.ui.settings
 
-import android.content.res.Configuration
-import android.graphics.Color
 import android.os.Bundle
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 
 /**
  * AppCompat host so [com.arindam.camerax.util.theme.NightMode] / `AppCompatDelegate`
@@ -17,7 +14,7 @@ import com.arindam.camerax.ui.theme.AppTheme
 class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdgeForNightMode()
+        applyEdgeToEdgeBarsForNightMode()
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
@@ -25,16 +22,4 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
     }
-}
-
-private fun AppCompatActivity.enableEdgeToEdgeForNightMode() {
-    val dark = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
-        Configuration.UI_MODE_NIGHT_YES
-    val transparent = Color.TRANSPARENT
-    val barStyle = if (dark) {
-        SystemBarStyle.dark(transparent)
-    } else {
-        SystemBarStyle.light(transparent, transparent)
-    }
-    enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
 }

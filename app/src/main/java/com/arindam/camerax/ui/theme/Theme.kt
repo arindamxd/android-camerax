@@ -1,9 +1,9 @@
 package com.arindam.camerax.ui.theme
 
-import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -14,10 +14,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBars
 
 /**
  * Created by Arindam Karmakar on 12/09/23.
@@ -87,11 +89,15 @@ private val darkColors = darkColorScheme(
     scrim = md_theme_dark_scrim
 )
 
-/** Material3 theme. Camera chrome uses [isDarkTheme] from the activity night mode. */
+/**
+ * Material3 theme. Live viewfinder passes [isDarkTheme] true so chrome and system-bar icons
+ * stay dark-canvas / light-tint regardless of Settings Light / Dark / System.
+ */
 @Composable
 fun AppTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
     isDynamicColor: Boolean = true,
+    applySystemBars: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val dynamicColor = isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -110,10 +116,11 @@ fun AppTheme(
     )
 
     val view = LocalView.current
-    if (!view.isInEditMode) {
+    if (applySystemBars && !view.isInEditMode) {
         SideEffect {
-            val window = view.context.findActivity()?.window ?: return@SideEffect
-            WindowCompat.getInsetsController(window, view).apply {
+            val activity = view.context.findActivity() ?: return@SideEffect
+            activity.applyEdgeToEdgeBars(lightIcons = isDarkTheme)
+            WindowCompat.getInsetsController(activity.window, view).apply {
                 isAppearanceLightStatusBars = !isDarkTheme
                 isAppearanceLightNavigationBars = !isDarkTheme
             }
@@ -128,8 +135,46 @@ fun AppTheme(
     )
 }
 
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
+/** Glass chrome over photos / confirm; follows Light / Dark unlike live viewfinder tokens. */
+data class ThemedOverlayChrome(
+    val canvas: Color,
+    val glass: Color,
+    val stroke: Color,
+    val onGlass: Color,
+    val muted: Color,
+    val scrim: Color,
+    val chipIdle: Color
+)
+
+@Composable
+fun themedOverlayChrome(): ThemedOverlayChrome {
+    val dark = isSystemInDarkTheme()
+    val scheme = MaterialTheme.colorScheme
+    return if (dark) {
+        ThemedOverlayChrome(
+            canvas = Color.Black,
+            glass = CameraGlassStrong,
+            stroke = Color.White.copy(alpha = 0.14f),
+            onGlass = CameraOnGlass,
+            muted = CameraOnGlassMuted,
+            scrim = Color.Black,
+            chipIdle = Color.White.copy(alpha = 0.08f)
+        )
+    } else {
+        ThemedOverlayChrome(
+            canvas = scheme.background,
+            glass = Color.White.copy(alpha = 0.82f),
+            stroke = Color.Black.copy(alpha = 0.12f),
+            onGlass = scheme.onBackground,
+            muted = scheme.onBackground.copy(alpha = 0.55f),
+            scrim = Color.White,
+            chipIdle = Color.Black.copy(alpha = 0.06f)
+        )
+    }
+}
+
+internal tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
