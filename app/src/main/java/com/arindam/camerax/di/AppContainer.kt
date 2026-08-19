@@ -27,6 +27,10 @@ import com.arindam.camerax.domain.usecase.StitchPanorama
 import com.arindam.camerax.domain.usecase.StopRecording
 import com.arindam.camerax.domain.usecase.TapToFocus
 
+/**
+ * Composition root. Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
+ * the UI may call. Do not construct CameraX types from Fragments or Compose.
+ */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     val cameraRepository: CameraRepository = CameraSession(appContext)
@@ -56,6 +60,9 @@ class AppContainer(context: Context) {
     )
 }
 
+/**
+ * Use cases the camera UI may call. Built once in [AppContainer].
+ */
 data class CameraInteractors(
     val bindCamera: BindCamera,
     val capturePhoto: CapturePhoto,

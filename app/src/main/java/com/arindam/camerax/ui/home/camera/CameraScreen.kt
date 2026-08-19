@@ -49,6 +49,10 @@ import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import java.io.File
 
+/**
+ * Compose viewfinder: [PreviewView] plus overlay chrome from [CameraChrome].
+ * Gestures (focus / pinch / drag zoom) stay here; capture goes through [CameraViewModel].
+ */
 @Composable
 fun CameraScreen(
     outputDirectory: File?,

@@ -19,10 +19,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Created by Arindam Karmakar on 17/04/20.
- */
-
+/** Compose [Fragment] host: navigation, output directory, permission check. */
 abstract class BaseFragmentCompose : Fragment() {
 
     override fun onCreateView(

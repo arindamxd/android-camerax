@@ -1,5 +1,11 @@
 package com.arindam.camerax.domain.model
 
+/**
+ * Domain camera types (no CameraX, no Compose). UI maps these to strings and chrome;
+ * [com.arindam.camerax.data.camera.CameraSession] maps them to CameraX builders.
+ */
+
+/** Pager capture mode. Chrome and bind flags live on [CameraModeProfile]. */
 enum class CameraMode {
     PHOTO,
     VIDEO,
@@ -155,6 +161,7 @@ data class PhysicalZoom(
     val label: Float
 )
 
+/** Inputs for one [com.arindam.camerax.domain.repository.CameraRepository.bind] call. */
 data class CameraBindConfig(
     val lens: CameraLens,
     val flash: FlashMode,
@@ -177,6 +184,7 @@ data class CameraBindConfig(
     val videoFps60: Boolean = false
 )
 
+/** What the session actually bound (HUD chips, zoom range, capabilities). */
 data class CameraBindResult(
     val hasFlash: Boolean,
     val minZoom: Float,

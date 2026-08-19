@@ -44,6 +44,10 @@ import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+/**
+ * Horizontal mode strip. Settles to a page then calls [onItemSelected]; drag does not
+ * rebind the camera until settle.
+ */
 @Composable
 fun <T : Any> DiscretePager(
     items: List<T>,

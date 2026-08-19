@@ -3,15 +3,8 @@ package com.arindam.camerax.util.commons
 import android.Manifest
 import android.os.Build
 
-/**
- * Created by Arindam Karmakar on 17/04/20.
- */
-
+/** Shared permission, filename, and intent extra constants. */
 object Constants {
-
-    object INTERNAL {
-        internal const val PREF_NAME = "pref_camerax"
-    }
 
     object PERMISSIONS {
         internal val REQUIRED_PERMISSIONS = mutableListOf(
@@ -37,5 +30,10 @@ object Constants {
     object EXTRAS {
         const val KEY_EVENT_ACTION = "key_event_action"
         const val KEY_EVENT_EXTRA = "key_event_extra"
+    }
+
+    object UI {
+        const val ANIMATION_FAST_MILLIS = 50L
+        const val ANIMATION_SLOW_MILLIS = 100L
     }
 }

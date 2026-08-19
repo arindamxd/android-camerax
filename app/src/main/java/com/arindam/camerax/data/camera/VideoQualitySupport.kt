@@ -1,5 +1,9 @@
 package com.arindam.camerax.data.camera
 
+/**
+ * Device capability probes for Settings and mode availability (qualities, HDR, slo-mo, 60 fps).
+ */
+
 import android.content.Context
 import android.util.Range
 import androidx.camera.core.CameraInfo

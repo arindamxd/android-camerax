@@ -56,6 +56,11 @@ enum class CaptureAction {
 
 fun CameraMode.profile(): CameraModeProfile = CameraModeCatalog.profile(this)
 
+/**
+ * Registry of pager modes. To add a mode: [CameraMode] value, a [CameraModeProfile] here,
+ * then `CameraMode.labelRes`. Touch [com.arindam.camerax.data.camera.CameraSession] only
+ * when bind flags (slow-motion / concurrent) are not enough.
+ */
 object CameraModeCatalog {
     val profiles: Map<CameraMode, CameraModeProfile> = listOf(
         CameraModeProfile(

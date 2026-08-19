@@ -71,10 +71,7 @@ import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.CameraOnGlass
 import java.io.File
 
-/**
- * Created by Arindam Karmakar on 18/09/23.
- */
-
+/** Full-screen pager over captured files (photos, video, motion, DNG). */
 @Composable
 fun GalleryScreen(
     dataList: List<File?> = listOf(),

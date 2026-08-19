@@ -38,9 +38,9 @@ import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.domain.model.usesMedia3
-import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
-import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.commons.Constants
+import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_FAST_MILLIS
+import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.log.Logger
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +63,10 @@ import kotlin.math.exp
 import kotlin.math.ln
 
 @OptIn(FlowPreview::class)
+/**
+ * Live-feed UI state. Calls [CameraInteractors] only — never [CameraSession].
+ * Increment [CameraUiState.bindRevision] when a Settings or mode change must rebind.
+ */
 class CameraViewModel(
     private val interactors: CameraInteractors,
     private val appContext: Context

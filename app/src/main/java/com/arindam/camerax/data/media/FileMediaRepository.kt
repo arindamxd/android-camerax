@@ -7,6 +7,9 @@ import com.arindam.camerax.util.commons.Constants
 import java.io.File
 import java.util.Locale
 
+/**
+ * [CameraRepository] implementation for files: latest thumbnail, panorama stitch, MediaStore publish.
+ */
 class FileMediaRepository(private val context: Context) : MediaRepository {
 
     override fun latest(directory: File): File? {

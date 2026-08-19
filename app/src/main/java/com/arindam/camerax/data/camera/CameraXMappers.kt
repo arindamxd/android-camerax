@@ -31,6 +31,9 @@ import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 
+/**
+ * Adapts CameraX [PreviewView] to domain [CameraHost] for [BindCamera].
+ */
 class PreviewViewHost(
     val lifecycleOwner: LifecycleOwner,
     val previewView: PreviewView,

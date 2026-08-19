@@ -11,21 +11,24 @@ Play Store camera app (`com.arindam.camerax`) built with Jetpack CameraX 1.6.1. 
 ui (presentation) → domain ← data
 ```
 
-- `domain/model` — camera models with no CameraX / Compose types (`NightScene`, `ExposurePriority`, `StillFormat`, `ExposureLimits`, `CameraModeProfile`)
-- `domain/model/CameraModeCatalog` — **add a new pager mode here**: one `CameraMode` value + one `CameraModeProfile` (chrome flags, `CaptureAction`, bind flags). Then add a string label in the UI `CameraMode.labelRes` mapping. Implement a new CameraX session type in `CameraSession` only if the profile’s bind flags are not enough.
-- `domain/repository` — `CameraRepository`, `MediaRepository`
-- `domain/usecase` — `CapturePhoto` (incl. `motionPhoto`), `StartRecording`, `BindCamera`, `SetExposure`, `ObserveNightScene`, `SetTargetRotation`, `StitchPanorama`, recording/zoom/flash/filter interactors
-- `data/camera/CameraSession` — CameraX implementation of `CameraRepository`
-- `data/camera/PreviewViewHost` — `CameraHost` adapter for `PreviewView`
-- `data/camera/MotionPhotoMuxer` — JPEG + XMP + appended MP4 (Motion Photo 1.0)
-- `data/camera/PanoramaStitcher` — horizontal sweep stitch for `CameraMode.PANORAMA`
-- `data/camera/RecordingForegroundService` — `camera|microphone` FGS while recording
-- `ui/` — Compose chrome + `CameraViewModel` (UI state, countdown, bind revision, night debounce)
-- `di/AppContainer` — composition root; do not construct `CameraSession` from the UI
+Do not construct `CameraSession` from the UI. Keep use cases; do not collapse to ViewModel → CameraSession. Do not split Gradle modules unless asked.
 
-Keep use cases; do not collapse back to ViewModel → CameraSession. Do not split Gradle modules unless asked.
+### File map (where to change what)
 
-`CameraFragment` is a thin Compose host only (plus IMAGE_CAPTURE / MOTION_PHOTO result delivery). Do not resurrect the old View-based capture/flash/zoom code.
+| Goal | Start here |
+|---|---|
+| Add a pager mode (Photo/Video/…) | `domain/model/CameraModeCatalog.kt` + `CameraMode.labelRes` in `ui/home/camera/CameraModels.kt`. New CameraX session only in `CameraSession` if bind flags are not enough. |
+| Bind / capture / zoom / flash / AE | `CameraViewModel` → `domain/usecase` → `CameraRepository` → `data/camera/CameraSession.kt` |
+| Live-feed chrome (header, shutter, zoom) | `ui/home/camera/CameraChrome.kt` |
+| Mode pager physics | `ui/home/camera/CameraPager.kt` |
+| Settings row | `settingsSections()` in `ui/settings/SettingsCatalog.kt` |
+| Theme (Light/Dark/System) | `util/theme/NightMode.kt` + `SettingsActivity` |
+| Motion Photo mux / gallery play | `data/camera/MotionPhotoMuxer.kt` |
+| Panorama stitch | `data/camera/PanoramaStitcher.kt` |
+| Publish to DCIM | `data/media/MediaStorePublisher.kt` via `PublishMedia` |
+| Composition root | `di/AppContainer.kt` (`CameraInteractors`) |
+
+`CameraFragment` is a thin Compose host only (plus IMAGE_CAPTURE / MOTION_PHOTO result delivery). Do not resurrect the old View-based capture/flash/zoom code. Public types have KDoc describing which layer they belong to.
 
 ## CameraX rules
 

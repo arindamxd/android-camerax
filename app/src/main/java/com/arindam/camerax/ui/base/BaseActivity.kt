@@ -7,10 +7,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.viewbinding.ViewBinding
 import com.arindam.camerax.ui.home.HomeActivity
 
-/**
- * Created by Arindam Karmakar on 17/04/20.
- */
-
+/** AppCompat activity with splash (home) and edge-to-edge. */
 abstract class BaseActivity<T : ViewBinding> : AppCompatActivity() {
 
     protected lateinit var binding: T

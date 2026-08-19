@@ -2,14 +2,15 @@ package com.arindam.camerax
 
 import android.app.Application
 import androidx.preference.PreferenceManager
-import com.arindam.camerax.data.local.Preferences
 import com.arindam.camerax.di.AppContainer
 import com.arindam.camerax.util.theme.NightMode
 
 /**
- * Created by Arindam Karmakar on 17/04/20.
+ * Play Store CameraX sample (`com.arindam.camerax`).
+ *
+ * Layers: `ui` → `domain` ← `data`. The composition root is [com.arindam.camerax.di.AppContainer].
+ * Apply saved Light/Dark/System from [com.arindam.camerax.util.theme.NightMode] at process start.
  */
-
 class CameraX : Application() {
 
     lateinit var container: AppContainer
@@ -18,11 +19,9 @@ class CameraX : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        Preferences.init(this)
         handleDayNightTheme()
     }
 
-    /* Handle Theme */
     private fun handleDayNightTheme() {
         val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         NightMode.applyPref(

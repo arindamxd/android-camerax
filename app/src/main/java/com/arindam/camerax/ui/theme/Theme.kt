@@ -87,6 +87,7 @@ private val darkColors = darkColorScheme(
     scrim = md_theme_dark_scrim
 )
 
+/** Material3 theme. Camera chrome uses [isDarkTheme] from the activity night mode. */
 @Composable
 fun AppTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),

@@ -1,14 +1,11 @@
 package com.arindam.camerax.util.theme
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.appcompat.app.AppCompatDelegate
 
 /**
- * Created by Arindam Karmakar on 21/04/20.
+ * Light / Dark / System. Values match Settings `pref_key_theme` (`off` / `on` / `system`).
+ * Call [applyPref] from [com.arindam.camerax.CameraX] and from Settings; AppCompat recreates.
  */
-
 enum class NightMode(val value: Int) {
     OFF(AppCompatDelegate.MODE_NIGHT_NO),
     ON(AppCompatDelegate.MODE_NIGHT_YES),
@@ -22,10 +19,4 @@ enum class NightMode(val value: Int) {
             AppCompatDelegate.setDefaultNightMode(fromPref(value).value)
         }
     }
-}
-
-internal tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

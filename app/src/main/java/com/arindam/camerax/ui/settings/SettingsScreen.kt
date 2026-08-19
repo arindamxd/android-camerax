@@ -80,6 +80,7 @@ import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.util.theme.NightMode
 import java.util.Locale
 
+/** Renders [settingsSections]. Camera prefs apply on [com.arindam.camerax.ui.home.camera.CameraFragment] resume. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {

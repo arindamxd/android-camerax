@@ -26,6 +26,7 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import java.io.File
 
+/** String resource for the mode pager chip. Add a mapping when you add a [CameraMode]. */
 val CameraMode.labelRes: Int
     @StringRes get() = when (this) {
         CameraMode.PHOTO -> R.string.mode_photo
@@ -80,6 +81,10 @@ val ColorFilterType.labelRes: Int
         ColorFilterType.CONTRAST -> R.string.filter_contrast
     }
 
+/**
+ * Presentation state for the live feed. Chrome flags are derived from
+ * [com.arindam.camerax.domain.model.CameraModeCatalog]; do not scatter `if (mode == …)` in UI.
+ */
 data class CameraUiState(
     val mode: CameraMode = CameraMode.PHOTO,
     val lens: CameraLens = CameraLens.BACK,

@@ -14,6 +14,10 @@ import com.arindam.camerax.domain.model.ZoomInfo
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
+/**
+ * CameraX session without CameraX / Compose types. UI and use cases depend on this, not on
+ * [com.arindam.camerax.data.camera.CameraSession].
+ */
 interface CameraRepository {
 
     val nightScene: StateFlow<NightScene>
@@ -53,6 +57,10 @@ interface CameraRepository {
     fun release()
 }
 
+/**
+ * App pictures directory and MediaStore publish. Panorama stitch lives here so CameraX stays
+ * out of still-processing.
+ */
 interface MediaRepository {
     fun latest(directory: File): File?
     fun stitchPanorama(frames: List<File>, outputDirectory: File): File

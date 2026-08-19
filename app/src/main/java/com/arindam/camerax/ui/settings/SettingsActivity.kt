@@ -9,6 +9,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.arindam.camerax.ui.theme.AppTheme
 
+/**
+ * AppCompat host so [com.arindam.camerax.util.theme.NightMode] / `AppCompatDelegate`
+ * restyles Light/Dark/System.
+ * Preference rows live in [SettingsCatalog].
+ */
 class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {

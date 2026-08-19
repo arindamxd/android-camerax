@@ -70,15 +70,15 @@ flowchart LR
 
 ```
 app/src/main/java/com/arindam/camerax/
-  domain/model/          CameraMode, FlashMode, RecordingEvent, …
+  domain/model/          CameraMode, CameraModeCatalog, bind config
   domain/repository/     CameraRepository, MediaRepository
   domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
-  data/camera/           CameraSession, ColorFilterProcessor, Media3Effect, mappers
-  data/media/            FileMediaRepository (latest jpg/heic/dng/mp4)
-  data/local/            SharedPreferences
-  di/                    AppContainer
+  data/camera/           CameraSession, ColorFilterProcessor, mappers
+  data/media/            FileMediaRepository, MediaStorePublisher
+  di/                    AppContainer (composition root)
   ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
   ui/home/gallery/       Photo + video pager
+  ui/settings/           SettingsCatalog + SettingsScreen
 ```
 
 ## CameraX API map

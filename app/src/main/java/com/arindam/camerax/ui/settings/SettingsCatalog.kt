@@ -29,8 +29,8 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 
 /**
- * Single place to add Settings rows. Append an item to a [SettingsSection] (or add a section)
- * and it appears on the screen — no XML preference layouts.
+ * Compose Settings catalog. Append a [SettingsRow] in [settingsSections] — camera reads the
+ * same preference keys in [com.arindam.camerax.ui.home.camera.CameraFragment] on resume.
  */
 fun settingsSections(
     versionLabel: String,
@@ -288,16 +288,19 @@ fun settingsSections(
     )
 )
 
+/** Group of [SettingsRow]s under one section title. */
 data class SettingsSection(
     @StringRes val titleRes: Int,
     val items: List<SettingsRow>
 )
 
+/** One chip in a [SettingsRow.Choice] row. [value] is the SharedPreferences string. */
 data class SettingsChoice(
     @StringRes val labelRes: Int,
     val value: String
 )
 
+/** One Settings row. Add a case here and a branch in [SettingsScreen] if you introduce a new kind. */
 sealed interface SettingsRow {
     val titleRes: Int
     val icon: ImageVector

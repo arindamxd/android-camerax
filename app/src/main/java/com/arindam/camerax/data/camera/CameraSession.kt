@@ -93,7 +93,9 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * CameraX implementation of [CameraRepository].
+ * CameraX implementation of [com.arindam.camerax.domain.repository.CameraRepository].
+ * Bind, capture, record, zoom, AE, extensions, Dual, and slo-mo live here. UI must not
+ * call this class; go through use cases from [com.arindam.camerax.di.AppContainer].
  */
 class CameraSession(private val context: Context) : CameraRepository {
 
@@ -245,8 +247,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             .setTargetRotation(rotation)
         val useFullSensor = useRaw &&
             config.rawFullSensor &&
-            stillInfo != null &&
-            stillInfo.supportsFullSensorRaw(context)
+            stillInfo?.supportsFullSensorRaw(context) == true
         if (useFullSensor) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Camera2Interop.Extender(captureBuilder).setCaptureRequestOption(

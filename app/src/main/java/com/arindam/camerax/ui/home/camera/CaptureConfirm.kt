@@ -62,6 +62,7 @@ import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.CameraOnGlass
 import java.io.File
 
+/** Optional Retake / Done overlay after a still or clip. Off by default in Settings. */
 @Composable
 fun CaptureConfirmOverlay(
     review: CaptureReview,

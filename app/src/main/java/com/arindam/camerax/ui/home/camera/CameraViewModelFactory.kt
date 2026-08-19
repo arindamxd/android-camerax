@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.arindam.camerax.di.CameraInteractors
 
+/**
+ * Builds [CameraViewModel] with [CameraInteractors] from [com.arindam.camerax.di.AppContainer].
+ */
 class CameraViewModelFactory(
     private val interactors: CameraInteractors,
     context: Context
