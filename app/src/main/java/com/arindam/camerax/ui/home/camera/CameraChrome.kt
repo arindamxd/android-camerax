@@ -278,6 +278,7 @@ fun CameraHeader(
 @Composable
 fun RecordingHud(
     state: CameraUiState,
+    compact: Boolean = false,
     onPauseClicked: () -> Unit,
     onMuteClicked: () -> Unit
 ) {
@@ -293,48 +294,67 @@ fun RecordingHud(
             label = "recPulse"
         )
         Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(28.dp))
-                .background(CameraGlassStrong)
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(28.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Canvas(Modifier.size(8.dp)) {
-                drawCircle(CameraDanger.copy(alpha = if (state.isPaused) 0.4f else pulse))
-            }
-            Text(
-                text = if (state.isPaused) {
-                    stringResource(R.string.recording_paused)
-                } else {
-                    formatRecordingTime(state.recordingNanos)
-                },
-                color = CameraOnGlass,
-                fontFamily = CameraMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp
-            )
-            GlassIconButton(
-                icon = if (state.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                contentDescription = stringResource(
-                    if (state.isPaused) R.string.resume_recording else R.string.pause_recording
-                ),
-                compact = true,
-                embedded = true,
-                onClick = onPauseClicked
-            )
-            if (state.allowsAudioMute) {
-                GlassIconButton(
-                    icon = if (state.isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
-                    contentDescription = stringResource(
-                        if (state.isMuted) R.string.unmute_audio else R.string.mute_audio
-                    ),
-                    compact = true,
-                    embedded = true,
-                    selected = state.isMuted,
-                    onClick = onMuteClicked
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(CameraGlassStrong)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(28.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Canvas(Modifier.size(8.dp)) {
+                    drawCircle(CameraDanger.copy(alpha = if (state.isPaused) 0.4f else pulse))
+                }
+                Text(
+                    text = if (state.isPaused) {
+                        stringResource(R.string.recording_paused)
+                    } else {
+                        formatRecordingTime(state.recordingNanos)
+                    },
+                    color = CameraOnGlass,
+                    fontFamily = CameraMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
                 )
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(CameraGlassStrong)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(28.dp))
+                    .padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                GlassIconButton(
+                    icon = if (state.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                    contentDescription = stringResource(
+                        if (state.isPaused) R.string.resume_recording else R.string.pause_recording
+                    ),
+                    selected = state.isPaused,
+                    compact = compact,
+                    embedded = true,
+                    tooltip = true,
+                    onClick = onPauseClicked
+                )
+                if (state.allowsAudioMute) {
+                    GlassIconButton(
+                        icon = if (state.isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
+                        contentDescription = stringResource(
+                            if (state.isMuted) R.string.unmute_audio else R.string.mute_audio
+                        ),
+                        selected = state.isMuted,
+                        compact = compact,
+                        embedded = true,
+                        tooltip = true,
+                        onClick = onMuteClicked
+                    )
+                }
             }
         }
     }

@@ -258,6 +258,7 @@ fun CameraScreen(
                         LiveStatusStrip(state)
                         RecordingHud(
                             state = state,
+                            compact = compact,
                             onPauseClicked = viewModel::pauseOrResume,
                             onMuteClicked = viewModel::toggleMute
                         )
