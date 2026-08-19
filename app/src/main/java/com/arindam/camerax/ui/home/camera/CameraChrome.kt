@@ -148,8 +148,8 @@ fun CameraHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.hasFlash) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (state.showsFlash) {
                     GlassIconButton(
                         icon = flashIcon(state.flash),
                         contentDescription = stringResource(state.flash.labelRes),
@@ -158,23 +158,27 @@ fun CameraHeader(
                         onClick = onFlashClicked
                     )
                 }
-                GlassIconButton(
-                    icon = timerIcon(state.timer),
-                    contentDescription = stringResource(state.timer.labelRes),
-                    selected = state.timer != TimerMode.OFF,
-                    compact = compact,
-                    onClick = onTimerClicked
-                )
-                GlassIconButton(
-                    icon = if (state.gridEnabled) Icons.Filled.GridOn else Icons.Filled.GridOff,
-                    contentDescription = stringResource(
-                        if (state.gridEnabled) R.string.grid_on else R.string.grid_off
-                    ),
-                    selected = state.gridEnabled,
-                    compact = compact,
-                    onClick = onGridClicked
-                )
-                if (state.mode == CameraMode.PHOTO && !state.rawCapture) {
+                if (state.showsTimer) {
+                    GlassIconButton(
+                        icon = timerIcon(state.timer),
+                        contentDescription = stringResource(state.timer.labelRes),
+                        selected = state.timer != TimerMode.OFF,
+                        compact = compact,
+                        onClick = onTimerClicked
+                    )
+                }
+                if (state.showsGrid) {
+                    GlassIconButton(
+                        icon = if (state.gridEnabled) Icons.Filled.GridOn else Icons.Filled.GridOff,
+                        contentDescription = stringResource(
+                            if (state.gridEnabled) R.string.grid_on else R.string.grid_off
+                        ),
+                        selected = state.gridEnabled,
+                        compact = compact,
+                        onClick = onGridClicked
+                    )
+                }
+                if (state.showsMotion) {
                     GlassIconButton(
                         icon = if (state.motionPhotoEnabled) {
                             Icons.Filled.MotionPhotosOn
@@ -209,20 +213,13 @@ fun CameraHeader(
                     compact = compact,
                     onClick = onSettingsClicked
                 )
-                if (state.stillFormat == StillFormat.RAW_JPEG) {
+                if (state.showsStillBadge) {
                     Text(
-                        text = stringResource(R.string.raw_dng),
-                        color = CameraAccent,
-                        fontFamily = CameraMono,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                } else if (state.ultraHdrEnabled) {
-                    Text(
-                        text = if (state.stillFormat == StillFormat.HEIC_ULTRA_HDR) {
-                            stringResource(R.string.ultrahdr_heic)
-                        } else {
-                            stringResource(R.string.ultrahdr)
+                        text = when {
+                            state.stillFormat == StillFormat.RAW_JPEG -> stringResource(R.string.raw_dng)
+                            state.stillFormat == StillFormat.HEIC_ULTRA_HDR ->
+                                stringResource(R.string.ultrahdr_heic)
+                            else -> stringResource(R.string.ultrahdr)
                         },
                         color = CameraAccent,
                         fontFamily = CameraMono,
@@ -350,7 +347,7 @@ fun SlowMotionBanner(state: CameraUiState) {
 @Composable
 fun StabilizationBanner(state: CameraUiState) {
     AnimatedVisibility(
-        visible = state.videoStabilizationActive,
+        visible = state.showsVideoStatus && state.videoStabilizationActive,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -378,7 +375,7 @@ fun VideoHdrBanner(state: CameraUiState) {
         VideoHdrRange.SDR -> null
     }
     AnimatedVisibility(
-        visible = labelRes != null && state.mode != CameraMode.SLOW_MOTION,
+        visible = labelRes != null && state.showsVideoStatus,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -399,9 +396,54 @@ fun VideoHdrBanner(state: CameraUiState) {
 }
 
 @Composable
+fun Fps60Banner(state: CameraUiState) {
+    AnimatedVisibility(
+        visible = state.videoFps60Active && state.showsVideoStatus,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        Text(
+            text = stringResource(R.string.video_fps_60_on),
+            color = CameraAccent,
+            fontFamily = CameraMono,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun DualBanner(state: CameraUiState) {
+    AnimatedVisibility(
+        visible = state.mode == CameraMode.DUAL,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        Text(
+            text = stringResource(R.string.dual_live_hint),
+            color = CameraAccent,
+            fontFamily = CameraMono,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(CameraGlass)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
 fun LowLightBoostBanner(state: CameraUiState) {
     AnimatedVisibility(
-        visible = state.lowLightBoostActive,
+        visible = state.lowLightBoostActive &&
+            (state.mode == CameraMode.PHOTO ||
+                state.mode == CameraMode.VIDEO ||
+                state.mode == CameraMode.EFFECTS),
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -421,7 +463,9 @@ fun LowLightBoostBanner(state: CameraUiState) {
 
 @Composable
 fun NightSceneBanner(state: CameraUiState) {
-    val visible = state.nightScene == NightScene.RECOMMENDED || state.autoNightActive
+    val stillMode = state.mode == CameraMode.PHOTO || state.mode == CameraMode.EFFECTS
+    val visible = stillMode &&
+        (state.nightScene == NightScene.RECOMMENDED || state.autoNightActive)
     AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
         Text(
             text = stringResource(
@@ -564,7 +608,7 @@ fun ZoomChips(
     state: CameraUiState,
     onZoomSelected: (Float) -> Unit
 ) {
-    if (state.zoomChips.size < 2) return
+    if (!state.showsZoomChips || state.zoomChips.size < 2) return
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
@@ -681,13 +725,13 @@ fun CameraFooter(
                 onExtensionSelected = onExtensionSelected
             )
             val modes = state.visibleModes
-            key(state.slowMotionSupported) {
+            key(state.slowMotionSupported, state.concurrentSupported) {
                 DiscretePager(
                     items = modes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (compact) 28.dp else 36.dp),
-                    itemFraction = 0.28f,
+                    itemFraction = 0.22f,
                     overshootFraction = 0.75f,
                     initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
                     itemSpacing = 8.dp,
@@ -713,8 +757,9 @@ fun CameraFooter(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                val showFlip = !state.isRecording ||
-                    (state.flipWhileRecording && state.mode == CameraMode.VIDEO)
+                val showFlip = state.mode != CameraMode.DUAL &&
+                    (!state.isRecording ||
+                        (state.flipWhileRecording && state.mode == CameraMode.VIDEO))
                 if (showFlip) {
                     GlassIconButton(
                         icon = Icons.Filled.Cameraswitch,
@@ -894,6 +939,8 @@ private fun FilterThumb(
         ColorFilterType.COOL -> Color(0xFF7EC8E3)
         ColorFilterType.WARM -> Color(0xFFFFB74D)
         ColorFilterType.VIVID -> Color(0xFFFF5C8A)
+        ColorFilterType.BRIGHT -> Color(0xFFFFF59D)
+        ColorFilterType.CONTRAST -> Color(0xFF90A4AE)
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

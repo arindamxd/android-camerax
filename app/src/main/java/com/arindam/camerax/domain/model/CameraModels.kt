@@ -5,7 +5,8 @@ enum class CameraMode {
     VIDEO,
     SLOW_MOTION,
     EFFECTS,
-    PANORAMA
+    PANORAMA,
+    DUAL
 }
 
 enum class CameraLens {
@@ -56,8 +57,13 @@ enum class ColorFilterType {
     VINTAGE,
     COOL,
     WARM,
-    VIVID
+    VIVID,
+    BRIGHT,
+    CONTRAST
 }
+
+fun ColorFilterType.usesMedia3(): Boolean =
+    this == ColorFilterType.BRIGHT || this == ColorFilterType.CONTRAST
 
 enum class NightScene {
     UNKNOWN,
@@ -154,7 +160,6 @@ data class CameraBindConfig(
     val flash: FlashMode,
     val extension: CameraExtension,
     val colorFilter: ColorFilterType,
-    val faceDetection: Boolean,
     val cameraId: String? = null,
     val captureAspect: CaptureAspect = CaptureAspect.FULL,
     val videoQuality: VideoQuality = VideoQuality.FHD,
@@ -167,7 +172,9 @@ data class CameraBindConfig(
     val rawCapture: Boolean = false,
     val rawFullSensor: Boolean = false,
     val lowLightBoost: Boolean = true,
-    val retainRecording: Boolean = false
+    val retainRecording: Boolean = false,
+    val concurrent: Boolean = false,
+    val videoFps60: Boolean = false
 )
 
 data class CameraBindResult(
@@ -188,7 +195,10 @@ data class CameraBindResult(
     val videoStabilizationSupported: Boolean = false,
     val videoStabilizationActive: Boolean = false,
     val lowLightBoostSupported: Boolean = false,
-    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR
+    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
+    val concurrentSupported: Boolean = false,
+    val videoFps60Supported: Boolean = false,
+    val videoFps60Active: Boolean = false
 )
 
 enum class LowLightBoost {

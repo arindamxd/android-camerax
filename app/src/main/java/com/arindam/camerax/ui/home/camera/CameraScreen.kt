@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +69,15 @@ fun CameraScreen(
         }
     }
 
+    val pipPreviewView = remember {
+        PreviewView(context).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+            isClickable = false
+            isFocusable = false
+        }
+    }
+
     LaunchedEffect(outputDirectory) {
         outputDirectory?.let { viewModel.setOutputDirectory(it) }
     }
@@ -70,11 +85,15 @@ fun CameraScreen(
         state.bindRevision,
         state.lens,
         state.extension,
-        state.faceDetectionEnabled,
+        state.mode,
         previewView
     ) {
         if (!inspection) {
-            viewModel.bind(lifecycleOwner, previewView)
+            viewModel.bind(
+                lifecycleOwner,
+                previewView,
+                pipPreviewView.takeIf { state.mode == com.arindam.camerax.domain.model.CameraMode.DUAL }
+            )
             previewView.display?.rotation?.let(viewModel::updateTargetRotation)
         }
     }
@@ -140,6 +159,19 @@ fun CameraScreen(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize()
             )
+            if (state.mode == com.arindam.camerax.domain.model.CameraMode.DUAL) {
+                AndroidView(
+                    factory = { pipPreviewView },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .zIndex(0.5f)
+                        .padding(end = 16.dp, bottom = 216.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.5.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(16.dp))
+                        .width(108.dp)
+                        .height(144.dp)
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -180,10 +212,12 @@ fun CameraScreen(
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         NightSceneBanner(state)
+                        DualBanner(state)
                         PanoramaBanner(state)
                         SlowMotionBanner(state)
                         StabilizationBanner(state)
                         VideoHdrBanner(state)
+                        Fps60Banner(state)
                         LowLightBoostBanner(state)
                         RecordingHud(
                             state = state,

@@ -24,9 +24,6 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import java.io.File
 
-private val CameraModesWithoutSlowMotion: List<CameraMode> =
-    CameraMode.entries.filter { it != CameraMode.SLOW_MOTION }
-
 val CameraMode.labelRes: Int
     @StringRes get() = when (this) {
         CameraMode.PHOTO -> R.string.mode_photo
@@ -34,6 +31,7 @@ val CameraMode.labelRes: Int
         CameraMode.SLOW_MOTION -> R.string.mode_slow_motion
         CameraMode.EFFECTS -> R.string.mode_effects
         CameraMode.PANORAMA -> R.string.mode_panorama
+        CameraMode.DUAL -> R.string.mode_dual
     }
 
 val FlashMode.labelRes: Int
@@ -76,6 +74,8 @@ val ColorFilterType.labelRes: Int
         ColorFilterType.COOL -> R.string.filter_cool
         ColorFilterType.WARM -> R.string.filter_warm
         ColorFilterType.VIVID -> R.string.filter_vivid
+        ColorFilterType.BRIGHT -> R.string.filter_bright
+        ColorFilterType.CONTRAST -> R.string.filter_contrast
     }
 
 data class CameraUiState(
@@ -97,7 +97,6 @@ data class CameraUiState(
     val extension: CameraExtension = CameraExtension.NONE,
     val supportedExtensions: Set<CameraExtension> = emptySet(),
     val colorFilter: ColorFilterType = ColorFilterType.NONE,
-    val faceDetectionEnabled: Boolean = false,
     val focusPoint: Offset? = null,
     val captureFlashToken: Int = 0,
     val bindRevision: Int = 0,
@@ -135,6 +134,10 @@ data class CameraUiState(
     val lowLightBoostActive: Boolean = false,
     val flipWhileRecording: Boolean = false,
     val review: CaptureReview? = null,
+    val concurrentSupported: Boolean = false,
+    val videoFps60: Boolean = false,
+    val videoFps60Supported: Boolean = false,
+    val videoFps60Active: Boolean = false,
     val message: String? = null
 ) {
     val zoomChips: List<Float>
@@ -156,15 +159,40 @@ data class CameraUiState(
         }
 
     val visibleModes: List<CameraMode>
-        get() = if (slowMotionSupported) {
-            CameraMode.entries
-        } else {
-            CameraModesWithoutSlowMotion
+        get() = CameraMode.entries.filter { mode ->
+            when (mode) {
+                CameraMode.SLOW_MOTION -> slowMotionSupported
+                CameraMode.DUAL -> concurrentSupported
+                else -> true
+            }
         }
+
+    val showsFlash: Boolean
+        get() = hasFlash && mode != CameraMode.PANORAMA
+
+    val showsTimer: Boolean
+        get() = mode == CameraMode.PHOTO || mode == CameraMode.EFFECTS
+
+    val showsGrid: Boolean
+        get() = mode != CameraMode.DUAL
+
+    val showsMotion: Boolean
+        get() = mode == CameraMode.PHOTO && !rawCapture
+
+    val showsZoomChips: Boolean
+        get() = mode != CameraMode.DUAL && mode != CameraMode.PANORAMA
+
+    val showsStillBadge: Boolean
+        get() = (mode == CameraMode.PHOTO || mode == CameraMode.EFFECTS) &&
+            (stillFormat == StillFormat.RAW_JPEG || ultraHdrEnabled)
+
+    val showsVideoStatus: Boolean
+        get() = mode == CameraMode.VIDEO
 
     val showsExposureControls: Boolean
         get() = mode != CameraMode.SLOW_MOTION &&
             mode != CameraMode.PANORAMA &&
+            mode != CameraMode.DUAL &&
             (exposureLimits.supportedPriorities.size >= 2 ||
                 exposureLimits.evSupported)
 }

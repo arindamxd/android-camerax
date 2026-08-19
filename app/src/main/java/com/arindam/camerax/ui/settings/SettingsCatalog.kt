@@ -41,7 +41,8 @@ fun settingsSections(
     ultraHdrAvailable: Boolean = false,
     rawCaptureAvailable: Boolean = false,
     fullSensorRawAvailable: Boolean = false,
-    lowLightBoostAvailable: Boolean = false
+    lowLightBoostAvailable: Boolean = false,
+    videoFps60Available: Boolean = false
 ): List<SettingsSection> = listOf(
     SettingsSection(
         titleRes = R.string.pref_title_theme,
@@ -188,6 +189,18 @@ fun settingsSections(
                 subtitleRes = R.string.pref_subtitle_flip_while_recording,
                 icon = Icons.Outlined.Cameraswitch,
                 defaultOn = false
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_video_fps_60,
+                titleRes = R.string.pref_title_video_fps_60,
+                subtitleRes = if (videoFps60Available) {
+                    R.string.pref_subtitle_video_fps_60
+                } else {
+                    R.string.pref_subtitle_video_fps_60_unsupported
+                },
+                icon = Icons.Outlined.Speed,
+                defaultOn = false,
+                enabled = videoFps60Available
             )
         )
     ),

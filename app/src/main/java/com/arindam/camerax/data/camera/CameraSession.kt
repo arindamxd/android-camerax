@@ -4,12 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.graphics.ImageFormat
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.Rect
-import android.graphics.RectF
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraMetadata
@@ -18,7 +13,7 @@ import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.os.Build
 import android.os.Handler
-import android.os.HandlerThread
+import android.os.Looper
 import android.view.Surface
 import androidx.annotation.MainThread
 import androidx.annotation.OptIn
@@ -31,21 +26,22 @@ import androidx.camera.core.Camera
 import androidx.camera.core.CameraEffect
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ConcurrentCamera.SingleCameraConfig
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.FocusMeteringAction
-import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.LowLightBoostState
 import androidx.camera.core.Preview
+import androidx.camera.core.SessionConfig
 import androidx.camera.core.UseCase
 import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.featuregroup.GroupableFeature
+import androidx.camera.media3.effect.Media3Effect
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
-import androidx.camera.effects.OverlayEffect
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.video.ExperimentalPersistentRecording
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.HighSpeedVideoSessionConfig
@@ -79,12 +75,10 @@ import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.ZoomInfo
+import com.arindam.camerax.domain.model.usesMedia3
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.log.Logger
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,13 +98,7 @@ import kotlin.coroutines.suspendCoroutine
 class CameraSession(private val context: Context) : CameraRepository {
 
     private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private val overlayThread = HandlerThread("CameraXOverlay").apply { start() }
-    private val overlayHandler = Handler(overlayThread.looper)
-    private val facePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        color = 0xFFF9AA33.toInt()
-        strokeWidth = 6f
-    }
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var extensionsManager: ExtensionsManager? = null
@@ -118,14 +106,12 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var videoCapture: VideoCapture<Recorder>? = null
-    private var imageAnalysis: ImageAnalysis? = null
     private var recording: Recording? = null
     private var highSpeedSession = false
-    private var overlayEffect: OverlayEffect? = null
     private var colorProcessor: ColorFilterProcessor? = null
-    private var faceDetector: FaceDetector? = null
+    private var media3Effect: Media3Effect? = null
     private var boundPreviewView: PreviewView? = null
-    @Volatile private var latestFaces: List<Rect> = emptyList()
+    private var pipPreview: Preview? = null
     private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
     override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
     private val _lowLightBoost = MutableStateFlow(LowLightBoost.OFF)
@@ -148,6 +134,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var motionAwaitingVideo = false
     private var previewBoosted = false
     private var userExposureIndex: Int? = null
+    private var fps60Active = false
 
     suspend fun initialize() {
         if (cameraProvider != null) return
@@ -181,8 +168,8 @@ class CameraSession(private val context: Context) : CameraRepository {
         highSpeedSession = false
         imageCapture = null
         videoCapture = null
-        imageAnalysis = null
         preview = null
+        pipPreview = null
 
         previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         previewView.scaleType = if (config.slowMotion || config.captureAspect == CaptureAspect.FULL) {
@@ -191,6 +178,13 @@ class CameraSession(private val context: Context) : CameraRepository {
             PreviewView.ScaleType.FIT_CENTER
         }
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
+
+        val concurrentOk = config.concurrent &&
+            provider.availableConcurrentCameraInfos.isNotEmpty() &&
+            previewHost.pipPreviewView != null
+        if (concurrentOk) {
+            return bindConcurrent(provider, previewHost, config, rotation)
+        }
 
         val baseSelector = selectorFor(config)
         val manager = extensionsManager
@@ -277,24 +271,12 @@ class CameraSession(private val context: Context) : CameraRepository {
         val video = buildVideoCapture(recorder, videoStab, videoRange)
         videoCapture = video
 
-        val analysis = if (config.faceDetection && !useExtension && !useRaw) {
-            val analysisBuilder = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setTargetRotation(rotation)
-            config.captureAspect.toResolutionSelector()?.let { analysisBuilder.setResolutionSelector(it) }
-            analysisBuilder.build().also { setupFaceAnalyzer(it) }
-        } else {
-            null
-        }
-        imageAnalysis = analysis
-
         val includeVideo = !useExtension
-        val includeAnalysis = analysis != null
         val effects = buildEffects(
             colorFilter = if (useRaw) ColorFilterType.NONE else config.colorFilter,
-            faceDetection = config.faceDetection && !useExtension && !useRaw,
             includeVideo = includeVideo
         )
+        val wantFps60 = config.videoFps60 && includeVideo && !useExtension
 
         camera = bindWithFallback(
             provider = provider,
@@ -303,8 +285,8 @@ class CameraSession(private val context: Context) : CameraRepository {
             preview = preview,
             imageCapture = capture,
             videoCapture = if (includeVideo) video else null,
-            imageAnalysis = if (includeAnalysis) analysis else null,
-            effects = effects
+            effects = effects,
+            fps60 = wantFps60
         )
         if (!includeVideo) videoCapture = null
 
@@ -429,14 +411,18 @@ class CameraSession(private val context: Context) : CameraRepository {
     }
 
     override fun setColorFilter(type: ColorFilterType) {
-        colorProcessor?.colorMatrix = ColorFilters.glMatrix(type)
+        if (type.usesMedia3()) {
+            media3Effect?.setEffects(type.media3Effects())
+        } else {
+            colorProcessor?.colorMatrix = ColorFilters.glMatrix(type)
+        }
     }
 
     override fun setTargetRotation(rotation: Int) {
         preview?.targetRotation = rotation
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation
-        imageAnalysis?.targetRotation = rotation
+        pipPreview?.targetRotation = rotation
     }
 
     @OptIn(ExperimentalCamera2Interop::class)
@@ -484,10 +470,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         stopRecordingService()
         cameraProvider?.unbindAll()
         releaseEffects()
-        faceDetector?.close()
-        faceDetector = null
         cameraExecutor.shutdown()
-        overlayThread.quitSafely()
         colorProcessor?.release()
         colorProcessor = null
         _nightScene.value = NightScene.UNKNOWN
@@ -700,7 +683,7 @@ class CameraSession(private val context: Context) : CameraRepository {
                 onError(message)
             }
         )
-        overlayHandler.postDelayed({ stopRecording() }, MOTION_DURATION_MS)
+        mainHandler.postDelayed({ stopRecording() }, MOTION_DURATION_MS)
     }
 
     private fun finishMotionIfReady() {
@@ -817,57 +800,25 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
     }
 
-    private fun setupFaceAnalyzer(analysis: ImageAnalysis) {
-        val detector = faceDetector ?: FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-                .build()
-        ).also { faceDetector = it }
-        analysis.setAnalyzer(
-            cameraExecutor,
-            MlKitAnalyzer(
-                listOf(detector),
-                ImageAnalysis.COORDINATE_SYSTEM_SENSOR,
-                cameraExecutor
-            ) { result ->
-                latestFaces = result.getValue(detector)?.map { it.boundingBox } ?: emptyList()
-            }
-        )
-    }
-
     private fun buildEffects(
         colorFilter: ColorFilterType,
-        faceDetection: Boolean,
         includeVideo: Boolean
     ): List<CameraEffect> {
         val targets = CameraEffect.PREVIEW or if (includeVideo) CameraEffect.VIDEO_CAPTURE else 0
         val effects = mutableListOf<CameraEffect>()
-        if (colorFilter != ColorFilterType.NONE) {
+        if (colorFilter.usesMedia3()) {
+            val effect = Media3Effect(
+                context,
+                targets,
+                ContextCompat.getMainExecutor(context)
+            ) { error -> Logger.error(TAG, "Media3 effect error: ${error.message}") }
+            effect.setEffects(colorFilter.media3Effects())
+            media3Effect = effect
+            effects += effect
+        } else if (colorFilter != ColorFilterType.NONE) {
             val processor = ColorFilterProcessor().also { colorProcessor = it }
             processor.colorMatrix = ColorFilters.glMatrix(colorFilter)
             effects += processor.asCameraEffect(targets)
-        }
-        if (faceDetection) {
-            val overlay = OverlayEffect(
-                targets,
-                0,
-                overlayHandler
-            ) { error -> Logger.error(TAG, "Overlay error: ${error.message}") }
-            overlay.setOnDrawListener { frame ->
-                val canvas = frame.overlayCanvas
-                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-                canvas.save()
-                canvas.setMatrix(frame.sensorToBufferTransform)
-                latestFaces.forEach { rect ->
-                    canvas.drawRoundRect(RectF(rect), 24f, 24f, facePaint)
-                }
-                canvas.restore()
-                true
-            }
-            overlayEffect = overlay
-            effects += overlay
         }
         return effects
     }
@@ -914,35 +865,25 @@ class CameraSession(private val context: Context) : CameraRepository {
         preview: Preview,
         imageCapture: ImageCapture,
         videoCapture: VideoCapture<Recorder>?,
-        imageAnalysis: ImageAnalysis?,
-        effects: List<CameraEffect>
+        effects: List<CameraEffect>,
+        fps60: Boolean = false
     ): Camera {
         val attempts: List<List<UseCase>> = listOfNotNull(
-            listOfNotNull(preview, imageCapture, videoCapture, imageAnalysis),
             listOfNotNull(preview, imageCapture, videoCapture),
-            listOfNotNull(preview, imageCapture, imageAnalysis),
             listOf(preview, imageCapture)
         ).distinct()
         var lastError: Exception? = null
         for (useCases in attempts) {
             try {
                 provider.unbindAll()
-                val includeEffects = effects.isNotEmpty()
-                val bound = if (includeEffects) {
-                    try {
-                        val group = UseCaseGroup.Builder().apply {
-                            useCases.forEach { addUseCase(it) }
-                            effects.forEach { addEffect(it) }
-                        }.build()
-                        provider.bindToLifecycle(lifecycleOwner, selector, group)
-                    } catch (error: Exception) {
-                        Logger.warning(TAG, "Bind with effects failed: ${error.message}")
-                        provider.unbindAll()
-                        provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
-                    }
-                } else {
-                    provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
-                }
+                val bound = bindSession(
+                    provider = provider,
+                    lifecycleOwner = lifecycleOwner,
+                    selector = selector,
+                    useCases = useCases,
+                    effects = effects,
+                    fps60 = fps60 && videoCapture != null && useCases.contains(videoCapture)
+                )
                 this.videoCapture = videoCapture?.takeIf { capture -> useCases.contains(capture) }
                 Logger.debug(TAG, "Bound use cases: ${useCases.map { it.javaClass.simpleName }}")
                 return bound
@@ -952,6 +893,101 @@ class CameraSession(private val context: Context) : CameraRepository {
             }
         }
         throw lastError ?: IllegalStateException("Unable to bind camera")
+    }
+
+    private fun bindSession(
+        provider: ProcessCameraProvider,
+        lifecycleOwner: LifecycleOwner,
+        selector: CameraSelector,
+        useCases: List<UseCase>,
+        effects: List<CameraEffect>,
+        fps60: Boolean
+    ): Camera {
+        if (fps60) {
+            try {
+                val builder = SessionConfig.Builder(*useCases.toTypedArray())
+                    .setRequiredFeatureGroup(GroupableFeature.FPS_60)
+                effects.forEach { builder.addEffect(it) }
+                val bound = provider.bindToLifecycle(lifecycleOwner, selector, builder.build())
+                fps60Active = true
+                return bound
+            } catch (error: Exception) {
+                Logger.warning(TAG, "60 fps feature group bind failed: ${error.message}")
+            }
+        }
+        fps60Active = false
+        return if (effects.isNotEmpty()) {
+            try {
+                val group = UseCaseGroup.Builder().apply {
+                    useCases.forEach { addUseCase(it) }
+                    effects.forEach { addEffect(it) }
+                }.build()
+                provider.bindToLifecycle(lifecycleOwner, selector, group)
+            } catch (error: Exception) {
+                Logger.warning(TAG, "Bind with effects failed: ${error.message}")
+                provider.unbindAll()
+                provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
+            }
+        } else {
+            provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
+        }
+    }
+
+    private fun bindConcurrent(
+        provider: ProcessCameraProvider,
+        host: PreviewViewHost,
+        config: CameraBindConfig,
+        rotation: Int
+    ): CameraBindResult {
+        val pipView = host.pipPreviewView ?: throw IllegalStateException("Dual preview missing")
+        pipView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        pipView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        val primary = Preview.Builder().setTargetRotation(rotation).build().also {
+            it.surfaceProvider = host.previewView.surfaceProvider
+        }
+        val secondary = Preview.Builder().setTargetRotation(rotation).build().also {
+            it.surfaceProvider = pipView.surfaceProvider
+        }
+        preview = primary
+        pipPreview = secondary
+        videoCapture = null
+        val frontGroup = UseCaseGroup.Builder().addUseCase(secondary).build()
+        val capture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .setFlashMode(config.flash.toImageCaptureMode())
+            .setTargetRotation(rotation)
+            .build()
+        val withStill = UseCaseGroup.Builder().addUseCase(primary).addUseCase(capture).build()
+        val previewOnly = UseCaseGroup.Builder().addUseCase(primary).build()
+        val concurrent = try {
+            imageCapture = capture
+            provider.bindToLifecycle(
+                listOf(
+                    SingleCameraConfig(CameraSelector.DEFAULT_BACK_CAMERA, withStill, host.lifecycleOwner),
+                    SingleCameraConfig(CameraSelector.DEFAULT_FRONT_CAMERA, frontGroup, host.lifecycleOwner)
+                )
+            )
+        } catch (error: Exception) {
+            Logger.warning(TAG, "Dual still bind failed, preview only: ${error.message}")
+            imageCapture = null
+            provider.unbindAll()
+            provider.bindToLifecycle(
+                listOf(
+                    SingleCameraConfig(CameraSelector.DEFAULT_BACK_CAMERA, previewOnly, host.lifecycleOwner),
+                    SingleCameraConfig(CameraSelector.DEFAULT_FRONT_CAMERA, frontGroup, host.lifecycleOwner)
+                )
+            )
+        }
+        camera = concurrent.cameras.firstOrNull { bound ->
+            bound.cameraInfo.lensFacing == CameraSelector.LENS_FACING_BACK
+        } ?: concurrent.cameras.first()
+        fps60Active = false
+        stillFormat = StillFormat.JPEG
+        return finishBind(
+            config = config,
+            slowMotionSupported = isHighSpeedSupported(camera?.cameraInfo),
+            slowMotionFps = 0
+        )
     }
 
     private fun bindHighSpeed(
@@ -998,7 +1034,6 @@ class CameraSession(private val context: Context) : CameraRepository {
             this.preview = previewUseCase
             this.videoCapture = video
             this.imageCapture = null
-            this.imageAnalysis = null
             HighSpeedBind(camera = bound, fps = fpsRange.upper)
         } catch (error: Exception) {
             Logger.warning(TAG, "High-speed session bind failed: ${error.message}")
@@ -1075,7 +1110,10 @@ class CameraSession(private val context: Context) : CameraRepository {
                 isVideoStabilizationSupported(info),
             videoStabilizationActive = preview?.isPreviewStabilizationEnabled == true,
             lowLightBoostSupported = info?.isLowLightBoostSupported == true,
-            videoHdrRange = videoCapture?.dynamicRange?.toVideoHdrRange() ?: VideoHdrRange.SDR
+            videoHdrRange = videoCapture?.dynamicRange?.toVideoHdrRange() ?: VideoHdrRange.SDR,
+            concurrentSupported = cameraProvider?.availableConcurrentCameraInfos?.isNotEmpty() == true,
+            videoFps60Supported = info?.supportsVideoFps60() == true,
+            videoFps60Active = fps60Active
         )
     }
 
@@ -1134,12 +1172,10 @@ class CameraSession(private val context: Context) : CameraRepository {
     private data class HighSpeedBind(val camera: Camera, val fps: Int)
 
     private fun releaseEffects() {
-        overlayEffect?.clearOnDrawListener()
-        overlayEffect?.close()
-        overlayEffect = null
         colorProcessor?.release()
         colorProcessor = null
-        latestFaces = emptyList()
+        media3Effect?.close()
+        media3Effect = null
     }
 
     private fun applyStillFilter(file: File, type: ColorFilterType): File {

@@ -15,7 +15,8 @@ lifecycleRuntimeKtx = "2.11.0"
 navigationFragmentKtx = "2.9.8"
 navigationUiKtx = "2.9.8"
 camerax = "1.6.1"
-mlkitFaceDetection = "16.1.7"
+cameraMedia3 = "1.0.0-alpha04"
+media3 = "1.10.1"
 exifInterface = "1.4.2"
 coilCompose = "2.7.0"
 material = "1.14.0"
@@ -64,8 +65,11 @@ androidx-camera-video = { module = "androidx.camera:camera-video", version.ref =
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 androidx-camera-extensions = { module = "androidx.camera:camera-extensions", version.ref = "camerax" }
 androidx-camera-effects = { module = "androidx.camera:camera-effects", version.ref = "camerax" }
-androidx-camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camerax" }
-mlkit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "mlkitFaceDetection" }
+androidx-camera-featurecombinationquery = { module = "androidx.camera.featurecombinationquery:featurecombinationquery", version.ref = "camerax" }
+androidx-camera-featurecombinationquery-play-services = { module = "androidx.camera.featurecombinationquery:featurecombinationquery-play-services", version.ref = "camerax" }
+androidx-camera-media3-effect = { module = "androidx.camera.media3:media3-effect", version.ref = "cameraMedia3" }
+androidx-media3-effect = { module = "androidx.media3:media3-effect", version.ref = "media3" }
+androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifInterface" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 material = { module = "com.google.android.material:material", version.ref = "material" }

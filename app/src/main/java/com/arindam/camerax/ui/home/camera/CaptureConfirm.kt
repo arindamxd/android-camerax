@@ -134,13 +134,16 @@ fun CaptureConfirmOverlay(
                 text = review.metadataLabel(
                     formatText = review.formatLabelRes?.let { stringResource(it) }
                 ),
-                color = Color.White.copy(alpha = 0.55f),
+                color = CameraOnGlass,
                 fontFamily = CameraMono,
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 letterSpacing = 0.06.em,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 20.dp, bottom = 92.dp)
+                    .padding(start = 16.dp, bottom = 92.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CameraGlass)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             )
 
             Row(

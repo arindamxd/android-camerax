@@ -62,6 +62,7 @@ import com.arindam.camerax.data.camera.isFullSensorRawSupported
 import com.arindam.camerax.data.camera.isLowLightBoostSupported
 import com.arindam.camerax.data.camera.isRawCaptureSupported
 import com.arindam.camerax.data.camera.isUltraHdrSupported
+import com.arindam.camerax.data.camera.isVideoFps60Supported
 import com.arindam.camerax.data.camera.isVideoStabilizationSupported
 import com.arindam.camerax.data.camera.slowMotionOptions
 import com.arindam.camerax.data.camera.supportedVideoHdrRanges
@@ -89,6 +90,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     var rawCaptureAvailable by remember { mutableStateOf(false) }
     var fullSensorRawAvailable by remember { mutableStateOf(false) }
     var lowLightBoostAvailable by remember { mutableStateOf(false) }
+    var videoFps60Available by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         videoQualities = supportedVideoQualities(context)
         videoHdrRanges = supportedVideoHdrRanges(context)
@@ -98,6 +100,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         rawCaptureAvailable = isRawCaptureSupported(context)
         fullSensorRawAvailable = isFullSensorRawSupported(context)
         lowLightBoostAvailable = isLowLightBoostSupported(context)
+        videoFps60Available = isVideoFps60Supported(context)
     }
     val sections = remember(
         videoQualities,
@@ -107,7 +110,8 @@ fun SettingsScreen(onBack: () -> Unit) {
         ultraHdrAvailable,
         rawCaptureAvailable,
         fullSensorRawAvailable,
-        lowLightBoostAvailable
+        lowLightBoostAvailable,
+        videoFps60Available
     ) {
         settingsSections(
             versionLabel = context.getString(R.string.app_version),
@@ -118,7 +122,8 @@ fun SettingsScreen(onBack: () -> Unit) {
             ultraHdrAvailable = ultraHdrAvailable,
             rawCaptureAvailable = rawCaptureAvailable,
             fullSensorRawAvailable = fullSensorRawAvailable,
-            lowLightBoostAvailable = lowLightBoostAvailable
+            lowLightBoostAvailable = lowLightBoostAvailable,
+            videoFps60Available = videoFps60Available
         )
     }
     val colors = MaterialTheme.colorScheme

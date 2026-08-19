@@ -15,6 +15,9 @@
     <string name="mode_slow_motion">Slo-mo</string>
     <string name="mode_effects">Effects</string>
     <string name="mode_panorama">Pano</string>
+    <string name="mode_dual">Dual</string>
+    <string name="dual_live_hint">Front + back</string>
+    <string name="video_fps_60_on">60 fps</string>
     <string name="panorama_hint">Tap shutter, then pan slowly</string>
     <string name="panorama_panning">Panning · %1$d frames</string>
     <string name="slow_motion_fps">Slo-mo · %1$d fps</string>
@@ -41,7 +44,6 @@
     <string name="recording_paused">Paused</string>
     <string name="mute_audio">Mute audio</string>
     <string name="unmute_audio">Unmute audio</string>
-    <string name="face_detection">Face detection</string>
     <string name="extension_none">None</string>
     <string name="extension_hdr">HDR</string>
     <string name="extension_night">Night</string>
@@ -54,6 +56,8 @@
     <string name="filter_cool">Cool</string>
     <string name="filter_warm">Warm</string>
     <string name="filter_vivid">Vivid</string>
+    <string name="filter_bright">Bright</string>
+    <string name="filter_contrast">Contrast</string>
     <string name="zoom_chip">Zoom %1$s</string>
     <string name="motion_photo_on">Motion photo on</string>
     <string name="motion_photo_off">Motion photo off</string>
@@ -114,6 +118,7 @@
     <string name="pref_key_raw_full_sensor" translatable="false">key_raw_full_sensor</string>
     <string name="pref_key_flip_while_recording" translatable="false">key_flip_while_recording</string>
     <string name="pref_key_low_light_boost" translatable="false">key_low_light_boost</string>
+    <string name="pref_key_video_fps_60" translatable="false">key_video_fps_60</string>
 
     <!-- Preferences -->
     <string name="pref_title_theme">Theme</string>
@@ -160,6 +165,9 @@
     <string name="pref_subtitle_video_stabilization_unsupported">This device doesn\'t support video stabilization</string>
     <string name="pref_title_flip_while_recording">Flip while recording</string>
     <string name="pref_subtitle_flip_while_recording">Switch cameras without stopping the clip</string>
+    <string name="pref_title_video_fps_60">60 fps video</string>
+    <string name="pref_subtitle_video_fps_60">Bind CameraX FPS_60 when this combination is supported</string>
+    <string name="pref_subtitle_video_fps_60_unsupported">This device doesn\'t list 60 fps with the current session</string>
     <string name="pref_title_low_light_boost">Low light boost</string>
     <string name="pref_subtitle_low_light_boost">Brightens preview and video in the dark</string>
     <string name="pref_subtitle_low_light_boost_unsupported">This device doesn\'t support low light boost</string>

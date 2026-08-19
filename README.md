@@ -1,6 +1,6 @@
 # CameraX
 
-A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live filters, and ML Kit face overlay, with a Compose UI.
+A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, two live-filter pipelines (CameraX `CameraEffect` and Media3 `Media3Effect`), and Dual preview, with a Compose UI.
 
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
 alt="Get it on Google Play" height="90">](https://play.google.com/store/apps/details?id=com.arindam.camerax)
@@ -19,17 +19,20 @@ The **app** is named CameraX. It is built with the Jetpack **CameraX library** (
 | In the app | What it demonstrates |
 | --- | --- |
 | **Photo** | Still capture with flash, timer, grid, pinch zoom, tap-to-focus |
-| **Video** | Record with audio, pause / resume, mute, elapsed timer, `.mp4` in gallery |
-| **Effects** | OEM HDR / Night / Portrait / Beauty (when the device supports them), color filters, face boxes |
+| **Video** | Record with audio, pause / resume, mute, 60 fps when listed, `.mp4` in gallery |
+| **Slo-mo** | High-speed `Preview` + `VideoCapture` when the device lists SDR high-speed qualities |
+| **Effects** | Two **different** live-filter APIs (not the same pipeline), plus OEM extension chips |
+| **Pano** | Horizontal sweep stitch |
+| **Dual** | Concurrent front + back preview (`availableConcurrentCameraInfos`) |
 
-Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video + analysis together, the camera falls back (drop analysis, drop video, stills only) instead of crashing.
+Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video together, the camera falls back (drop video, stills only) instead of crashing. Dual falls back to concurrent preview-only if stills cannot bind.
 
 ## Try it
 
 1. Grant **camera** and **microphone**.
-2. Swipe **Photo / Video / Effects** at the bottom.
+2. Swipe **Photo / Video / Slo-mo / Effects / Pano / Dual** at the bottom (Slo-mo and Dual hide when unsupported). Quick controls on the live feed change with the selected mode; the gear opens full Settings.
 3. Photo shutter is a white disc; video is red and becomes a stop square while recording.
-4. In Effects, pick a filter, an extension chip, or face detection.
+4. In Effects, pick a **CameraX** color-matrix filter (Mono, Invert, Sepia, …) or a **Media3** GPU filter (Bright, Contrast), or an OEM extension chip. Those filter rows are not the same CameraX API — see [CameraX vs Media3 effects](#camerax-vs-media3-effects).
 5. Open the thumbnail to browse, share, or delete photos and videos.
 
 ## Architecture
@@ -70,7 +73,7 @@ app/src/main/java/com/arindam/camerax/
   domain/model/          CameraMode, FlashMode, RecordingEvent, …
   domain/repository/     CameraRepository, MediaRepository
   domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
-  data/camera/           CameraSession, ColorFilterProcessor, Overlay + CameraX mappers
+  data/camera/           CameraSession, ColorFilterProcessor, Media3Effect, mappers
   data/media/            FileMediaRepository (latest jpg/heic/dng/mp4)
   data/local/            SharedPreferences
   di/                    AppContainer
@@ -89,18 +92,32 @@ app/src/main/java/com/arindam/camerax/
 | Pinch zoom and 0.5 / 1x / 2x chips | `CameraControl.setZoomRatio` / `ZoomState` |
 | Tap to focus | `FocusMeteringAction` |
 | HDR / Night / Portrait / Beauty | `ExtensionsManager` (`ExtensionMode`) |
-| Live color filters | `CameraEffect` + `SurfaceProcessor` on preview and video; same matrix on still JPEGs |
-| Face boxes on preview **and** video | `ImageAnalysis` + `MlKitAnalyzer` + `OverlayEffect` (`PREVIEW \| VIDEO_CAPTURE`) |
+| Live color-matrix filters | CameraX `CameraEffect` + `SurfaceProcessor` (`ColorFilterProcessor`) |
+| Bright / Contrast | CameraX–Media3 bridge: `Media3Effect.setEffects` (Media3 GPU `Effect`s) |
+| Dual preview | `ProcessCameraProvider.bindToLifecycle(List)` + concurrent camera infos |
+| 60 fps video | `SessionConfig` + `GroupableFeature.FPS_60` after `isSessionConfigSupported` |
 
-Face boxes are drawn with `OverlayEffect`, not a Compose canvas, so they are burned into recordings.
+### CameraX vs Media3 effects
+
+They can both tint the viewfinder. They are **not** the same API.
+
+| | CameraX effects | Media3 effects |
+| --- | --- | --- |
+| Library | `androidx.camera:camera-effects` | `androidx.camera.media3:media3-effect` + Media3 `effect` |
+| Type | `CameraEffect` / `SurfaceProcessor` | `Media3Effect` wrapping Media3 `Effect` |
+| In this app | Original, Mono, Invert, Sepia, Cool, Warm, Vivid | Bright, Contrast |
+| Switch at runtime | Update the color matrix on `ColorFilterProcessor` (no rebind between matrix chips) | `Media3Effect.setEffects(...)` (no rebind between Bright and Contrast) |
+| Stills | Same color matrix applied to JPEG bytes | Approximate matrix on JPEG; Ultra HDR stills skip recompress |
+
+Do not bind both processors at once. Enabling or disabling a live effect, or moving between the matrix pipeline and the Media3 pipeline, **rebinds**. Switching chips *inside* one pipeline does not.
 
 Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java/com/arindam/camerax/domain/repository/CameraRepository.kt) and [`CameraSession`](app/src/main/java/com/arindam/camerax/data/camera/CameraSession.kt).
 
 ## Stack
 
-- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**
+- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**, CameraX–Media3 effect **1.0.0-alpha04**
 - minSdk **23**, target/compileSdk **37**
-- Navigation, ViewModel, Coil, ML Kit face detection
+- Navigation, ViewModel, Coil
 - Optional Firebase Analytics / Crashlytics when `app/google-services.json` is present
 
 ## Build
@@ -122,7 +139,7 @@ In Android Studio: **Run → Edit Configurations → Add** → `Android JUnit` (
 
 ## Stretch (not in this app yet)
 
-ConcurrentCamera (front + back), full photo editor.
+Full photo editor; catalog-style green-screen (selfie segmentation over the back camera); Scan / ML Kit analysis. Dual is concurrent preview, not that overlay.
 
 ## Contributing
 

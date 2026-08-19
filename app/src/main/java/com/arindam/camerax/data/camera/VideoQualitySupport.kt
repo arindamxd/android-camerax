@@ -191,3 +191,36 @@ suspend fun isLowLightBoostSupported(context: Context): Boolean {
     if (provider == null) return false
     return provider.availableCameraInfos.any { info -> info.isLowLightBoostSupported }
 }
+
+suspend fun isConcurrentCameraSupported(context: Context): Boolean {
+    val provider: ProcessCameraProvider? = suspendCoroutine { continuation ->
+        val future = ProcessCameraProvider.getInstance(context)
+        future.addListener({
+            continuation.resume(runCatching { future.get() }.getOrNull())
+        }, ContextCompat.getMainExecutor(context))
+    }
+    return provider?.availableConcurrentCameraInfos?.isNotEmpty() == true
+}
+
+suspend fun isVideoFps60Supported(context: Context): Boolean {
+    val provider: ProcessCameraProvider? = suspendCoroutine { continuation ->
+        val future = ProcessCameraProvider.getInstance(context)
+        future.addListener({
+            continuation.resume(runCatching { future.get() }.getOrNull())
+        }, ContextCompat.getMainExecutor(context))
+    }
+    if (provider == null) return false
+    val info = CameraSelector.DEFAULT_BACK_CAMERA
+        .filter(provider.availableCameraInfos)
+        .firstOrNull() ?: return false
+    return info.supportsVideoFps60()
+}
+
+fun CameraInfo.supportsVideoFps60(): Boolean {
+    val preview = Preview.Builder().build()
+    val video = VideoCapture.withOutput(Recorder.Builder().build())
+    val session = androidx.camera.core.SessionConfig.Builder(preview, video)
+        .setRequiredFeatureGroup(androidx.camera.core.featuregroup.GroupableFeature.FPS_60)
+        .build()
+    return runCatching { isSessionConfigSupported(session) }.getOrDefault(false)
+}

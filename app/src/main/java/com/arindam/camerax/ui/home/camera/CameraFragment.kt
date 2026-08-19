@@ -86,7 +86,8 @@ class CameraFragment : BaseFragmentCompose() {
                 getString(R.string.pref_key_flip_while_recording),
                 false
             ),
-            lowLightBoost = prefs.getBoolean(getString(R.string.pref_key_low_light_boost), true)
+            lowLightBoost = prefs.getBoolean(getString(R.string.pref_key_low_light_boost), true),
+            videoFps60 = prefs.getBoolean(getString(R.string.pref_key_video_fps_60), false)
         )
         if (!hasPermissions()) {
             navigate(CameraFragmentDirections.actionCameraToPermissions())
