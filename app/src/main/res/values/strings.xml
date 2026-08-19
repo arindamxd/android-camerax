@@ -119,6 +119,7 @@
     <string name="pref_key_flip_while_recording" translatable="false">key_flip_while_recording</string>
     <string name="pref_key_low_light_boost" translatable="false">key_low_light_boost</string>
     <string name="pref_key_video_fps_60" translatable="false">key_video_fps_60</string>
+    <string name="pref_key_record_muted" translatable="false">key_record_muted</string>
 
     <!-- Preferences -->
     <string name="pref_title_theme">Theme</string>
@@ -165,6 +166,8 @@
     <string name="pref_subtitle_video_stabilization_unsupported">This device doesn\'t support video stabilization</string>
     <string name="pref_title_flip_while_recording">Flip while recording</string>
     <string name="pref_subtitle_flip_while_recording">Switch cameras without stopping the clip</string>
+    <string name="pref_title_record_muted">Record muted</string>
+    <string name="pref_subtitle_record_muted">Start each video with the microphone off</string>
     <string name="pref_title_video_fps_60">60 fps video</string>
     <string name="pref_subtitle_video_fps_60">Bind CameraX FPS_60 when this combination is supported</string>
     <string name="pref_subtitle_video_fps_60_unsupported">This device doesn\'t list 60 fps with the current session</string>

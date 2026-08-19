@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.HdrAuto
 import androidx.compose.material.icons.outlined.HdrOn
+import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.NightsStay
@@ -188,6 +189,13 @@ fun settingsSections(
                 titleRes = R.string.pref_title_flip_while_recording,
                 subtitleRes = R.string.pref_subtitle_flip_while_recording,
                 icon = Icons.Outlined.Cameraswitch,
+                defaultOn = false
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_record_muted,
+                titleRes = R.string.pref_title_record_muted,
+                subtitleRes = R.string.pref_subtitle_record_muted,
+                icon = Icons.Outlined.MicOff,
                 defaultOn = false
             ),
             SettingsRow.Toggle(

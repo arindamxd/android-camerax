@@ -89,6 +89,7 @@ class CameraViewModel(
     private var manualExtension = false
     private var captureConfirmEnabled = false
     private var flipWhileRecordingEnabled = false
+    private var recordMutedByDefault = false
     private val panoramaFrames = mutableListOf<File>()
     private var lastPanoramaYaw: Float? = null
     private var panoramaCaptureBusy = false
@@ -594,14 +595,23 @@ class CameraViewModel(
         rawCapture: Boolean,
         rawFullSensor: Boolean,
         flipWhileRecording: Boolean,
+        recordMuted: Boolean,
         lowLightBoost: Boolean,
         videoFps60: Boolean
     ) {
         captureConfirmEnabled = confirmEnabled
         flipWhileRecordingEnabled = flipWhileRecording
+        recordMutedByDefault = recordMuted
         val state = _uiState.value
-        if (state.flipWhileRecording != flipWhileRecording) {
-            _uiState.update { it.copy(flipWhileRecording = flipWhileRecording) }
+        if (state.flipWhileRecording != flipWhileRecording ||
+            (!state.isRecording && state.isMuted != recordMuted)
+        ) {
+            _uiState.update {
+                it.copy(
+                    flipWhileRecording = flipWhileRecording,
+                    isMuted = if (it.isRecording) it.isMuted else recordMuted
+                )
+            }
         }
         if (state.lowLightBoost != lowLightBoost) {
             _uiState.update { it.copy(lowLightBoost = lowLightBoost) }
@@ -734,6 +744,7 @@ class CameraViewModel(
                             isRecording = false,
                             isPaused = false,
                             recordingNanos = 0L,
+                            isMuted = recordMutedByDefault,
                             message = null
                         )
                     }
@@ -743,6 +754,7 @@ class CameraViewModel(
                             isRecording = false,
                             isPaused = false,
                             recordingNanos = 0L,
+                            isMuted = recordMutedByDefault,
                             message = if (event.success) null else "Video capture failed"
                         )
                     }

@@ -247,7 +247,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             .setTargetRotation(rotation)
         val useFullSensor = useRaw &&
             config.rawFullSensor &&
-            stillInfo?.supportsFullSensorRaw(context) == true
+            stillInfo.supportsFullSensorRaw(context) == true
         if (useFullSensor) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Camera2Interop.Extender(captureBuilder).setCaptureRequestOption(
