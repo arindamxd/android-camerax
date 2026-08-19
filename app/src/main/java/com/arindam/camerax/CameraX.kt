@@ -1,12 +1,10 @@
 package com.arindam.camerax
 
 import android.app.Application
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.data.local.Preferences
 import com.arindam.camerax.di.AppContainer
 import com.arindam.camerax.util.theme.NightMode
-import java.util.Locale
 
 /**
  * Created by Arindam Karmakar on 17/04/20.
@@ -27,12 +25,11 @@ class CameraX : Application() {
     /* Handle Theme */
     private fun handleDayNightTheme() {
         val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        preferences.getString(
-            getString(R.string.pref_key_theme),
-            getString(R.string.pref_key_theme_default)
-        )?.apply {
-            val mode = NightMode.valueOf(this.uppercase(Locale.US))
-            AppCompatDelegate.setDefaultNightMode(mode.value)
-        }
+        NightMode.applyPref(
+            preferences.getString(
+                getString(R.string.pref_key_theme),
+                getString(R.string.pref_key_theme_default)
+            ) ?: getString(R.string.pref_key_theme_default)
+        )
     }
 }

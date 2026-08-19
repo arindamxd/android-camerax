@@ -42,6 +42,7 @@ import com.arindam.camerax.util.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.util.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.log.Logger
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,6 +62,7 @@ import java.io.File
 import kotlin.math.exp
 import kotlin.math.ln
 
+@OptIn(FlowPreview::class)
 class CameraViewModel(
     private val interactors: CameraInteractors,
     private val appContext: Context

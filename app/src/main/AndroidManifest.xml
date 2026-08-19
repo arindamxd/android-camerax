@@ -28,15 +28,12 @@
         android:name=".CameraX"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
-        android:extractNativeLibs="false"
         android:fullBackupContent="false"
         android:hardwareAccelerated="true"
-        android:hasCode="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.CameraX.DayNight.NoActionBar"
-        tools:replace="android:hasCode,android:extractNativeLibs"
         tools:targetApi="33">
 
         <!-- Fonts -->

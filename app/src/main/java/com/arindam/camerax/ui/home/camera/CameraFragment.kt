@@ -41,7 +41,7 @@ class CameraFragment : BaseFragmentCompose() {
     }
 
     override fun setComposeView(view: ComposeView) = view.setContent {
-        AppTheme {
+        AppTheme(isDarkTheme = true) {
             CameraScreen(
                 outputDirectory = getOutputFileDirectory(),
                 viewModel = viewModel,

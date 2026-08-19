@@ -37,10 +37,7 @@ suspend fun supportedVideoQualities(context: Context): List<VideoQuality> {
                 capabilities.getSupportedQualities(range)
             }
         }.getOrDefault(emptyList())
-        val fromSelector = runCatching {
-            QualitySelector.getSupportedQualities(info)
-        }.getOrDefault(emptyList())
-        (fromCapabilities + fromSelector).mapNotNull { quality -> quality.toVideoQuality() }
+        fromCapabilities.mapNotNull { quality -> quality.toVideoQuality() }
             .forEach { found += it }
     }
     val ordered = VideoQuality.entries.filter { it in found }

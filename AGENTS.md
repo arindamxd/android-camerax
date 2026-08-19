@@ -53,7 +53,7 @@ Immersive dark preview, glass chrome, accent `#f9aa33` (`CameraAccent` / `orange
 ## Platform
 
 - Predictive back: `android:enableOnBackInvokedCallback="true"`. No orientation lock.
-- 16 KB: `android:extractNativeLibs="false"`.
+- 16 KB: `packaging.jniLibs.useLegacyPackaging = false` (do not set `android:extractNativeLibs` in the manifest).
 - Share / capture results: `ClipData` + `FLAG_GRANT_READ_URI_PERMISSION`. IMAGE_CAPTURE writes `EXTRA_OUTPUT` or returns a thumbnail / FileProvider URI (FileProvider for motion photos and HEIC).
 - Background recording: start `RecordingForegroundService`; stop recording on `ON_STOP`.
 - `android.hardware.microphone` is optional.

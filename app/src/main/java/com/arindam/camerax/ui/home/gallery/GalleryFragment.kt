@@ -45,7 +45,7 @@ class GalleryFragment : BaseFragmentCompose() {
 
     @OptIn(ExperimentalFoundationApi::class)
     override fun setComposeView(view: ComposeView) = view.setContent {
-        AppTheme {
+        AppTheme(isDarkTheme = true) {
             GalleryScreen(
                 dataList = mediaList,
                 navigateBack = {

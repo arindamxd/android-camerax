@@ -689,26 +689,26 @@ fun CameraFooter(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (compact) 32.dp else 40.dp),
-                    itemFraction = 0.24f,
-                    overshootFraction = 0.75f,
+                    itemWidth = 88.dp,
+                    itemSpacing = 0.dp,
+                    overshootFraction = 0.55f,
                     initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
-                    itemSpacing = 4.dp,
                     onItemSelected = onModeSelected
-                ) { item ->
-                    val selected = item == state.mode
+                ) { item, selected ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = stringResource(item.labelRes).uppercase(),
                             color = if (selected) CameraAccent else CameraOnGlassMuted,
-                            fontFamily = if (selected) CameraFontFamily else CameraMono,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            fontFamily = CameraFontFamily,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = if (compact) 12.sp else 13.sp,
-                            letterSpacing = if (selected) 0.8.sp else 1.4.sp
+                            letterSpacing = 0.6.sp,
+                            maxLines = 1
                         )
                         Spacer(Modifier.height(4.dp))
                         Box(
                             modifier = Modifier
-                                .width(if (selected) 18.dp else 0.dp)
+                                .width(18.dp)
                                 .height(2.dp)
                                 .clip(RoundedCornerShape(1.dp))
                                 .background(if (selected) CameraAccent else Color.Transparent)

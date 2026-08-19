@@ -199,7 +199,8 @@ class CameraSession(private val context: Context) : CameraRepository {
         val manager = extensionsManager
         val stillInfo = requestedInfo
             ?: runCatching { provider.getCameraInfo(baseSelector) }.getOrNull()
-        val useRaw = config.rawCapture && !config.slowMotion && stillInfo?.supportsRawJpeg() == true
+        val useRaw = config.rawCapture && !config.slowMotion &&
+            stillInfo != null && stillInfo.supportsRawJpeg()
         val useExtension = !useRaw &&
             !config.slowMotion &&
             config.extension != CameraExtension.NONE &&
@@ -244,7 +245,8 @@ class CameraSession(private val context: Context) : CameraRepository {
             .setTargetRotation(rotation)
         val useFullSensor = useRaw &&
             config.rawFullSensor &&
-            stillInfo?.supportsFullSensorRaw(context) == true
+            stillInfo != null &&
+            stillInfo.supportsFullSensorRaw(context)
         if (useFullSensor) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Camera2Interop.Extender(captureBuilder).setCaptureRequestOption(

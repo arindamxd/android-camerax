@@ -2,7 +2,6 @@ package com.arindam.camerax.ui.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,10 +12,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -126,13 +129,17 @@ fun SettingsScreen(onBack: () -> Unit) {
             videoFps60Available = videoFps60Available
         )
     }
-    val colors = MaterialTheme.colorScheme
+    val scheme = MaterialTheme.colorScheme
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = colors.surface,
+        containerColor = scheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                ),
                 title = {
                     Text(
                         text = stringResource(R.string.settings),
@@ -149,9 +156,9 @@ fun SettingsScreen(onBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.surface,
-                    titleContentColor = colors.onSurface,
-                    navigationIconContentColor = colors.onSurface
+                    containerColor = scheme.background,
+                    titleContentColor = scheme.onBackground,
+                    navigationIconContentColor = scheme.onBackground
                 )
             )
         }
@@ -160,7 +167,7 @@ fun SettingsScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp)
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
             sections.forEach { section ->
                 item(key = "header_${section.titleRes}") {
@@ -171,7 +178,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                         fontSize = 11.sp,
                         letterSpacing = 1.4.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp)
                     )
                 }
                 item(key = "card_${section.titleRes}") {
@@ -270,12 +277,11 @@ private fun SettingsRowView(
                                 selected = isSelected,
                                 enabled = row.enabled,
                                 onClick = {
-                                    if (!row.enabled) return@FilterChip
+                                    if (!row.enabled || selected == option.value) return@FilterChip
                                     selected = option.value
                                     prefs.edit().putString(key, option.value).apply()
                                     if (row.appliesAppTheme) {
-                                        val mode = NightMode.valueOf(option.value.uppercase(Locale.US))
-                                        AppCompatDelegate.setDefaultNightMode(mode.value)
+                                        NightMode.applyPref(option.value)
                                     }
                                 },
                                 label = {
