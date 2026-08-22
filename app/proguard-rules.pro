@@ -1,14 +1,5 @@
-# CameraX consumer rules already keep the public API. Keep line numbers for Crashlytics
-# deobfuscation on Play Console.
+# Keep line numbers for Crashlytics / Play Console deobfuscation.
+# CameraX, FileProvider, and Crashlytics ship their own consumer keep rules —
+# do not add package-wide -keep rules here (they block R8 shrink/optimize/obfuscate).
 -keepattributes SourceFile,LineNumberTable,InnerClasses,Signature,*Annotation*
 -renamesourcefileattribute SourceFile
-
-# CameraX / Camera2 interop (reflection + extension modes).
--keep class androidx.camera.** { *; }
--dontwarn androidx.camera.**
-
-# FileProvider paths and Compose previews must survive shrinking.
--keep class androidx.core.content.FileProvider { *; }
-
-# Crashlytics
--keep public class * extends java.lang.Exception

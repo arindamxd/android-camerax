@@ -77,9 +77,6 @@
     <string name="recording_paused">Paused</string>
     <string name="mute_audio">Mute audio</string>
     <string name="unmute_audio">Unmute audio</string>
-    <string name="recording_notification_channel">Recording</string>
-    <string name="recording_notification_title">Recording video</string>
-    <string name="recording_notification_text">CameraX is capturing video</string>
     <string name="active_capture_exit_title">Capture in progress</string>
     <string name="active_capture_exit_body">Save this capture or discard it?</string>
     <string name="active_capture_save">Save</string>

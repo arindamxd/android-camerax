@@ -1,0 +1,50 @@
+---
+description: Play Console release name and en-US release notes format (prefer long bullet list)
+globs: RELEASE.md
+alwaysApply: false
+---
+
+# Play Console release notes
+
+When the user asks for Play Store / Play Console release notes (or shipping a version), draft **both**:
+
+1. **Release name** — `versionName` only (e.g. `1.7.0`), ≤50 characters. Not shown to users.
+2. **Release notes** — prefer the **long bullet** form below (not the one-line summary). Wrap in language tags for Play Console paste.
+
+Always output both fields together, e.g. `Release name: 1.7.0` then the `<en-US>` block.
+
+## Preferred format (long)
+
+```
+Release name: {versionName}
+
+<en-US>
+What's new in CameraX {versionName}
+
+• {user-facing highlight}
+• {user-facing highlight}
+• {user-facing highlight}
+• {user-facing highlight}
+• Stability and performance improvements
+</en-US>
+```
+
+## Rules
+
+- Lead with `What's new in CameraX {versionName}`.
+- Use **4–6** short bullets of **user-visible** changes (modes, capture formats, gallery, Settings, UI). Skip architecture, DI, KDoc, agent docs, and build-only churn.
+- Source content from `git log` since the previous tag, [README.md](README.md) feature table, and [RELEASE.md](RELEASE.md) shipping version (`versionMajor` / `Minor` / `Patch` in root `build.gradle.kts`).
+- Prefer device-gated wording when needed (“when your device supports them”).
+- End with a stability / polish bullet when the release includes fixes or UI cleanup.
+- Paste-ready: include `<en-US>…</en-US>` tags. Add other locales only if asked.
+- Do **not** invent features that are not in the shipping tree.
+
+## Avoid
+
+```
+<en-US>
+CameraX 1.7.0: Slo-mo, Effects… UI polish and fixes.
+</en-US>
+```
+
+One-liners are a fallback only if the user explicitly asks for a shorter option.

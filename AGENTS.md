@@ -90,9 +90,30 @@ Full-screen overlays with a back button (Gallery, Confirm / review, Permissions 
 - Predictive back: `android:enableOnBackInvokedCallback="true"`. No orientation lock.
 - 16 KB: `packaging.jniLibs.useLegacyPackaging = false` (do not set `android:extractNativeLibs` in the manifest).
 - Share / capture results: `ClipData` + `FLAG_GRANT_READ_URI_PERMISSION`. IMAGE_CAPTURE writes `EXTRA_OUTPUT` or returns a thumbnail / FileProvider URI (FileProvider for motion photos and HEIC).
-- Background recording: start `RecordingForegroundService`; stop recording on `ON_STOP`.
+- Stop recording on `ON_STOP`.
 - `android.hardware.microphone` is optional.
 - Release: R8 minify + resource shrink, native `SYMBOL_TABLE` for Play Console, Crashlytics mapping when `app/google-services.json` is present. Firebase Analytics collection stays off (`firebase_analytics_collection_enabled=false`). Backup is off (`allowBackup=false` + data-extraction rules). Public types should carry layer-tagged KDoc (`App:` / `DI:` / `Domain:` / `Data:` / `Presentation:` / `Util:`). Debug builds enable StrictMode (log only). See [RELEASE.md](RELEASE.md) for the Play Store checklist.
+
+## Play Console release notes
+
+When drafting Google Play **Release details**, prefer the **long bullet** form (not a one-liner). Also see [`.cursor/rules/play-console-release-notes.mdc`](.cursor/rules/play-console-release-notes.mdc).
+
+1. **Release name** — `versionName` only, ≤50 characters. Internal; not shown on Play.
+2. **Release notes** — paste-ready with language tags. Source from `git log` since the previous tag, the README feature table, and the shipping version in root `build.gradle.kts`. User-facing highlights only (modes, capture formats, gallery, Settings, UI). Skip architecture / DI / agent docs / build-only churn. Prefer “when your device supports them” for capability-gated APIs. End with a stability / polish bullet when the release includes fixes.
+
+```
+Release name: 1.7.0
+
+<en-US>
+What's new in CameraX 1.7.0
+
+• New modes: Slo-mo, live Effects, Panorama, and Dual camera
+• RAW/DNG stills, Ultra HDR photos, and video HDR / 60 fps when your device supports them
+• Front camera mirror, refreshed gallery with video autoplay and playback speed
+• Redesigned Settings and polished glass UI
+• Stability and performance improvements
+</en-US>
+```
 
 ## Do not
 

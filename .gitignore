@@ -65,3 +65,6 @@ fastlane/readme.md
 
 # Kotlin incremental / compiler sessions
 .kotlin/
+
+# Local R8 / agent analysis scratch
+tmp/

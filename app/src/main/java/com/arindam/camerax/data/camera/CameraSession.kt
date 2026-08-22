@@ -2,7 +2,6 @@ package com.arindam.camerax.data.camera
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
@@ -402,11 +401,9 @@ class CameraSession(private val context: Context) : CameraRepository {
             ) == PermissionChecker.PERMISSION_GRANTED
         )
         val active = if (withAudio) pending.withAudioEnabled() else pending
-        startRecordingService()
         recording = active.start(ContextCompat.getMainExecutor(context)) { event ->
             val domain = event.toDomain() ?: return@start
             if (domain is RecordingEvent.Finalized) {
-                stopRecordingService()
                 if (motionAwaitingVideo) {
                     motionAwaitingVideo = false
                     if (!domain.success) motionVideo = null
@@ -531,7 +528,6 @@ class CameraSession(private val context: Context) : CameraRepository {
     override fun unbind() {
         recording?.stop()
         recording = null
-        stopRecordingService()
         camera?.cameraControl?.enableTorch(false)
         cameraProvider?.unbindAll()
         stopColorAnalysis()
@@ -871,23 +867,6 @@ class CameraSession(private val context: Context) : CameraRepository {
             evMax = evMax,
             evStep = evStep
         )
-    }
-
-    private fun startRecordingService() {
-        runCatching {
-            ContextCompat.startForegroundService(
-                context,
-                Intent(context, RecordingForegroundService::class.java)
-            )
-        }.onFailure { error ->
-            Logger.warning(TAG, "Unable to start recording service: ${error.message}")
-        }
-    }
-
-    private fun stopRecordingService() {
-        runCatching {
-            context.stopService(Intent(context, RecordingForegroundService::class.java))
-        }
     }
 
     private fun buildColorAnalysis(rotation: Int, initial: EffectMode): ImageAnalysis {

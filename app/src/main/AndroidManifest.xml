@@ -12,13 +12,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
         android:name=".CameraX"
@@ -110,12 +106,6 @@
             android:resizeableActivity="true"
             android:rotationAnimation="seamless"
             tools:targetApi="o" />
-
-        <service
-            android:name=".data.camera.RecordingForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="camera|microphone"
-            android:stopWithTask="true" />
 
     </application>
 
