@@ -107,4 +107,28 @@ class CameraViewModelTest {
         vm.setMode(CameraMode.EFFECTS)
         assertEquals(CameraMode.EFFECTS.name, handle["camera_mode"])
     }
+
+    @Test
+    fun setMode_hiddenDualIsIgnored() {
+        val vm = viewModel()
+        vm.setMode(CameraMode.DUAL)
+        assertEquals(CameraMode.PHOTO, vm.uiState.value.mode)
+    }
+
+    @Test
+    fun setMode_dualWhenConcurrentSupported() {
+        val vm = viewModel(device = DeviceCaptureFeatures(concurrent = true))
+        vm.setMode(CameraMode.DUAL)
+        assertEquals(CameraMode.DUAL, vm.uiState.value.mode)
+    }
+
+    @Test
+    fun probe_hidesDualWhenConcurrentUnsupported() {
+        val vm = viewModel(
+            initial = CameraUiState(mode = CameraMode.DUAL, concurrentSupported = true)
+        )
+        assertEquals(CameraMode.PHOTO, vm.uiState.value.mode)
+        assertEquals(false, vm.uiState.value.concurrentSupported)
+        assertEquals(false, vm.uiState.value.visibleModes.contains(CameraMode.DUAL))
+    }
 }

@@ -122,7 +122,7 @@ data class CameraUiState(
     val videoStabilizationActive: Boolean = false,
     val slowMotionQuality: VideoQuality = VideoQuality.FHD,
     val slowMotionRate: SlowMotionRate = SlowMotionRate.AUTO,
-    val ultraHdr: Boolean = true,
+    val ultraHdr: Boolean = false,
     val rawCapture: Boolean = false,
     val rawFullSensor: Boolean = false,
     val exposurePriority: ExposurePriority = ExposurePriority.AUTO,

@@ -25,8 +25,7 @@ import java.io.File
 class FakeCameraRepository : CameraRepository {
 
     override val nightScene: StateFlow<NightScene> = MutableStateFlow(NightScene.UNKNOWN).asStateFlow()
-    override val lowLightBoost: StateFlow<LowLightBoost> =
-        MutableStateFlow(LowLightBoost.OFF).asStateFlow()
+    override val lowLightBoost: StateFlow<LowLightBoost> = MutableStateFlow(LowLightBoost.OFF).asStateFlow()
     private val _recordingEvents = MutableSharedFlow<RecordingEvent>(extraBufferCapacity = 16)
     override val recordingEvents: SharedFlow<RecordingEvent> = _recordingEvents.asSharedFlow()
     override val effectFrame: StateFlow<Bitmap?> = MutableStateFlow(null).asStateFlow()

@@ -111,7 +111,7 @@ fun settingsSections(
                     R.string.pref_subtitle_ultra_hdr_unsupported
                 },
                 icon = Icons.Outlined.HdrOn,
-                defaultOn = true,
+                defaultOn = false,
                 enabled = ultraHdrAvailable
             ),
             SettingsRow.Toggle(

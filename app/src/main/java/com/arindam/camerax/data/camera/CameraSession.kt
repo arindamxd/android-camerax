@@ -188,12 +188,13 @@ class CameraSession(private val context: Context) : CameraRepository {
         } else {
             PreviewView.ScaleType.FIT_CENTER
         }
+        previewView.scaleX = 1f
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
-        val concurrentOk = config.concurrent &&
-            provider.availableConcurrentCameraInfos.isNotEmpty() &&
-            previewHost.pipPreviewView != null
-        if (concurrentOk) {
+        if (config.concurrent) {
+            if (!isDualCameraSupported(context, provider) || previewHost.pipPreviewView == null) {
+                throw IllegalStateException("Dual camera is not supported on this device")
+            }
             return bindConcurrent(provider, previewHost, config, rotation)
         }
 
@@ -981,55 +982,91 @@ class CameraSession(private val context: Context) : CameraRepository {
         rotation: Int
     ): CameraBindResult {
         val pipView = host.pipPreviewView ?: throw IllegalStateException("Dual preview missing")
+        val group = provider.concurrentFrontBackGroup()
+            ?: throw IllegalStateException("Dual camera is not supported on this device")
         pipView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         pipView.scaleType = PreviewView.ScaleType.FILL_CENTER
-        val primary = Preview.Builder().setTargetRotation(rotation).build().also {
-            it.surfaceProvider = host.previewView.surfaceProvider
-        }
-        val secondary = Preview.Builder().setTargetRotation(rotation).build().also {
-            it.surfaceProvider = pipView.surfaceProvider
-        }
+        val streams = concurrentStreamSelector()
+        val primary = Preview.Builder()
+            .setTargetRotation(rotation)
+            .setResolutionSelector(streams)
+            .build()
+            .also { it.surfaceProvider = host.previewView.surfaceProvider }
+        val secondary = Preview.Builder()
+            .setTargetRotation(rotation)
+            .setResolutionSelector(streams)
+            .build()
+            .also { it.surfaceProvider = pipView.surfaceProvider }
         preview = primary
         pipPreview = secondary
         videoCapture = null
-        val frontGroup = UseCaseGroup.Builder().addUseCase(secondary).build()
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setFlashMode(config.flash.toImageCaptureMode())
             .setTargetRotation(rotation)
             .build()
-        val withStill = UseCaseGroup.Builder().addUseCase(primary).addUseCase(capture).build()
-        val previewOnly = UseCaseGroup.Builder().addUseCase(primary).build()
+        val bindPair: (Boolean) -> androidx.camera.core.ConcurrentCamera = { includeStill ->
+            provider.bindToLifecycle(
+                group.map { info ->
+                    val useCases = UseCaseGroup.Builder().apply {
+                        if (info.lensFacing == CameraSelector.LENS_FACING_BACK) {
+                            addUseCase(primary)
+                            if (includeStill) addUseCase(capture)
+                        } else {
+                            addUseCase(secondary)
+                        }
+                    }.build()
+                    SingleCameraConfig(info.toConcurrentSelector(), useCases, host.lifecycleOwner)
+                }
+            )
+        }
         val concurrent = try {
             imageCapture = capture
-            provider.bindToLifecycle(
-                listOf(
-                    SingleCameraConfig(CameraSelector.DEFAULT_BACK_CAMERA, withStill, host.lifecycleOwner),
-                    SingleCameraConfig(CameraSelector.DEFAULT_FRONT_CAMERA, frontGroup, host.lifecycleOwner)
-                )
-            )
+            bindPair(true)
         } catch (error: Exception) {
             Logger.warning(TAG, "Dual still bind failed, preview only: ${error.message}")
             imageCapture = null
             provider.unbindAll()
-            provider.bindToLifecycle(
-                listOf(
-                    SingleCameraConfig(CameraSelector.DEFAULT_BACK_CAMERA, previewOnly, host.lifecycleOwner),
-                    SingleCameraConfig(CameraSelector.DEFAULT_FRONT_CAMERA, frontGroup, host.lifecycleOwner)
-                )
-            )
+            bindPair(false)
         }
         camera = concurrent.cameras.firstOrNull { bound ->
             bound.cameraInfo.lensFacing == CameraSelector.LENS_FACING_BACK
         } ?: concurrent.cameras.first()
         fps60Active = false
         stillFormat = StillFormat.JPEG
+        Logger.debug(
+            TAG,
+            "Bound Dual PreviewViews: ${concurrent.cameras.map { bound -> bound.cameraInfo.lensFacing }}"
+        )
         return finishBind(
             config = config,
             slowMotionSupported = isHighSpeedSupported(camera?.cameraInfo),
             slowMotionFps = 0
         )
     }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun CameraInfo.toConcurrentSelector(): CameraSelector {
+        val id = Camera2CameraInfo.from(this).cameraId
+        val facing = lensFacing
+        val builder = CameraSelector.Builder().addCameraFilter { infos ->
+            infos.filter { info -> Camera2CameraInfo.from(info).cameraId == id }
+        }
+        if (facing != CameraSelector.LENS_FACING_UNKNOWN) {
+            builder.requireLensFacing(facing)
+        }
+        return builder.build()
+    }
+
+    private fun concurrentStreamSelector(): ResolutionSelector =
+        ResolutionSelector.Builder()
+            .setResolutionStrategy(
+                ResolutionStrategy(
+                    Size(1280, 720),
+                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
+                )
+            )
+            .build()
 
     private fun bindHighSpeed(
         provider: ProcessCameraProvider,
@@ -1154,7 +1191,9 @@ class CameraSession(private val context: Context) : CameraRepository {
             videoStabilizationActive = preview?.isPreviewStabilizationEnabled == true,
             lowLightBoostSupported = info?.isLowLightBoostSupported == true,
             videoHdrRange = videoCapture?.dynamicRange?.toVideoHdrRange() ?: VideoHdrRange.SDR,
-            concurrentSupported = cameraProvider?.availableConcurrentCameraInfos?.isNotEmpty() == true,
+            concurrentSupported = cameraProvider?.let { provider ->
+                isDualCameraSupported(context, provider)
+            } == true,
             videoFps60Supported = info?.supportsVideoFps60() == true,
             videoFps60Active = fps60Active
         )

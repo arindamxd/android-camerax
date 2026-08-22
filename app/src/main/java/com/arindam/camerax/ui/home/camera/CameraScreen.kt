@@ -93,6 +93,7 @@ fun CameraScreen(
         state.lens,
         state.extension,
         state.mode,
+        state.showsPip,
         previewView
     ) {
         if (!inspection) {

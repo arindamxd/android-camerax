@@ -22,13 +22,9 @@ class PreferenceSettingsRepository(context: Context) : SettingsRepository {
         videoQuality = VideoQuality.fromPref(prefs.getString(key(R.string.pref_key_video_quality), null)),
         videoHdrRange = VideoHdrRange.fromPref(prefs.getString(key(R.string.pref_key_video_hdr), null)),
         videoStabilization = prefs.getBoolean(key(R.string.pref_key_video_stabilization), true),
-        slowMotionQuality = VideoQuality.fromPref(
-            prefs.getString(key(R.string.pref_key_slow_motion_quality), null)
-        ),
-        slowMotionRate = SlowMotionRate.fromPref(
-            prefs.getString(key(R.string.pref_key_slow_motion_fps), null)
-        ),
-        ultraHdr = prefs.getBoolean(key(R.string.pref_key_ultra_hdr), true),
+        slowMotionQuality = VideoQuality.fromPref(prefs.getString(key(R.string.pref_key_slow_motion_quality), null)),
+        slowMotionRate = SlowMotionRate.fromPref(prefs.getString(key(R.string.pref_key_slow_motion_fps), null)),
+        ultraHdr = prefs.getBoolean(key(R.string.pref_key_ultra_hdr), false),
         rawCapture = prefs.getBoolean(key(R.string.pref_key_raw_capture), false),
         rawFullSensor = prefs.getBoolean(key(R.string.pref_key_raw_full_sensor), false),
         flipWhileRecording = prefs.getBoolean(key(R.string.pref_key_flip_while_recording), false),

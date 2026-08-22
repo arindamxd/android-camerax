@@ -5,6 +5,7 @@ package com.arindam.camerax.data.camera
  */
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Range
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
@@ -61,7 +62,7 @@ suspend fun probeDeviceFeatures(context: Context): DeviceCaptureFeatures {
     }
     return DeviceCaptureFeatures(
         slowMotion = back?.highSpeedSlowMotionOptions() ?: SlowMotionOptions(),
-        concurrent = provider.availableConcurrentCameraInfos.isNotEmpty(),
+        concurrent = isDualCameraSupported(context, provider),
         videoQualities = orderedQualities,
         videoHdrRanges = orderedHdr.ifEmpty { listOf(VideoHdrRange.SDR) },
         videoStabilization = infos.any { info ->
@@ -74,6 +75,23 @@ suspend fun probeDeviceFeatures(context: Context): DeviceCaptureFeatures {
         videoFps60 = back?.supportsVideoFps60() == true
     )
 }
+
+/** Dual mode: system concurrent-camera feature plus a listed front+back pair. */
+fun isDualCameraSupported(context: Context, provider: ProcessCameraProvider): Boolean =
+    context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_CONCURRENT) &&
+        provider.hasConcurrentFrontBack()
+
+/** Dual needs a listed two-camera front+back pair, not merely a non-empty concurrent list. */
+fun ProcessCameraProvider.hasConcurrentFrontBack(): Boolean =
+    concurrentFrontBackGroup() != null
+
+/** Advertised concurrent combination of exactly one back and one front camera. */
+fun ProcessCameraProvider.concurrentFrontBackGroup(): List<CameraInfo>? =
+    availableConcurrentCameraInfos.firstOrNull { group ->
+        group.size == 2 &&
+            group.any { info -> info.lensFacing == CameraSelector.LENS_FACING_BACK } &&
+            group.any { info -> info.lensFacing == CameraSelector.LENS_FACING_FRONT }
+    }
 
 fun Quality.toVideoQuality(): VideoQuality? = when (this) {
     Quality.SD -> VideoQuality.SD

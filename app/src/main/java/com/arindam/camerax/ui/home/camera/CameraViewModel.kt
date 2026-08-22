@@ -92,6 +92,7 @@ class CameraViewModel(
     private var captureConfirmEnabled = false
     private var flipWhileRecordingEnabled = false
     private var recordMutedByDefault = false
+    private var dualDisabled = false
     private val panoramaFrames = mutableListOf<File>()
     private var lastPanoramaYaw: Float? = null
     private var panoramaCaptureBusy = false
@@ -104,14 +105,15 @@ class CameraViewModel(
         viewModelScope.launch {
             val features = interactors.probeDeviceFeatures()
             _uiState.update { state ->
+                val dualSupported = features.concurrent && !dualDisabled
                 val resolvedMode = CameraModeCatalog.resolve(
                     mode = state.mode,
                     slowMotionSupported = features.slowMotion.available,
-                    concurrentSupported = features.concurrent
+                    concurrentSupported = dualSupported
                 )
                 state.copy(
                     slowMotionSupported = features.slowMotion.available,
-                    concurrentSupported = features.concurrent,
+                    concurrentSupported = dualSupported,
                     mode = resolvedMode
                 )
             }
@@ -201,11 +203,13 @@ class CameraViewModel(
                         )
                     )
                     _uiState.update {
+                        val dualSupported = (result.concurrentSupported || it.concurrentSupported) &&
+                            !dualDisabled
                         val resolved = CameraModeCatalog.resolve(
                             mode = it.mode,
                             slowMotionSupported = result.slowMotionSupported &&
                                 (it.slowMotionSupported || result.slowMotionFps > 0),
-                            concurrentSupported = result.concurrentSupported || it.concurrentSupported
+                            concurrentSupported = dualSupported
                         )
                         val modeChanged = resolved != it.mode
                         it.copy(
@@ -239,7 +243,7 @@ class CameraViewModel(
                             videoStabilizationActive = result.videoStabilizationActive,
                             lowLightBoostSupported = result.lowLightBoostSupported,
                             videoHdrBound = result.videoHdrRange,
-                            concurrentSupported = result.concurrentSupported || it.concurrentSupported,
+                            concurrentSupported = dualSupported,
                             videoFps60Supported = result.videoFps60Supported,
                             videoFps60Active = result.videoFps60Active,
                             mode = resolved,
@@ -265,18 +269,33 @@ class CameraViewModel(
                 } catch (error: Exception) {
                     Logger.error(TAG, "Bind failed: ${error.message}")
                     val state = _uiState.value
-                    if (state.lens == CameraLens.FRONT) {
-                        _uiState.update {
-                            it.copy(
-                                lens = CameraLens.BACK,
-                                cameraId = null,
-                                bindRevision = it.bindRevision + 1,
-                                message = "Front camera unavailable"
-                            )
+                    when {
+                        state.mode.profile().bindConcurrent -> {
+                            dualDisabled = true
+                            _uiState.update {
+                                it.copy(
+                                    mode = CameraMode.PHOTO,
+                                    concurrentSupported = false,
+                                    bindRevision = it.bindRevision + 1,
+                                    message = error.message ?: "Dual camera unavailable"
+                                )
+                            }
+                            persistChrome()
                         }
-                    } else {
-                        _uiState.update {
-                            it.copy(message = error.message ?: "Unable to start camera")
+                        state.lens == CameraLens.FRONT -> {
+                            _uiState.update {
+                                it.copy(
+                                    lens = CameraLens.BACK,
+                                    cameraId = null,
+                                    bindRevision = it.bindRevision + 1,
+                                    message = "Front camera unavailable"
+                                )
+                            }
+                        }
+                        else -> {
+                            _uiState.update {
+                                it.copy(message = error.message ?: "Unable to start camera")
+                            }
                         }
                     }
                 }
