@@ -114,7 +114,8 @@ Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java
 
 ```sh
 ./gradlew assembleDebug
-./gradlew bundleRelease    # Play Store App Bundle (needs signing in local.properties)
+./gradlew bundleRelease              # Play Store App Bundle (needs signing in local.properties)
+./gradlew printNativeDebugSymbols    # after bundleRelease — prints native-debug-symbols.zip path (or if missing)
 ```
 
 Signing for `bundleRelease` is read from `local.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). Release signing applies to the `release` build type only. Do not commit the keystore.
@@ -141,7 +142,7 @@ Quick paths:
 | --- | --- |
 | AAB | `./gradlew bundleRelease` → `app/build/outputs/bundle/release/` |
 | R8 mapping | `app/build/outputs/mapping/release/mapping.txt` |
-| Native symbols | `./gradlew printNativeDebugSymbols` |
+| Native symbols | `./gradlew printNativeDebugSymbols` → `app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip` (upload in Play Console if present; some dependency `.so` files have no symbols) |
 
 ## Threading
 
