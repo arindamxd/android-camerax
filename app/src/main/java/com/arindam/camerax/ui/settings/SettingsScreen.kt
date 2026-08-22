@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -33,14 +31,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,11 +55,13 @@ import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.R
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
+import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 import com.arindam.camerax.util.theme.NightMode
 import java.util.Locale
 
@@ -94,37 +91,11 @@ fun SettingsScreen(
     }
     val scheme = MaterialTheme.colorScheme
 
+    val chrome = themedOverlayChrome()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = scheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-                ),
-                title = {
-                    Text(
-                        text = stringResource(R.string.settings),
-                        fontFamily = CameraFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back_button_alt)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scheme.background,
-                    titleContentColor = scheme.onBackground,
-                    navigationIconContentColor = scheme.onBackground
-                )
-            )
-        }
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -133,15 +104,39 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
-            sections.forEach { section ->
+            Row(
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CameraGlassButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back_button_alt),
+                    onClick = onBack,
+                    onGlass = chrome.onGlass,
+                    glass = chrome.glass,
+                    stroke = chrome.stroke
+                )
+                Text(
+                    text = stringResource(R.string.settings),
+                    color = scheme.onBackground,
+                    fontFamily = CameraFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp
+                )
+            }
+            sections.forEachIndexed { sectionIndex, section ->
                 Text(
                     text = stringResource(section.titleRes).uppercase(Locale.US),
                     color = CameraAccent,
                     fontFamily = CameraMono,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.4.sp,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.2.sp,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(
+                        top = if (sectionIndex == 0) 0.dp else 16.dp,
+                        bottom = 8.dp
+                    )
                 )
                 SettingsGroupCard {
                     section.items.forEachIndexed { index, row ->

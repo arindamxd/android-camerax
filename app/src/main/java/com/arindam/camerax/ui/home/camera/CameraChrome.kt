@@ -115,6 +115,7 @@ import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.TimerMode
 import com.arindam.camerax.domain.model.VideoHdrRange
+import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraDanger
 import com.arindam.camerax.ui.theme.CameraFontFamily
@@ -656,6 +657,17 @@ fun EffectsFilmstrip(
     }
 }
 
+private fun cameraFooterBottomPadding(compact: Boolean) = if (compact) 8.dp else 14.dp
+
+private fun modePagerHeight(compact: Boolean) = if (compact) 32.dp else 40.dp
+
+private fun modePagerAfterGap(compact: Boolean) = if (compact) 8.dp else 10.dp
+
+/** Pager row plus footer padding; pair with bottom [WindowInsets] on Others. */
+internal fun othersFooterContentClearance(compact: Boolean): Dp =
+    modePagerHeight(compact) + modePagerAfterGap(compact) +
+        cameraFooterBottomPadding(compact) + 12.dp
+
 @Composable
 fun CameraFooter(
     state: CameraUiState,
@@ -691,7 +703,7 @@ fun CameraFooter(
                 indication = null,
                 onClick = {}
             )
-            .padding(bottom = if (compact) 8.dp else 14.dp),
+            .padding(bottom = cameraFooterBottomPadding(compact)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ZoomChips(state = state, onZoomSelected = onZoomSelected)
@@ -709,7 +721,7 @@ fun CameraFooter(
                     items = modes,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (compact) 32.dp else 40.dp),
+                        .height(modePagerHeight(compact)),
                     itemWidth = 96.dp,
                     itemSpacing = 0.dp,
                     overshootFraction = 0.55f,
@@ -737,7 +749,7 @@ fun CameraFooter(
                     }
                 }
             }
-            Spacer(Modifier.height(if (compact) 8.dp else 10.dp))
+            Spacer(Modifier.height(modePagerAfterGap(compact)))
         }
         AnimatedVisibility(
             visible = state.showsCaptureControls,
@@ -1030,34 +1042,51 @@ private fun GlassIconButton(
         }
     }
     Box(contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .then(if (embedded) Modifier else Modifier.minimumInteractiveComponentSize())
-                .size(size)
-                .clip(CircleShape)
-                .background(background)
-                .then(
-                    if (embedded) Modifier
-                    else Modifier.border(1.dp, borderColor, CircleShape)
-                )
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = ripple(bounded = true),
-                    onClick = {
-                        if (!skipClick) onClick()
-                        skipClick = false
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
+        if (!selected && !embedded) {
+            CameraGlassButton(
+                icon = icon,
                 contentDescription = contentDescription,
-                tint = iconTint,
-                modifier = Modifier.size(
-                if (diameter != null) 22.dp else if (compact || embedded) 18.dp else 20.dp
+                onClick = {
+                    if (!skipClick) onClick()
+                    skipClick = false
+                },
+                compact = compact,
+                diameter = diameter,
+                onGlass = onGlass,
+                glass = glass,
+                stroke = stroke,
+                interactionSource = interactionSource
             )
-            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .then(if (embedded) Modifier else Modifier.minimumInteractiveComponentSize())
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(background)
+                    .then(
+                        if (embedded) Modifier
+                        else Modifier.border(1.dp, borderColor, CircleShape)
+                    )
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(bounded = true),
+                        onClick = {
+                            if (!skipClick) onClick()
+                            skipClick = false
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = iconTint,
+                    modifier = Modifier.size(
+                        if (diameter != null) 22.dp else if (compact || embedded) 18.dp else 20.dp
+                    )
+                )
+            }
         }
         if (tooltip && showTooltip) {
             Popup(
