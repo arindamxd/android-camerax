@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -162,6 +163,10 @@ fun CameraScreen(
             configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         Box(Modifier.fillMaxSize()) {
             if (state.showsEffects) {
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier.size(1.dp)
+                )
                 val effectFrame = state.effectFrame
                 if (effectFrame != null) {
                     Image(

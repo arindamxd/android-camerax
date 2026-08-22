@@ -247,6 +247,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val videoStab = wantStab && isVideoStabilizationSupported(cameraInfo)
         previewBuilder.setPreviewStabilizationEnabled(previewStab)
         attachNightModeMonitor(previewBuilder)
+        val liveEffects = config.liveEffects && !useRaw
         val preview = previewBuilder.build().also { it.surfaceProvider = previewView.surfaceProvider }
         this.preview = preview
 
@@ -276,7 +277,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             info = runCatching { provider.getCameraInfo(selector) }.getOrNull()
                 ?: stillInfo
                 ?: provider.getCameraInfo(baseSelector),
-            ultraHdr = config.ultraHdr && !useRaw,
+            ultraHdr = config.ultraHdr && !useRaw && !liveEffects,
             rawCapture = useRaw
         )
         stillFormat = resolved.second
@@ -293,7 +294,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         val video = buildVideoCapture(recorder, videoStab, videoRange)
         videoCapture = video
 
-        val liveEffects = config.liveEffects && !useRaw
         val includeVideo = !useExtension && !liveEffects
         val analysis = if (liveEffects) {
             buildColorAnalysis(rotation, config.effect)
@@ -302,15 +302,12 @@ class CameraSession(private val context: Context) : CameraRepository {
             null
         }
         val wantFps60 = config.videoFps60 && includeVideo && !useExtension
-        if (liveEffects) {
-            this.preview = null
-        }
 
         camera = bindWithFallback(
             provider = provider,
             lifecycleOwner = lifecycleOwner,
             selector = selector,
-            preview = preview.takeUnless { liveEffects },
+            preview = preview,
             imageCapture = capture,
             videoCapture = if (includeVideo) video else null,
             imageAnalysis = analysis,
@@ -924,7 +921,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         if (imageAnalysis != null) {
             attempts += listOfNotNull(preview, imageCapture, imageAnalysis)
             attempts += listOf(imageCapture, imageAnalysis)
-            attempts += listOf(imageAnalysis)
         } else {
             attempts += listOfNotNull(preview, imageCapture, videoCapture)
             attempts += listOfNotNull(preview, imageCapture)
@@ -941,6 +937,8 @@ class CameraSession(private val context: Context) : CameraRepository {
                     fps60 = fps60 && videoCapture != null && useCases.contains(videoCapture)
                 )
                 this.videoCapture = videoCapture?.takeIf { capture -> useCases.contains(capture) }
+                this.imageCapture = imageCapture.takeIf { capture -> useCases.contains(capture) }
+                this.preview = preview?.takeIf { useCases.contains(it) }
                 if (imageAnalysis == null || !useCases.contains(imageAnalysis)) {
                     stopColorAnalysis()
                 }
