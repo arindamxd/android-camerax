@@ -172,5 +172,7 @@ Copyright 2019-2026 Arindam Karmakar
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
-Portions of the original camera sample are from the
-[Android Open Source Project](https://github.com/android/camera-samples).
+## Reference
+
+CameraX API usage and patterns take reference from the
+[Android camera-samples](https://github.com/android/camera-samples) project.

@@ -16,7 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * App: Application / composition-root host. Play Store CameraX sample (`com.arindam.camerax`).
+ * App: Application / composition-root host for the Play Store CameraX app (`com.arindam.camerax`).
  *
  * Layers: `ui` → `domain` ← `data`. The composition root is [com.arindam.camerax.di.AppContainer].
  * Apply saved Light/Dark/System from [com.arindam.camerax.util.theme.NightMode] at process start.

@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.TimerOff
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -484,69 +485,115 @@ fun ExposureControls(
     val showHybrid = limits.supportedPriorities.size >= 2
     val showEv = limits.evSupported && limits.evMax > limits.evMin
     if (!showHybrid && !showEv) return
+
+    val panelShape = RoundedCornerShape(18.dp)
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = CameraAccent,
+        activeTrackColor = CameraAccent,
+        inactiveTrackColor = Color.White.copy(alpha = 0.18f),
+        activeTickColor = Color.Transparent,
+        inactiveTickColor = Color.Transparent
+    )
+    val horizontalPad = if (compact) 12.dp else 14.dp
+    val verticalPad = if (compact) 10.dp else 12.dp
+
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(if (compact) 0.92f else 0.86f)
             .padding(top = 8.dp)
+            .clip(panelShape)
+            .background(CameraGlassStrong)
+            .border(1.dp, Color.White.copy(alpha = 0.12f), panelShape)
+            .padding(horizontal = horizontalPad, vertical = verticalPad),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        Text(
+            text = stringResource(R.string.exposure_panel_title).uppercase(),
+            color = CameraOnGlassMuted,
+            fontFamily = CameraMono,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 10.sp,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
         if (showHybrid) {
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CameraGlass)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
             ) {
                 limits.supportedPriorities.forEach { priority ->
                     val selected = state.exposurePriority == priority
-                    Text(
-                        text = stringResource(priority.labelRes),
-                        color = if (selected) Color.Black else CameraOnGlass,
-                        fontFamily = CameraMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = if (compact) 11.sp else 12.sp,
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (selected) CameraAccent else Color.Transparent)
-                            .clickable { onPrioritySelected(priority) }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) CameraAccent.copy(alpha = 0.92f) else Color.Transparent)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = true),
+                                onClick = { onPrioritySelected(priority) }
+                            )
+                            .padding(vertical = if (compact) 8.dp else 9.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(priority.labelRes),
+                            color = if (selected) Color.Black else CameraOnGlass,
+                            fontFamily = CameraMono,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = if (compact) 11.sp else 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = state.exposurePriority == ExposurePriority.ISO,
+                enter = fadeIn(tween(160)) + expandVertically(tween(180)),
+                exit = fadeOut(tween(120)) + shrinkVertically(tween(140))
+            ) {
+                ExposureMeterRow(
+                    label = stringResource(R.string.ae_iso),
+                    value = stringResource(R.string.iso_value, state.iso),
+                    compact = compact
+                ) {
+                    Slider(
+                        value = state.iso.toFloat(),
+                        onValueChange = { onIsoChanged(it.toInt()) },
+                        valueRange = limits.isoMin.toFloat()..limits.isoMax.toFloat(),
+                        colors = sliderColors,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
-            if (state.exposurePriority == ExposurePriority.ISO) {
-                Slider(
-                    value = state.iso.toFloat(),
-                    onValueChange = { onIsoChanged(it.toInt()) },
-                    valueRange = limits.isoMin.toFloat()..limits.isoMax.toFloat(),
-                    modifier = Modifier
-                        .fillMaxWidth(0.72f)
-                        .padding(top = 4.dp)
-                )
-                Text(
-                    text = stringResource(R.string.iso_value, state.iso),
-                    color = CameraOnGlass,
-                    fontFamily = CameraMono,
-                    fontSize = 11.sp
-                )
-            }
-            if (state.exposurePriority == ExposurePriority.SHUTTER) {
-                Slider(
-                    value = state.shutterNanos.toFloat(),
-                    onValueChange = { onShutterChanged(it.toLong()) },
-                    valueRange = limits.shutterMinNanos.toFloat()..limits.shutterMaxNanos.toFloat(),
-                    modifier = Modifier
-                        .fillMaxWidth(0.72f)
-                        .padding(top = 4.dp)
-                )
-                Text(
-                    text = stringResource(R.string.shutter_value, shutterLabel(state.shutterNanos)),
-                    color = CameraOnGlass,
-                    fontFamily = CameraMono,
-                    fontSize = 11.sp
-                )
+
+            AnimatedVisibility(
+                visible = state.exposurePriority == ExposurePriority.SHUTTER,
+                enter = fadeIn(tween(160)) + expandVertically(tween(180)),
+                exit = fadeOut(tween(120)) + shrinkVertically(tween(140))
+            ) {
+                ExposureMeterRow(
+                    label = stringResource(R.string.ae_shutter),
+                    value = shutterLabel(state.shutterNanos),
+                    compact = compact
+                ) {
+                    Slider(
+                        value = state.shutterNanos.toFloat(),
+                        onValueChange = { onShutterChanged(it.toLong()) },
+                        valueRange = limits.shutterMinNanos.toFloat()..limits.shutterMaxNanos.toFloat(),
+                        colors = sliderColors,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
+
         if (showEv) {
             val ev = state.exposureCompensation * limits.evStep
             val evLabel = when {
@@ -554,31 +601,80 @@ fun ExposureControls(
                 ev < -0.05f -> "%.1f".format(ev)
                 else -> "0.0"
             }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth(0.78f)
-                    .padding(top = if (showHybrid) 8.dp else 0.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CameraGlass)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.exposure_ev, evLabel),
-                    color = CameraAccent,
-                    fontFamily = CameraMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.exposure_ev_minus),
+                        color = CameraOnGlassMuted,
+                        fontFamily = CameraMono,
+                        fontSize = 14.sp,
+                        modifier = Modifier.width(18.dp),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.exposure_ev, evLabel),
+                        color = if (state.exposureCompensation == 0) CameraOnGlass else CameraAccent,
+                        fontFamily = CameraMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (compact) 12.sp else 13.sp,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.exposure_ev_plus),
+                        color = CameraOnGlassMuted,
+                        fontFamily = CameraMono,
+                        fontSize = 14.sp,
+                        modifier = Modifier.width(18.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Slider(
                     value = state.exposureCompensation.toFloat(),
                     onValueChange = { onCompensationChanged(it.toInt()) },
                     valueRange = limits.evMin.toFloat()..limits.evMax.toFloat(),
                     steps = (limits.evMax - limits.evMin - 1).coerceAtLeast(0),
+                    colors = sliderColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ExposureMeterRow(
+    label: String,
+    value: String,
+    compact: Boolean,
+    slider: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = CameraOnGlassMuted,
+                fontFamily = CameraMono,
+                fontWeight = FontWeight.Medium,
+                fontSize = 10.sp,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = value,
+                color = CameraAccent,
+                fontFamily = CameraMono,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = if (compact) 12.sp else 13.sp
+            )
+        }
+        slider()
     }
 }
 
@@ -591,6 +687,7 @@ private fun shutterLabel(nanos: Long): String {
         "1/%d".format((1.0 / seconds).toInt().coerceAtLeast(1))
     }
 }
+
 
 @Composable
 fun ZoomChips(

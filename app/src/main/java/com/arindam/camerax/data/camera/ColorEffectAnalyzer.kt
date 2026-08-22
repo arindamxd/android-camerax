@@ -8,9 +8,8 @@ import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.util.log.Logger
 
 /**
- * Live color effects from the CameraX effects sample: each [ImageAnalysis] frame is decoded,
- * oriented, and recolored with a [android.graphics.ColorMatrix]. Switching chips is a field
- * write — no rebind.
+ * Live Effects analyzer: each [ImageAnalysis] frame is decoded, oriented, and recolored with a
+ * [android.graphics.ColorMatrix]. Switching chips is a field write — no rebind.
  */
 internal class ColorEffectAnalyzer(
     private val onFrame: (Bitmap) -> Unit

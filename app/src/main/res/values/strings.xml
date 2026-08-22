@@ -87,12 +87,15 @@
 
     <!-- Live camera: exposure -->
     <string name="exposure_button">Exposure</string>
-    <string name="ae_auto">AE</string>
+    <string name="ae_auto">Auto</string>
     <string name="ae_iso">ISO</string>
-    <string name="ae_shutter">Shutter</string>
+    <string name="ae_shutter">S</string>
     <string name="iso_value">ISO %1$d</string>
     <string name="shutter_value">%1$s</string>
-    <string name="exposure_ev">EV %1$s</string>
+    <string name="exposure_ev">%1$s EV</string>
+    <string name="exposure_panel_title">Exposure</string>
+    <string name="exposure_ev_minus">−</string>
+    <string name="exposure_ev_plus">+</string>
 
     <!-- Live camera: OEM extensions -->
     <string name="extension_none">None</string>
@@ -146,7 +149,7 @@
     <string name="others_session_subtitle">Use cases and formats from the last successful bind</string>
     <string name="others_intents_kicker">Intents</string>
     <string name="others_intents_title">Capture intents</string>
-    <string name="others_intents_subtitle">How other apps request a still or motion photo from this sample</string>
+    <string name="others_intents_subtitle">How other apps request a still or motion photo from this app</string>
     <string name="others_share_report">Share device report</string>
     <string name="others_share_report_subtitle">CameraX version, API level, cameras, and lab availability</string>
     <string name="others_share_chooser">Share report</string>
