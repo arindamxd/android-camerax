@@ -92,11 +92,11 @@ fun PermissionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(
-                        WindowInsets.safeDrawing
-                            .union(WindowInsets.systemGestures)
-                            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                        )
                     )
-                    .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

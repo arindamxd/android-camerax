@@ -29,6 +29,7 @@ Disk and MediaStore work (`list` / `delete` / `publish` / `stitch` / motion mux 
 | Panorama stitch | `data/camera/PanoramaStitcher.kt` |
 | Publish to DCIM | `data/media/MediaStorePublisher.kt` via `PublishMedia` |
 | Composition root | `di/AppContainer.kt` (`CameraInteractors`) |
+| Shared glass chrome (back, pills) | `ui/compose/CameraGlassButton.kt` (`ChromeControlSize`), `ChromeActionPill.kt` |
 
 `CameraFragment` is a thin Compose host only (plus IMAGE_CAPTURE / MOTION_PHOTO result delivery). Do not resurrect the old View-based capture/flash/zoom code. Public types have KDoc describing which layer they belong to.
 
@@ -38,7 +39,7 @@ Disk and MediaStore work (`list` / `delete` / `publish` / `stitch` / motion mux 
 - Rebind only for lens, physical back cameras (ultra-wide/tele), OEM extensions, enabling/disabling the color `CameraEffect`, night-scene auto-switch (OEM Night), Settings photo aspect / video quality / video stabilization / Ultra HDR / RAW / DNG / full-sensor RAW / slo-mo quality and fps / 60 fps (`GroupableFeature.FPS_60`), or entering/leaving slow-motion or Dual. Zoom, torch, flash, effect matrix, target rotation, hybrid AE, and exposure compensation must not rebind. Extra back cameras are listed from `availableCameraInfos` + focal length and shown as 0.5x/1x/2x chips that rebind by camera id. Flip during a normal video recording is allowed when Settings **Flip while recording** is on (default off): start with `PendingRecording.asPersistentRecording()`, keep the same `VideoCapture`/`Recorder`, `unbindAll()`, and bind the new lens — do not stop the clip. Skip persistent recording for slow-motion, Dual, and motion photos.
 - Dual mode binds concurrent front+back `Preview` via `availableConcurrentCameraInfos` (hide Dual if empty). Prefer concurrent stills; fall back to preview-only if `ImageCapture` cannot bind. Do not add ML Kit / face overlays. `ImageAnalysis` is used only in Effects mode for live ColorMatrix effects (same approach as the CameraX effects sample).
 - OEM extension chips (HDR / Night / Portrait=`BOKEH` / Beauty=`FACE_RETOUCH`) only if `ExtensionsManager.isExtensionAvailable`. Extensions typically cannot bind with `VideoCapture`.
-- Overlay Compose chrome on `PreviewView` with `ImplementationMode.COMPATIBLE` (TextureView). `PERFORMANCE` / SurfaceView steals touches so settings and footer buttons miss. Chrome uses `zIndex`, `WindowInsets.safeDrawing.union(systemGestures)`, and 48dp targets. Mode pager must tap-to-select, not only snap the centered item. Live-feed header icons and status chips are **mode-based** (Photo: flash/timer/grid/motion/exposure + Ultra HDR/RAW; Video: flash/grid/exposure + Stabilized/video HDR/60 fps/LLB, never Ultra HDR; Slo-mo: flash + fps chip; Effects: flash/timer/grid/exposure + None/Grayscale/Invert/Sepia/Cool/Warm/Vivid chips; Pano: grid + pan hint, no zoom; Dual: flash/grid + Front+back chip, PiP at bottom-end, hide zoom/flip/timer/motion/exposure). Full Settings stay behind the gear. Effects mode draws the analyzed frame in Compose (no `PreviewView`); `ColorMatrixColorFilter` requires a software ARGB bitmap (`ImageProxy.toBitmap()` is often HARDWARE and silently skips the matrix).
+- Overlay Compose chrome on `PreviewView` with `ImplementationMode.COMPATIBLE` (TextureView). `PERFORMANCE` / SurfaceView steals touches so settings and footer buttons miss. Chrome uses `zIndex`, `WindowInsets.safeDrawing.union(systemGestures)`, **visual** control height [`ChromeControlSize`](app/src/main/java/com/arindam/camerax/ui/compose/CameraGlassButton.kt) (**44dp**), and Material `minimumInteractiveComponentSize` (≥48dp touch). Mode pager must tap-to-select, not only snap the centered item. Live-feed header icons and status chips are **mode-based** (Photo: flash/timer/grid/motion/exposure + Ultra HDR/RAW; Video: flash/grid/exposure + Stabilized/video HDR/60 fps/LLB, never Ultra HDR; Slo-mo: flash + fps chip; Effects: flash/timer/grid/exposure + None/Grayscale/Invert/Sepia/Cool/Warm/Vivid chips; Pano: grid + pan hint, no zoom; Dual: flash/grid + Front+back chip, PiP at bottom-end, hide zoom/flip/timer/motion/exposure). Full Settings stay behind the gear. Effects mode draws the analyzed frame in Compose (no `PreviewView`); `ColorMatrixColorFilter` requires a software ARGB bitmap (`ImageProxy.toBitmap()` is often HARDWARE and silently skips the matrix).
 - Live Effects mode uses `ImageAnalysis` (`STRATEGY_KEEP_ONLY_LATEST`, ~1280×720) and the CameraX effects-sample `ColorMatrix` set: None / Grayscale / Invert / Sepia / Cool / Warm / Vivid. Display the processed frame over `PreviewView`. Switching chips only updates the analyzer (no rebind). Same matrix on still JPEGs. Skip recompress when the still is UltraHDR so gain maps survive. Do not bind `CameraEffect` / `Media3Effect` for these chips.
 - Video 60 fps: query `CameraInfo.isSessionConfigSupported` on a `SessionConfig` with `GroupableFeature.FPS_60`, then bind that required feature group. Settings toggle (default off). Skip slow-motion and Dual. Show a **60 fps** chip when that group is actually bound.
 - Stills: prefer reflected CameraX `*HEIC*` UltraHDR if advertised, else `OUTPUT_FORMAT_JPEG_ULTRA_HDR`, else JPEG. Settings toggle (default on) when `ImageCapture` capabilities list an Ultra HDR format. RAW: Settings **RAW / DNG** (default off) when capabilities list `OUTPUT_FORMAT_RAW_JPEG`; bind that format and `takePicture` DNG + JPEG together. Settings **Full sensor RAW** (default off) when the camera lists an ultra-high-resolution / maximum-resolution RAW map; bind with `SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION` and highest still size. Skip Ultra HDR, OEM extensions, motion photos, color `CameraEffect`, and night auto-switch while RAW is on. Media whitelist: `jpg`, `jpeg`, `heic`, `dng`, `mp4`.
@@ -54,6 +55,35 @@ Disk and MediaStore work (`list` / `delete` / `publish` / `stitch` / motion mux 
 ## UI
 
 Immersive dark preview, glass chrome, accent `#f9aa33` (`CameraAccent` / `orange_500`). Type: Space Grotesk (UI) and Space Mono (HUD / chips / metadata). Modes: Photo / Video / Slo-mo / Effects / Pano / Dual. If the device cannot do high-speed, hide Slo-mo from the pager and disable slo-mo Settings. Hide Dual if concurrent cameras are unavailable. Gallery videos expose 0.5x–2x playback speed. Edge-to-edge (camera + gallery insets). Settings is Compose (`SettingsScreen`); add rows in `settingsSections()` in `SettingsCatalog.kt`. Themed launcher icon includes `<monochrome>`. Large-screen rotation: `setTargetRotation` only, chrome stacks (no hardcoded 210/300 dp).
+
+### Chrome control size
+
+All glass chrome controls share one height: **`ChromeControlSize` = 44dp** in `ui/compose/CameraGlassButton.kt`. That includes:
+
+- Back button (`CameraGlassButton`)
+- Play motion photo chip (Gallery / Confirm header)
+- Retake / Done and permission action pills (`ChromeActionPill`)
+- Gallery share / delete / video play-pause
+- Live-feed settings and other circular glass actions (default `CameraGlassButton`; use `compact` only when an embedded chip row needs 40dp)
+
+Do not invent a second height (e.g. 52dp / 56dp pills). Prefer `CameraGlassButton` / `ChromeActionPill` / `ChromeControlSize` over one-off `size` / `height` / `diameter` values. Touch targets still expand to ≥48dp via `minimumInteractiveComponentSize` where those components apply it.
+
+### Chrome screen insets / header padding
+
+Full-screen overlays with a back button (Gallery, Confirm / review, Permissions header band, Settings) must match **Settings** edge spacing. Reference implementations: `SettingsScreen`, `Gallery` header, `CaptureConfirm` header.
+
+**Header (top chrome)**
+
+1. Apply **`WindowInsets.safeDrawing` only** for top + horizontal — **do not** `.union(WindowInsets.systemGestures)` on the header. Stacking `systemGestures` with safe drawing adds a large extra inset and pushes the back button too far in (regression we already fixed once).
+2. Then pad **`start = 20.dp`, `end = 20.dp`, `top = 8.dp`** (no asymmetric 4/12 header padding).
+3. Settings does the same via `Scaffold(contentWindowInsets = WindowInsets.safeDrawing)` + content `padding(start = 20.dp, end = 20.dp)` and header row `padding(top = 8.dp)`.
+
+**Footer (bottom chrome)**
+
+- Bottom action rows (Retake/Done, gallery share/delete, permission pills): `WindowInsets.safeDrawing.union(WindowInsets.systemGestures)` for **bottom + horizontal** (gesture nav needs the extra bottom inset).
+- Typical footer content padding: horizontal **16.dp** for full-width pills, **4.dp** bottom under the button row (above the inset).
+
+**Do not** copy live-feed camera chrome paddings (`12.dp` / `6.dp` on the viewfinder header) onto Gallery / Confirm / Settings — those screens follow the Settings 20dp rule above.
 
 ## Platform
 

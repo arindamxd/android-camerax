@@ -80,7 +80,10 @@ app/src/main/java/com/arindam/camerax/
   ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
   ui/home/gallery/       Photo + video pager
   ui/settings/           SettingsCatalog + SettingsScreen
+  ui/compose/            CameraGlassButton, ChromeActionPill (ChromeControlSize = 44.dp)
 ```
+
+Glass chrome controls (back, motion chip, Retake/Done, gallery actions) share **`ChromeControlSize` (44dp)**. Full-screen headers use **20dp** side / **8dp** top padding after `safeDrawing` only — see [AGENTS.md](AGENTS.md#chrome-control-size) and [header padding](AGENTS.md#chrome-screen-insets--header-padding).
 
 ## CameraX API map
 

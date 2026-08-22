@@ -23,18 +23,13 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +54,8 @@ import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.ui.compose.CameraGlassButton
+import com.arindam.camerax.ui.compose.ChromeControlSize
 import com.arindam.camerax.ui.compose.ChromeActionPill
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraMono
@@ -123,48 +120,41 @@ fun CaptureConfirmOverlay(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(
-                    WindowInsets.safeDrawing
-                        .union(WindowInsets.systemGestures)
-                        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                    )
                 )
-                .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .minimumInteractiveComponentSize()
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(chrome.glass)
-                    .border(1.dp, chrome.stroke, CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = true),
-                        onClick = onKeep
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back_button_alt),
-                    tint = chrome.onGlass,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            CameraGlassButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.back_button_alt),
+                onClick = onKeep,
+                onGlass = chrome.onGlass,
+                glass = chrome.glass,
+                stroke = chrome.stroke
+            )
             if (review.isMotionPhoto) {
-                Text(
-                    text = stringResource(R.string.motion_photo_badge),
-                    color = CameraAccent,
-                    fontFamily = CameraMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
+                val chipShape = RoundedCornerShape(ChromeControlSize / 2)
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
+                        .height(ChromeControlSize)
+                        .clip(chipShape)
                         .background(chrome.glass)
-                        .border(1.dp, chrome.stroke, RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
+                        .border(1.dp, chrome.stroke, chipShape)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.motion_photo_badge),
+                        color = CameraAccent,
+                        fontFamily = CameraMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
             } else {
-                Spacer(Modifier.size(48.dp))
+                Spacer(Modifier.size(ChromeControlSize))
             }
         }
 
@@ -199,14 +189,14 @@ fun CaptureConfirmOverlay(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ChromeActionPill(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f, fill = false),
                     icon = Icons.Filled.Refresh,
                     label = stringResource(R.string.capture_review_retake),
                     filled = false,
                     onClick = onRetake
                 )
                 ChromeActionPill(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f, fill = false),
                     icon = Icons.Filled.Check,
                     label = stringResource(R.string.capture_review_keep),
                     filled = true,

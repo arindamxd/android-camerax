@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,7 +27,7 @@ import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 
-/** Full-width glass or accent pill used on capture confirm and permission screens. */
+/** Full-width glass or accent pill; height matches [ChromeControlSize] (back / motion chip). */
 @Composable
 fun ChromeActionPill(
     icon: ImageVector?,
@@ -35,38 +37,45 @@ fun ChromeActionPill(
     modifier: Modifier = Modifier
 ) {
     val chrome = themedOverlayChrome()
-    val shape = RoundedCornerShape(26.dp)
+    val shape = RoundedCornerShape(ChromeControlSize / 2)
     val contentColor = if (filled) Color.Black else chrome.onGlass
-    val base = modifier
-        .height(52.dp)
-        .clip(shape)
-    val styled = if (filled) {
-        base.background(CameraAccent)
-    } else {
-        base
-            .background(chrome.glass)
-            .border(1.dp, chrome.stroke, shape)
-    }
-    Row(
-        modifier = styled.clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(18.dp)
+    // Outer Box owns the fixed height so RowScope.weight(fill = true) cannot stretch it.
+    Box(
+        modifier = modifier
+            .height(ChromeControlSize)
+            .clip(shape)
+            .then(
+                if (filled) {
+                    Modifier.background(CameraAccent)
+                } else {
+                    Modifier
+                        .background(chrome.glass)
+                        .border(1.dp, chrome.stroke, shape)
+                }
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = label,
+                color = contentColor,
+                fontFamily = CameraFontFamily,
+                fontSize = 14.sp,
+                fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium
+            )
         }
-        Text(
-            text = label,
-            color = contentColor,
-            fontFamily = CameraFontFamily,
-            fontSize = 14.sp,
-            fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium
-        )
     }
 }

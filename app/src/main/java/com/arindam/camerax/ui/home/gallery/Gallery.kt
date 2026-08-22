@@ -37,11 +37,11 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -61,7 +61,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,6 +72,7 @@ import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.compose.CameraAlertDialog
 import com.arindam.camerax.ui.compose.CameraGlassButton
+import com.arindam.camerax.ui.compose.ChromeControlSize
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.home.camera.formatRecordingTime
 import com.arindam.camerax.ui.theme.AppTheme
@@ -249,7 +249,6 @@ fun GalleryScreen(
                         videoPlaying = !videoPlaying
                         if (videoPlaying) videoControlsTick++
                     },
-                    diameter = 56.dp,
                     onGlass = chrome.onGlass,
                     glass = chrome.glass,
                     stroke = chrome.stroke
@@ -292,11 +291,11 @@ private fun GalleryHeader(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(
-                WindowInsets.safeDrawing
-                    .union(WindowInsets.systemGestures)
-                    .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                )
             )
-            .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp)
     ) {
         CameraGlassButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
@@ -307,11 +306,11 @@ private fun GalleryHeader(
             stroke = chrome.stroke
         )
         if (showMotion) {
-            val chipShape = RoundedCornerShape(22.dp)
+            val chipShape = RoundedCornerShape(ChromeControlSize / 2)
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .height(44.dp)
+                    .height(ChromeControlSize)
                     .clip(chipShape)
                     .background(if (motionPlaying) CameraAccent else chrome.glass)
                     .border(1.dp, chrome.stroke, chipShape)
@@ -339,6 +338,7 @@ private fun GalleryFooter(
     onShareClicked: (Int) -> Unit,
     onDelete: (GalleryItem) -> Unit
 ) {
+    val chrome = themedOverlayChrome()
     val showDialog = remember { mutableStateOf(false) }
     CameraAlertDialog(
         show = showDialog.value,
@@ -361,45 +361,21 @@ private fun GalleryFooter(
             .padding(bottom = 4.dp)
     ) {
         if (items.isEmpty()) return@Row
-        GalleryActionButton(
-            icon = R.drawable.ic_share,
+        CameraGlassButton(
+            icon = Icons.Filled.Share,
             contentDescription = stringResource(R.string.share_button_alt),
-            onClick = { onShareClicked.invoke(pagerState.currentPage) }
+            onClick = { onShareClicked.invoke(pagerState.currentPage) },
+            onGlass = chrome.onGlass,
+            glass = chrome.glass,
+            stroke = chrome.stroke
         )
-        GalleryActionButton(
-            icon = R.drawable.ic_delete,
+        CameraGlassButton(
+            icon = Icons.Filled.Delete,
             contentDescription = stringResource(R.string.delete_button_alt),
-            onClick = { showDialog.value = true }
-        )
-    }
-}
-
-@Composable
-private fun GalleryActionButton(
-    icon: Int,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    val chrome = themedOverlayChrome()
-    Box(
-        modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(chrome.glass)
-            .border(1.dp, chrome.stroke, CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = remember { ripple(bounded = true) },
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(id = icon),
-            modifier = Modifier.size(20.dp),
-            tint = chrome.onGlass,
-            contentDescription = contentDescription
+            onClick = { showDialog.value = true },
+            onGlass = chrome.onGlass,
+            glass = chrome.glass,
+            stroke = chrome.stroke
         )
     }
 }
