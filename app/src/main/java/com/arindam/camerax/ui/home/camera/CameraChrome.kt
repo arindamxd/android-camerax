@@ -19,6 +19,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -97,14 +98,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.arindam.camerax.R
-import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.CaptureAction
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
@@ -616,47 +618,25 @@ fun ZoomChips(
 @Composable
 fun EffectsFilmstrip(
     state: CameraUiState,
-    onFilterSelected: (ColorFilterType) -> Unit,
-    onExtensionSelected: (CameraExtension) -> Unit
+    onEffectSelected: (EffectMode) -> Unit
 ) {
-    AnimatedVisibility(visible = state.showsFilters && !state.isRecording) {
-        Column(
+    val itemWidth = 72.dp
+    AnimatedVisibility(visible = state.showsEffects && !state.isRecording) {
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(bottom = 8.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                ColorFilterType.entries.forEach { filter ->
-                    FilterThumb(
-                        filter = filter,
-                        selected = state.colorFilter == filter,
-                        onClick = { onFilterSelected(filter) }
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ExtensionChip(
-                    label = stringResource(R.string.extension_none),
-                    selected = state.extension == CameraExtension.NONE,
-                    onClick = { onExtensionSelected(CameraExtension.NONE) }
-                )
-                state.supportedExtensions.forEach { extension ->
-                    ExtensionChip(
-                        label = stringResource(extension.labelRes),
-                        selected = state.extension == extension,
-                        onClick = { onExtensionSelected(extension) }
+            val startInset = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                Spacer(Modifier.width(startInset))
+                EffectMode.entries.forEachIndexed { index, effect ->
+                    if (index > 0) Spacer(Modifier.width(8.dp))
+                    EffectThumb(
+                        effect = effect,
+                        selected = state.effect == effect,
+                        onClick = { onEffectSelected(effect) },
+                        modifier = Modifier.width(itemWidth)
                     )
                 }
             }
@@ -672,8 +652,7 @@ fun CameraFooter(
     onFlipClicked: () -> Unit,
     onShutterClicked: () -> Unit,
     onGalleryClicked: () -> Unit,
-    onFilterSelected: (ColorFilterType) -> Unit,
-    onExtensionSelected: (CameraExtension) -> Unit,
+    onEffectSelected: (EffectMode) -> Unit,
     onZoomSelected: (Float) -> Unit = {}
 ) {
     Column(
@@ -687,7 +666,7 @@ fun CameraFooter(
             .windowInsetsPadding(
                 WindowInsets.safeDrawing
                     .union(WindowInsets.systemGestures)
-                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                    .only(WindowInsetsSides.Bottom)
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -704,8 +683,7 @@ fun CameraFooter(
         if (!state.lockCaptureMode) {
             EffectsFilmstrip(
                 state = state,
-                onFilterSelected = onFilterSelected,
-                onExtensionSelected = onExtensionSelected
+                onEffectSelected = onEffectSelected
             )
             val modes = state.visibleModes
             key(state.slowMotionSupported, state.concurrentSupported) {
@@ -744,7 +722,13 @@ fun CameraFooter(
             Spacer(Modifier.height(if (compact) 8.dp else 10.dp))
         }
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing
+                        .union(WindowInsets.systemGestures)
+                        .only(WindowInsetsSides.Horizontal)
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val sideSize = if (compact) 44.dp else 48.dp
@@ -934,25 +918,24 @@ private fun GalleryThumb(
 }
 
 @Composable
-private fun FilterThumb(
-    filter: ColorFilterType,
+private fun EffectThumb(
+    effect: EffectMode,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val fill = when (filter) {
-        ColorFilterType.NONE -> Color.White
-        ColorFilterType.MONO -> Color(0xFFBDBDBD)
-        ColorFilterType.INVERT -> Color(0xFF212121)
-        ColorFilterType.VINTAGE -> Color(0xFFD7A86E)
-        ColorFilterType.COOL -> Color(0xFF7EC8E3)
-        ColorFilterType.WARM -> Color(0xFFFFB74D)
-        ColorFilterType.VIVID -> Color(0xFFFF5C8A)
-        ColorFilterType.BRIGHT -> Color(0xFFFFF59D)
-        ColorFilterType.CONTRAST -> Color(0xFF90A4AE)
+    val fill = when (effect) {
+        EffectMode.NONE -> Color.White
+        EffectMode.GRAYSCALE -> Color(0xFFBDBDBD)
+        EffectMode.INVERT -> Color(0xFF212121)
+        EffectMode.SEPIA -> Color(0xFFD7A86E)
+        EffectMode.COOL -> Color(0xFF7EC8E3)
+        EffectMode.WARM -> Color(0xFFFFB74D)
+        EffectMode.VIVID -> Color(0xFFFF5C8A)
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(
+        modifier = modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = ripple(bounded = false),
             onClick = onClick
@@ -970,43 +953,13 @@ private fun FilterThumb(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = stringResource(filter.labelRes),
+            text = stringResource(effect.labelRes),
             color = if (selected) CameraAccent else CameraOnGlass,
             fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-private fun ExtensionChip(
-    label: String,
-    selected: Boolean,
-    icon: ImageVector? = null,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) CameraAccent else CameraGlass)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) Color.Black else CameraOnGlass,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-        Text(
-            text = label,
-            color = if (selected) Color.Black else CameraOnGlass,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
     }
 }

@@ -124,12 +124,8 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
-    implementation(libs.androidx.camera.effects)
     implementation(libs.androidx.camera.featurecombinationquery)
     implementation(libs.androidx.camera.featurecombinationquery.play.services)
-    implementation(libs.androidx.camera.media3.effect)
-    implementation(libs.androidx.media3.effect)
-    implementation(libs.androidx.media3.common)
 
     // Coil
     implementation(libs.coil.compose)

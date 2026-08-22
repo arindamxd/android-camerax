@@ -1,6 +1,6 @@
 # CameraX
 
-A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, two live-filter pipelines (CameraX `CameraEffect` and Media3 `Media3Effect`), and Dual preview, with a Compose UI.
+A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live ColorMatrix effects (`ImageAnalysis`), and Dual preview, with a Compose UI.
 
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
 alt="Get it on Google Play" height="90">](https://play.google.com/store/apps/details?id=com.arindam.camerax)
@@ -21,7 +21,7 @@ The **app** is named CameraX. It is built with the Jetpack **CameraX library** (
 | **Photo** | Still capture with flash, timer, grid, pinch zoom, tap-to-focus |
 | **Video** | Record with audio, pause / resume, mute, 60 fps when listed, `.mp4` in gallery |
 | **Slo-mo** | High-speed `Preview` + `VideoCapture` when the device lists SDR high-speed qualities |
-| **Effects** | Two **different** live-filter APIs (not the same pipeline), plus OEM extension chips |
+| **Effects** | Live ColorMatrix effects on `ImageAnalysis` (None, Grayscale, Invert, Sepia, Cool, Warm, Vivid) |
 | **Pano** | Horizontal sweep stitch |
 | **Dual** | Concurrent front + back preview (`availableConcurrentCameraInfos`) |
 
@@ -32,7 +32,7 @@ Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + vid
 1. Grant **camera** and **microphone**.
 2. Swipe **Photo / Video / Slo-mo / Effects / Pano / Dual** at the bottom (Slo-mo and Dual hide when unsupported). Quick controls on the live feed change with the selected mode; the gear opens full Settings.
 3. Photo shutter is a white disc; video is red and becomes a stop square while recording.
-4. In Effects, pick a **CameraX** color-matrix filter (Mono, Invert, Sepia, …) or a **Media3** GPU filter (Bright, Contrast), or an OEM extension chip. Those filter rows are not the same CameraX API — see [CameraX vs Media3 effects](#camerax-vs-media3-effects).
+4. In **Effects**, pick None / Grayscale / Invert / Sepia / Cool / Warm / Vivid. The live feed is the processed `ImageAnalysis` frame; switching chips does not rebind.
 5. Open the thumbnail to browse, share, or delete photos and videos.
 
 ## Architecture
@@ -73,7 +73,7 @@ app/src/main/java/com/arindam/camerax/
   domain/model/          CameraMode, CameraModeCatalog, bind config
   domain/repository/     CameraRepository, MediaRepository
   domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
-  data/camera/           CameraSession, ColorFilterProcessor, mappers
+  data/camera/           CameraSession, ColorEffectAnalyzer, mappers
   data/media/            FileMediaRepository, MediaStorePublisher
   di/                    AppContainer (composition root)
   ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
@@ -92,30 +92,15 @@ app/src/main/java/com/arindam/camerax/
 | Pinch zoom and 0.5 / 1x / 2x chips | `CameraControl.setZoomRatio` / `ZoomState` |
 | Tap to focus | `FocusMeteringAction` |
 | HDR / Night / Portrait / Beauty | `ExtensionsManager` (`ExtensionMode`) |
-| Live color-matrix filters | CameraX `CameraEffect` + `SurfaceProcessor` (`ColorFilterProcessor`) |
-| Bright / Contrast | CameraX–Media3 bridge: `Media3Effect.setEffects` (Media3 GPU `Effect`s) |
+| Live color-matrix effects | `ImageAnalysis` + `ColorMatrix` / `ColorMatrixColorFilter` (`ColorEffectAnalyzer`) |
 | Dual preview | `ProcessCameraProvider.bindToLifecycle(List)` + concurrent camera infos |
 | 60 fps video | `SessionConfig` + `GroupableFeature.FPS_60` after `isSessionConfigSupported` |
-
-### CameraX vs Media3 effects
-
-They can both tint the viewfinder. They are **not** the same API.
-
-| | CameraX effects | Media3 effects |
-| --- | --- | --- |
-| Library | `androidx.camera:camera-effects` | `androidx.camera.media3:media3-effect` + Media3 `effect` |
-| Type | `CameraEffect` / `SurfaceProcessor` | `Media3Effect` wrapping Media3 `Effect` |
-| In this app | Original, Mono, Invert, Sepia, Cool, Warm, Vivid | Bright, Contrast |
-| Switch at runtime | Update the color matrix on `ColorFilterProcessor` (no rebind between matrix chips) | `Media3Effect.setEffects(...)` (no rebind between Bright and Contrast) |
-| Stills | Same color matrix applied to JPEG bytes | Approximate matrix on JPEG; Ultra HDR stills skip recompress |
-
-Do not bind both processors at once. Enabling or disabling a live effect, or moving between the matrix pipeline and the Media3 pipeline, **rebinds**. Switching chips *inside* one pipeline does not.
 
 Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java/com/arindam/camerax/domain/repository/CameraRepository.kt) and [`CameraSession`](app/src/main/java/com/arindam/camerax/data/camera/CameraSession.kt).
 
 ## Stack
 
-- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**, CameraX–Media3 effect **1.0.0-alpha04**
+- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**
 - minSdk **23**, target/compileSdk **37**
 - Navigation, ViewModel, Coil
 - Optional Firebase Analytics / Crashlytics when `app/google-services.json` is present

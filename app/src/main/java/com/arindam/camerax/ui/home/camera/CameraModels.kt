@@ -6,6 +6,7 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.annotation.StringRes
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import com.arindam.camerax.R
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
@@ -13,7 +14,7 @@ import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.CameraModeCatalog
 import com.arindam.camerax.domain.model.CaptureAction
 import com.arindam.camerax.domain.model.CaptureAspect
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
@@ -68,17 +69,15 @@ val ExposurePriority.labelRes: Int
         ExposurePriority.SHUTTER -> R.string.ae_shutter
     }
 
-val ColorFilterType.labelRes: Int
+val EffectMode.labelRes: Int
     @StringRes get() = when (this) {
-        ColorFilterType.NONE -> R.string.filter_none
-        ColorFilterType.MONO -> R.string.filter_mono
-        ColorFilterType.INVERT -> R.string.filter_invert
-        ColorFilterType.VINTAGE -> R.string.filter_vintage
-        ColorFilterType.COOL -> R.string.filter_cool
-        ColorFilterType.WARM -> R.string.filter_warm
-        ColorFilterType.VIVID -> R.string.filter_vivid
-        ColorFilterType.BRIGHT -> R.string.filter_bright
-        ColorFilterType.CONTRAST -> R.string.filter_contrast
+        EffectMode.NONE -> R.string.effect_none
+        EffectMode.GRAYSCALE -> R.string.effect_grayscale
+        EffectMode.INVERT -> R.string.effect_invert
+        EffectMode.SEPIA -> R.string.effect_sepia
+        EffectMode.COOL -> R.string.effect_cool
+        EffectMode.WARM -> R.string.effect_warm
+        EffectMode.VIVID -> R.string.effect_vivid
     }
 
 /**
@@ -103,7 +102,8 @@ data class CameraUiState(
     val thumbnail: File? = null,
     val extension: CameraExtension = CameraExtension.NONE,
     val supportedExtensions: Set<CameraExtension> = emptySet(),
-    val colorFilter: ColorFilterType = ColorFilterType.NONE,
+    val effect: EffectMode = EffectMode.NONE,
+    val effectFrame: ImageBitmap? = null,
     val focusPoint: Offset? = null,
     val captureFlashToken: Int = 0,
     val bindRevision: Int = 0,
@@ -208,8 +208,8 @@ data class CameraUiState(
             (exposureLimits.supportedPriorities.size >= 2 ||
                 exposureLimits.evSupported)
 
-    val showsFilters: Boolean
-        get() = profile.showsFilters
+    val showsEffects: Boolean
+        get() = profile.showsEffects
 
     val showsPip: Boolean
         get() = profile.showsPip

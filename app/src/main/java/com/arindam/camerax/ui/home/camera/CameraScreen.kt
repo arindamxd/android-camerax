@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -34,10 +35,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.arindam.camerax.R
 import kotlin.math.abs
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
@@ -157,10 +161,22 @@ fun CameraScreen(
         val compact = maxHeight < 480.dp ||
             configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         Box(Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = { previewView },
-                modifier = Modifier.fillMaxSize()
-            )
+            if (state.showsEffects) {
+                val effectFrame = state.effectFrame
+                if (effectFrame != null) {
+                    Image(
+                        bitmap = effectFrame,
+                        contentDescription = stringResource(R.string.effect_frame_description),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            } else {
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             if (state.showsPip) {
                 AndroidView(
                     factory = { pipPreviewView },
@@ -274,8 +290,7 @@ fun CameraScreen(
                     onFlipClicked = viewModel::toggleLens,
                     onShutterClicked = { viewModel.onShutter(previewView) },
                     onGalleryClicked = onGalleryClicked,
-                    onFilterSelected = viewModel::setColorFilter,
-                    onExtensionSelected = viewModel::setExtension,
+                    onEffectSelected = viewModel::setEffect,
                     onZoomSelected = viewModel::setZoom
                 )
             }
@@ -321,8 +336,7 @@ private fun CameraChromePreview() {
                     onFlipClicked = {},
                     onShutterClicked = {},
                     onGalleryClicked = {},
-                    onFilterSelected = {},
-                    onExtensionSelected = {}
+                    onEffectSelected = {}
                 )
             }
         }

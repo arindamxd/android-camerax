@@ -4,7 +4,7 @@ import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.LowLightBoost
@@ -13,6 +13,7 @@ import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import android.graphics.Bitmap
 import java.io.File
 
 /**
@@ -24,13 +25,14 @@ interface CameraRepository {
     val nightScene: StateFlow<NightScene>
     val lowLightBoost: StateFlow<LowLightBoost>
     val recordingEvents: SharedFlow<RecordingEvent>
+    val effectFrame: StateFlow<Bitmap?>
 
     suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult
 
     suspend fun capturePhoto(
         outputDirectory: File,
         lens: CameraLens,
-        colorFilter: ColorFilterType,
+        effect: EffectMode,
         motionPhoto: Boolean
     ): Result<File>
 
@@ -48,7 +50,7 @@ interface CameraRepository {
     fun setLowLightBoost(enabled: Boolean)
     fun setZoomRatio(ratio: Float): ZoomInfo?
     fun tapToFocus(x: Float, y: Float)
-    fun setColorFilter(type: ColorFilterType)
+    fun setEffect(type: EffectMode)
     fun setTargetRotation(rotation: Int)
     fun setExposure(priority: ExposurePriority, iso: Int, shutterNanos: Long)
     fun setExposureCompensation(index: Int)

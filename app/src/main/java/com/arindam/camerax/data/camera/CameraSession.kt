@@ -3,8 +3,10 @@ package com.arindam.camerax.data.camera
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.util.Size
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraMetadata
@@ -23,12 +25,12 @@ import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
-import androidx.camera.core.CameraEffect
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ConcurrentCamera.SingleCameraConfig
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.LowLightBoostState
@@ -37,7 +39,6 @@ import androidx.camera.core.SessionConfig
 import androidx.camera.core.UseCase
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.featuregroup.GroupableFeature
-import androidx.camera.media3.effect.Media3Effect
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.extensions.ExtensionsManager
@@ -64,7 +65,7 @@ import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CaptureAspect
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
@@ -75,7 +76,6 @@ import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.ZoomInfo
-import com.arindam.camerax.domain.model.usesMedia3
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.log.Logger
@@ -114,8 +114,11 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
     private var highSpeedSession = false
-    private var colorProcessor: ColorFilterProcessor? = null
-    private var media3Effect: Media3Effect? = null
+    private var imageAnalysis: ImageAnalysis? = null
+    private var colorAnalyzer: ColorEffectAnalyzer? = null
+    private val analysisExecutor = Executors.newSingleThreadExecutor()
+    private val _effectFrame = MutableStateFlow<Bitmap?>(null)
+    override val effectFrame: StateFlow<Bitmap?> = _effectFrame.asStateFlow()
     private var boundPreviewView: PreviewView? = null
     private var pipPreview: Preview? = null
     private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
@@ -172,7 +175,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             return rebindWhileRecording(previewHost, config)
         }
         provider.unbindAll()
-        releaseEffects()
+        stopColorAnalysis()
         highSpeedSession = false
         imageCapture = null
         videoCapture = null
@@ -290,21 +293,27 @@ class CameraSession(private val context: Context) : CameraRepository {
         val video = buildVideoCapture(recorder, videoStab, videoRange)
         videoCapture = video
 
-        val includeVideo = !useExtension
-        val effects = buildEffects(
-            colorFilter = if (useRaw) ColorFilterType.NONE else config.colorFilter,
-            includeVideo = includeVideo
-        )
+        val liveEffects = config.liveEffects && !useRaw
+        val includeVideo = !useExtension && !liveEffects
+        val analysis = if (liveEffects) {
+            buildColorAnalysis(rotation, config.effect)
+        } else {
+            stopColorAnalysis()
+            null
+        }
         val wantFps60 = config.videoFps60 && includeVideo && !useExtension
+        if (liveEffects) {
+            this.preview = null
+        }
 
         camera = bindWithFallback(
             provider = provider,
             lifecycleOwner = lifecycleOwner,
             selector = selector,
-            preview = preview,
+            preview = preview.takeUnless { liveEffects },
             imageCapture = capture,
             videoCapture = if (includeVideo) video else null,
-            effects = effects,
+            imageAnalysis = analysis,
             fps60 = wantFps60
         )
         if (!includeVideo) videoCapture = null
@@ -323,7 +332,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     override suspend fun capturePhoto(
         outputDirectory: File,
         lens: CameraLens,
-        colorFilter: ColorFilterType,
+        effect: EffectMode,
         motionPhoto: Boolean
     ): Result<File> = suspendCancellableCoroutine { continuation ->
         val onSaved: (File) -> Unit = { file ->
@@ -335,9 +344,9 @@ class CameraSession(private val context: Context) : CameraRepository {
             }
         }
         if (motionPhoto && stillFormat != StillFormat.RAW_JPEG && videoCapture != null) {
-            captureMotionPhoto(outputDirectory, lens, colorFilter, onSaved, onError)
+            captureMotionPhoto(outputDirectory, lens, effect, onSaved, onError)
         } else {
-            takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
+            takeStill(outputDirectory, lens, effect, onSaved, onError)
         }
     }
 
@@ -444,18 +453,15 @@ class CameraSession(private val context: Context) : CameraRepository {
         camera?.cameraControl?.startFocusAndMetering(action)
     }
 
-    override fun setColorFilter(type: ColorFilterType) {
-        if (type.usesMedia3()) {
-            media3Effect?.setEffects(type.media3Effects())
-        } else {
-            colorProcessor?.colorMatrix = ColorFilters.glMatrix(type)
-        }
+    override fun setEffect(type: EffectMode) {
+        colorAnalyzer?.effect = type
     }
 
     override fun setTargetRotation(rotation: Int) {
         preview?.targetRotation = rotation
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation
+        imageAnalysis?.targetRotation = rotation
         pipPreview?.targetRotation = rotation
     }
 
@@ -503,10 +509,9 @@ class CameraSession(private val context: Context) : CameraRepository {
         recording = null
         stopRecordingService()
         cameraProvider?.unbindAll()
-        releaseEffects()
+        stopColorAnalysis()
         cameraExecutor.shutdown()
-        colorProcessor?.release()
-        colorProcessor = null
+        analysisExecutor.shutdown()
         _nightScene.value = NightScene.UNKNOWN
         stopWatchingLowLightBoost()
         _lowLightBoost.value = LowLightBoost.OFF
@@ -594,7 +599,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private fun takeStill(
         outputDirectory: File,
         lens: CameraLens,
-        colorFilter: ColorFilterType,
+        effect: EffectMode,
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -622,7 +627,7 @@ class CameraSession(private val context: Context) : CameraRepository {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val file = output.savedUri?.toFile() ?: photoFile
                     val preserveHdr = stillFormat != StillFormat.JPEG
-                    val processed = if (preserveHdr) file else applyStillFilter(file, colorFilter)
+                    val processed = if (preserveHdr) file else applyStillEffect(file, effect)
                     onSaved(processed)
                 }
 
@@ -682,7 +687,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private fun captureMotionPhoto(
         outputDirectory: File,
         lens: CameraLens,
-        colorFilter: ColorFilterType,
+        effect: EffectMode,
         onSaved: (File) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -704,14 +709,14 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
         if (videoFile == null) {
             motionAwaitingVideo = false
-            takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
+            takeStill(outputDirectory, lens, effect, onSaved, onError)
             return
         }
         motionVideo = videoFile
         takeStill(
             outputDirectory = outputDirectory,
             lens = lens,
-            colorFilter = colorFilter,
+            effect = effect,
             onSaved = { file ->
                 motionStill = file
                 finishMotionIfReady()
@@ -838,27 +843,36 @@ class CameraSession(private val context: Context) : CameraRepository {
         }
     }
 
-    private fun buildEffects(
-        colorFilter: ColorFilterType,
-        includeVideo: Boolean
-    ): List<CameraEffect> {
-        val targets = CameraEffect.PREVIEW or if (includeVideo) CameraEffect.VIDEO_CAPTURE else 0
-        val effects = mutableListOf<CameraEffect>()
-        if (colorFilter.usesMedia3()) {
-            val effect = Media3Effect(
-                context,
-                targets,
-                ContextCompat.getMainExecutor(context)
-            ) { error -> Logger.error(TAG, "Media3 effect error: ${error.message}") }
-            effect.setEffects(colorFilter.media3Effects())
-            media3Effect = effect
-            effects += effect
-        } else if (colorFilter != ColorFilterType.NONE) {
-            val processor = ColorFilterProcessor().also { colorProcessor = it }
-            processor.colorMatrix = ColorFilters.glMatrix(colorFilter)
-            effects += processor.asCameraEffect(targets)
+    private fun buildColorAnalysis(rotation: Int, initial: EffectMode): ImageAnalysis {
+        val analyzer = ColorEffectAnalyzer { bitmap -> _effectFrame.value = bitmap }.also {
+            it.effect = initial
+            colorAnalyzer = it
         }
-        return effects
+        return ImageAnalysis.Builder()
+            .setTargetRotation(rotation)
+            .setResolutionSelector(
+                ResolutionSelector.Builder()
+                    .setResolutionStrategy(
+                        ResolutionStrategy(
+                            Size(1280, 720),
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                        )
+                    )
+                    .build()
+            )
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also { analysis ->
+                analysis.setAnalyzer(analysisExecutor, analyzer)
+                imageAnalysis = analysis
+            }
+    }
+
+    private fun stopColorAnalysis() {
+        imageAnalysis?.clearAnalyzer()
+        imageAnalysis = null
+        colorAnalyzer = null
+        _effectFrame.value = null
     }
 
     private fun canRetainRecording(): Boolean =
@@ -900,16 +914,21 @@ class CameraSession(private val context: Context) : CameraRepository {
         provider: ProcessCameraProvider,
         lifecycleOwner: LifecycleOwner,
         selector: CameraSelector,
-        preview: Preview,
+        preview: Preview?,
         imageCapture: ImageCapture,
         videoCapture: VideoCapture<Recorder>?,
-        effects: List<CameraEffect>,
+        imageAnalysis: ImageAnalysis?,
         fps60: Boolean = false
     ): Camera {
-        val attempts: List<List<UseCase>> = listOfNotNull(
-            listOfNotNull(preview, imageCapture, videoCapture),
-            listOf(preview, imageCapture)
-        ).distinct()
+        val attempts = mutableListOf<List<UseCase>>()
+        if (imageAnalysis != null) {
+            attempts += listOfNotNull(preview, imageCapture, imageAnalysis)
+            attempts += listOf(imageCapture, imageAnalysis)
+            attempts += listOf(imageAnalysis)
+        } else {
+            attempts += listOfNotNull(preview, imageCapture, videoCapture)
+            attempts += listOfNotNull(preview, imageCapture)
+        }
         var lastError: Exception? = null
         for (useCases in attempts) {
             try {
@@ -919,10 +938,12 @@ class CameraSession(private val context: Context) : CameraRepository {
                     lifecycleOwner = lifecycleOwner,
                     selector = selector,
                     useCases = useCases,
-                    effects = effects,
                     fps60 = fps60 && videoCapture != null && useCases.contains(videoCapture)
                 )
                 this.videoCapture = videoCapture?.takeIf { capture -> useCases.contains(capture) }
+                if (imageAnalysis == null || !useCases.contains(imageAnalysis)) {
+                    stopColorAnalysis()
+                }
                 Logger.debug(TAG, "Bound use cases: ${useCases.map { it.javaClass.simpleName }}")
                 return bound
             } catch (error: Exception) {
@@ -938,14 +959,12 @@ class CameraSession(private val context: Context) : CameraRepository {
         lifecycleOwner: LifecycleOwner,
         selector: CameraSelector,
         useCases: List<UseCase>,
-        effects: List<CameraEffect>,
         fps60: Boolean
     ): Camera {
         if (fps60) {
             try {
                 val builder = SessionConfig.Builder(*useCases.toTypedArray())
                     .setRequiredFeatureGroup(GroupableFeature.FPS_60)
-                effects.forEach { builder.addEffect(it) }
                 val bound = provider.bindToLifecycle(lifecycleOwner, selector, builder.build())
                 fps60Active = true
                 return bound
@@ -954,21 +973,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             }
         }
         fps60Active = false
-        return if (effects.isNotEmpty()) {
-            try {
-                val group = UseCaseGroup.Builder().apply {
-                    useCases.forEach { addUseCase(it) }
-                    effects.forEach { addEffect(it) }
-                }.build()
-                provider.bindToLifecycle(lifecycleOwner, selector, group)
-            } catch (error: Exception) {
-                Logger.warning(TAG, "Bind with effects failed: ${error.message}")
-                provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
-            }
-        } else {
-            provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
-        }
+        return provider.bindToLifecycle(lifecycleOwner, selector, *useCases.toTypedArray())
     }
 
     private fun bindConcurrent(
@@ -1211,26 +1216,19 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     private data class HighSpeedBind(val camera: Camera, val fps: Int)
 
-    private fun releaseEffects() {
-        colorProcessor?.release()
-        colorProcessor = null
-        media3Effect?.close()
-        media3Effect = null
-    }
-
-    private fun applyStillFilter(file: File, type: ColorFilterType): File {
-        if (type == ColorFilterType.NONE) return file
+    private fun applyStillEffect(file: File, type: EffectMode): File {
+        if (type == EffectMode.NONE) return file
         return try {
             val original = BitmapFactory.decodeFile(file.absolutePath) ?: return file
-            val filtered = ColorFilters.applyToBitmap(original, type)
+            val processed = ColorEffects.applyToBitmap(original, type)
             FileOutputStream(file).use { stream ->
-                filtered.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
+                processed.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
             }
-            if (filtered !== original) filtered.recycle()
+            if (processed !== original) processed.recycle()
             original.recycle()
             file
         } catch (error: Exception) {
-            Logger.error(TAG, "Still filter failed: ${error.message}")
+            Logger.error(TAG, "Still effect failed: ${error.message}")
             file
         }
     }

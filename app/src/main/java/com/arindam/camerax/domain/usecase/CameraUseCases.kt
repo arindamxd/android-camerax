@@ -4,12 +4,13 @@
  */
 package com.arindam.camerax.domain.usecase
 
+import android.graphics.Bitmap
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.CaptureSettings
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
@@ -35,9 +36,9 @@ class CapturePhoto(private val repository: CameraRepository) {
     suspend operator fun invoke(
         outputDirectory: File,
         lens: CameraLens,
-        colorFilter: ColorFilterType,
+        effect: EffectMode,
         motionPhoto: Boolean
-    ): Result<File> = repository.capturePhoto(outputDirectory, lens, colorFilter, motionPhoto)
+    ): Result<File> = repository.capturePhoto(outputDirectory, lens, effect, motionPhoto)
 }
 
 /** Start video. [persistent] keeps the clip across a lens flip when Settings allows it. */
@@ -89,9 +90,9 @@ class TapToFocus(private val repository: CameraRepository) {
     operator fun invoke(x: Float, y: Float) = repository.tapToFocus(x, y)
 }
 
-/** Live filter chip. Same pipeline does not rebind; matrix ↔ Media3 does. */
-class SetColorFilter(private val repository: CameraRepository) {
-    operator fun invoke(type: ColorFilterType) = repository.setColorFilter(type)
+/** Live effect chip. Updates the ImageAnalysis color matrix; does not rebind. */
+class SetEffect(private val repository: CameraRepository) {
+    operator fun invoke(type: EffectMode) = repository.setEffect(type)
 }
 
 /** Large-screen rotation. Does not rebind. */
@@ -122,6 +123,11 @@ class ObserveLowLightBoost(private val repository: CameraRepository) {
 /** Video recording status / finalize events. */
 class ObserveRecording(private val repository: CameraRepository) {
     operator fun invoke(): SharedFlow<RecordingEvent> = repository.recordingEvents
+}
+
+/** Latest ColorMatrix-processed preview frame for Effects mode. */
+class ObserveEffectFrame(private val repository: CameraRepository) {
+    operator fun invoke(): StateFlow<Bitmap?> = repository.effectFrame
 }
 
 /** Unbind and drop CameraX handles. */

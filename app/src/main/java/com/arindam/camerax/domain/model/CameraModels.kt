@@ -56,20 +56,15 @@ enum class CameraExtension {
     BEAUTY
 }
 
-enum class ColorFilterType {
+enum class EffectMode {
     NONE,
-    MONO,
+    GRAYSCALE,
     INVERT,
-    VINTAGE,
+    SEPIA,
     COOL,
     WARM,
-    VIVID,
-    BRIGHT,
-    CONTRAST
+    VIVID
 }
-
-fun ColorFilterType.usesMedia3(): Boolean =
-    this == ColorFilterType.BRIGHT || this == ColorFilterType.CONTRAST
 
 enum class NightScene {
     UNKNOWN,
@@ -166,7 +161,8 @@ data class CameraBindConfig(
     val lens: CameraLens,
     val flash: FlashMode,
     val extension: CameraExtension,
-    val colorFilter: ColorFilterType,
+    val effect: EffectMode,
+    val liveEffects: Boolean = false,
     val cameraId: String? = null,
     val captureAspect: CaptureAspect = CaptureAspect.FULL,
     val videoQuality: VideoQuality = VideoQuality.FHD,

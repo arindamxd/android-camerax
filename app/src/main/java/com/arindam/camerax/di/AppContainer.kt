@@ -16,6 +16,7 @@ import com.arindam.camerax.domain.usecase.GetLatestMedia
 import com.arindam.camerax.domain.usecase.ListMedia
 import com.arindam.camerax.domain.usecase.LoadCaptureSettings
 import com.arindam.camerax.domain.usecase.MuteRecording
+import com.arindam.camerax.domain.usecase.ObserveEffectFrame
 import com.arindam.camerax.domain.usecase.ObserveLowLightBoost
 import com.arindam.camerax.domain.usecase.ObserveNightScene
 import com.arindam.camerax.domain.usecase.ObserveRecording
@@ -25,7 +26,7 @@ import com.arindam.camerax.domain.usecase.ProbeDeviceFeatures
 import com.arindam.camerax.domain.usecase.PublishMedia
 import com.arindam.camerax.domain.usecase.ReleaseCamera
 import com.arindam.camerax.domain.usecase.ResumeRecording
-import com.arindam.camerax.domain.usecase.SetColorFilter
+import com.arindam.camerax.domain.usecase.SetEffect
 import com.arindam.camerax.domain.usecase.SetExposure
 import com.arindam.camerax.domain.usecase.SetExposureCompensation
 import com.arindam.camerax.domain.usecase.SetFlash
@@ -72,13 +73,14 @@ data class CameraInteractors(
     val setLowLightBoost: SetLowLightBoost,
     val setZoom: SetZoom,
     val tapToFocus: TapToFocus,
-    val setColorFilter: SetColorFilter,
+    val setEffect: SetEffect,
     val setTargetRotation: SetTargetRotation,
     val setExposure: SetExposure,
     val setExposureCompensation: SetExposureCompensation,
     val observeNightScene: ObserveNightScene,
     val observeLowLightBoost: ObserveLowLightBoost,
     val observeRecording: ObserveRecording,
+    val observeEffectFrame: ObserveEffectFrame,
     val releaseCamera: ReleaseCamera,
     val getLatestMedia: GetLatestMedia,
     val listMedia: ListMedia,
@@ -107,13 +109,14 @@ fun cameraInteractors(
     setLowLightBoost = SetLowLightBoost(cameraRepository),
     setZoom = SetZoom(cameraRepository),
     tapToFocus = TapToFocus(cameraRepository),
-    setColorFilter = SetColorFilter(cameraRepository),
+    setEffect = SetEffect(cameraRepository),
     setTargetRotation = SetTargetRotation(cameraRepository),
     setExposure = SetExposure(cameraRepository),
     setExposureCompensation = SetExposureCompensation(cameraRepository),
     observeNightScene = ObserveNightScene(cameraRepository),
     observeLowLightBoost = ObserveLowLightBoost(cameraRepository),
     observeRecording = ObserveRecording(cameraRepository),
+    observeEffectFrame = ObserveEffectFrame(cameraRepository),
     releaseCamera = ReleaseCamera(cameraRepository),
     getLatestMedia = GetLatestMedia(mediaRepository),
     listMedia = ListMedia(mediaRepository),

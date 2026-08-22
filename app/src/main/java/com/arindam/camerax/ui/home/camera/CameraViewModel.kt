@@ -7,6 +7,8 @@ import android.os.Build
 import android.view.animation.PathInterpolator
 import androidx.camera.view.PreviewView
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -24,7 +26,7 @@ import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.CameraModeCatalog
 import com.arindam.camerax.domain.model.CaptureAction
 import com.arindam.camerax.domain.model.CaptureSettings
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.LowLightBoost
@@ -33,7 +35,6 @@ import com.arindam.camerax.domain.model.PhysicalZoom
 import com.arindam.camerax.domain.model.profile
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.StillFormat
-import com.arindam.camerax.domain.model.usesMedia3
 import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_SLOW_MILLIS
@@ -132,6 +133,11 @@ class CameraViewModel(
             .shareIn(viewModelScope, ShareWhileSubscribed, replay = 0)
             .onEach { event -> handleRecordEvent(event) }
             .launchIn(viewModelScope)
+        interactors.observeEffectFrame()
+            .onEach { bitmap ->
+                _uiState.update { it.copy(effectFrame = bitmap?.asImageBitmap()) }
+            }
+            .launchIn(viewModelScope)
     }
 
     fun setOutputDirectory(directory: File) {
@@ -163,8 +169,17 @@ class CameraViewModel(
                         config = CameraBindConfig(
                             lens = state.lens,
                             flash = state.flash,
-                            extension = state.extension,
-                            colorFilter = state.colorFilter,
+                            extension = if (profile.allowsExtensions) {
+                                state.extension
+                            } else {
+                                CameraExtension.NONE
+                            },
+                            effect = if (profile.showsEffects) {
+                                state.effect
+                            } else {
+                                EffectMode.NONE
+                            },
+                            liveEffects = profile.showsEffects,
                             cameraId = state.cameraId,
                             captureAspect = state.captureAspect,
                             videoQuality = state.videoQuality,
@@ -328,18 +343,18 @@ class CameraViewModel(
             it.copy(
                 mode = mode,
                 countdownRemaining = null,
-                extension = if (clearExtension || profile.clearsSessionExtras) {
+                extension = if (!profile.allowsExtensions ||
+                    clearExtension ||
+                    profile.clearsSessionExtras
+                ) {
                     CameraExtension.NONE
                 } else {
                     it.extension
                 },
                 autoNightActive = if (profile.clearsSessionExtras) false else it.autoNightActive,
                 motionPhotoEnabled = if (profile.clearsSessionExtras) false else it.motionPhotoEnabled,
-                colorFilter = if (profile.clearsSessionExtras) {
-                    ColorFilterType.NONE
-                } else {
-                    it.colorFilter
-                },
+                effect = if (profile.showsEffects) it.effect else EffectMode.NONE,
+                effectFrame = if (profile.showsEffects) it.effectFrame else null,
                 bindRevision = if (rebind) it.bindRevision + 1 else it.bindRevision
             )
         }
@@ -530,16 +545,9 @@ class CameraViewModel(
         interactors.setExposureCompensation(value)
     }
 
-    fun setColorFilter(type: ColorFilterType) {
-        val previous = _uiState.value.colorFilter
-        _uiState.update { it.copy(colorFilter = type) }
-        val needsRebind = previous.usesMedia3() != type.usesMedia3() ||
-            (previous == ColorFilterType.NONE) != (type == ColorFilterType.NONE)
-        if (needsRebind) {
-            _uiState.update { it.copy(bindRevision = it.bindRevision + 1) }
-        } else {
-            interactors.setColorFilter(type)
-        }
+    fun setEffect(type: EffectMode) {
+        _uiState.update { it.copy(effect = type) }
+        interactors.setEffect(type)
     }
 
     fun onShutter(previewView: PreviewView) {
@@ -686,7 +694,7 @@ class CameraViewModel(
             val result = interactors.capturePhoto(
                 outputDirectory = directory,
                 lens = _uiState.value.lens,
-                colorFilter = _uiState.value.colorFilter,
+                effect = _uiState.value.effect,
                 motionPhoto = motion
             )
             result.fold(
@@ -848,7 +856,7 @@ class CameraViewModel(
             val result = interactors.capturePhoto(
                 outputDirectory = directory,
                 lens = _uiState.value.lens,
-                colorFilter = _uiState.value.colorFilter,
+                effect = _uiState.value.effect,
                 motionPhoto = false
             )
             result.fold(

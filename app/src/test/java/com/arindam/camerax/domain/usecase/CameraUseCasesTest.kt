@@ -1,7 +1,7 @@
 package com.arindam.camerax.domain.usecase
 
 import com.arindam.camerax.domain.model.CameraLens
-import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.testing.FakeCameraRepository
 import com.arindam.camerax.testing.FakeMediaRepository
 import kotlinx.coroutines.test.runTest
@@ -20,7 +20,7 @@ class CameraUseCasesTest {
         val result = CapturePhoto(camera)(
             outputDirectory = File("out"),
             lens = CameraLens.BACK,
-            colorFilter = ColorFilterType.NONE,
+            effect = EffectMode.NONE,
             motionPhoto = false
         )
         assertEquals(file, result.getOrNull())
