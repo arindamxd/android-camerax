@@ -8,7 +8,9 @@ import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraHost
 import com.arindam.camerax.domain.model.CameraLens
+import com.arindam.camerax.domain.model.CaptureSettings
 import com.arindam.camerax.domain.model.ColorFilterType
+import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.domain.model.ExposurePriority
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.LowLightBoost
@@ -16,7 +18,10 @@ import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
 import com.arindam.camerax.domain.repository.CameraRepository
+import com.arindam.camerax.domain.repository.DeviceFeaturesRepository
 import com.arindam.camerax.domain.repository.MediaRepository
+import com.arindam.camerax.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
@@ -27,14 +32,12 @@ class BindCamera(private val repository: CameraRepository) {
 
 /** Still capture, including motion photo when [motionPhoto] is true. */
 class CapturePhoto(private val repository: CameraRepository) {
-    operator fun invoke(
+    suspend operator fun invoke(
         outputDirectory: File,
         lens: CameraLens,
         colorFilter: ColorFilterType,
-        motionPhoto: Boolean,
-        onSaved: (File) -> Unit,
-        onError: (String) -> Unit
-    ) = repository.capturePhoto(outputDirectory, lens, colorFilter, motionPhoto, onSaved, onError)
+        motionPhoto: Boolean
+    ): Result<File> = repository.capturePhoto(outputDirectory, lens, colorFilter, motionPhoto)
 }
 
 /** Start video. [persistent] keeps the clip across a lens flip when Settings allows it. */
@@ -42,10 +45,8 @@ class StartRecording(private val repository: CameraRepository) {
     operator fun invoke(
         outputDirectory: File,
         muted: Boolean,
-        persistent: Boolean = false,
-        onEvent: (RecordingEvent) -> Unit,
-        onError: (String) -> Unit
-    ): File? = repository.startRecording(outputDirectory, muted, persistent, onEvent, onError)
+        persistent: Boolean = false
+    ): Result<File> = repository.startRecording(outputDirectory, muted, persistent)
 }
 
 /** Pause the active recording. */
@@ -118,6 +119,11 @@ class ObserveLowLightBoost(private val repository: CameraRepository) {
     operator fun invoke(): StateFlow<LowLightBoost> = repository.lowLightBoost
 }
 
+/** Video recording status / finalize events. */
+class ObserveRecording(private val repository: CameraRepository) {
+    operator fun invoke(): SharedFlow<RecordingEvent> = repository.recordingEvents
+}
+
 /** Unbind and drop CameraX handles. */
 class ReleaseCamera(private val repository: CameraRepository) {
     operator fun invoke() = repository.release()
@@ -125,15 +131,43 @@ class ReleaseCamera(private val repository: CameraRepository) {
 
 /** Latest file in the app pictures directory (gallery thumb). */
 class GetLatestMedia(private val repository: MediaRepository) {
-    operator fun invoke(directory: File): File? = repository.latest(directory)
+    operator fun invoke(directory: File = repository.picturesDirectory()): File? =
+        repository.latest(directory)
+}
+
+/** App pictures directory (DCIM is publish-only). */
+class PicturesDirectory(private val repository: MediaRepository) {
+    operator fun invoke(): File = repository.picturesDirectory()
+}
+
+/** Files in the app pictures directory, newest first. */
+class ListMedia(private val repository: MediaRepository) {
+    operator fun invoke(directory: File = repository.picturesDirectory()): List<File> =
+        repository.list(directory)
+}
+
+/** Delete a capture from the app pictures directory. */
+class DeleteMedia(private val repository: MediaRepository) {
+    operator fun invoke(file: File): Boolean = repository.delete(file)
 }
 
 /** Horizontal sweep stitch for [com.arindam.camerax.domain.model.CameraMode.PANORAMA]. */
 class StitchPanorama(private val repository: MediaRepository) {
-    operator fun invoke(frames: List<File>, outputDirectory: File): File = repository.stitchPanorama(frames, outputDirectory)
+    operator fun invoke(frames: List<File>, outputDirectory: File): Result<File> =
+        repository.stitchPanorama(frames, outputDirectory)
 }
 
 /** Copy into DCIM/CameraX so the system gallery lists the capture. */
 class PublishMedia(private val repository: MediaRepository) {
-    operator fun invoke(file: File) = repository.publish(file)
+    operator fun invoke(file: File): Result<Unit> = repository.publish(file)
+}
+
+/** Bind flags from Settings. */
+class LoadCaptureSettings(private val repository: SettingsRepository) {
+    operator fun invoke(): CaptureSettings = repository.loadCaptureSettings()
+}
+
+/** CameraX capability probe (one provider fetch). */
+class ProbeDeviceFeatures(private val repository: DeviceFeaturesRepository) {
+    suspend operator fun invoke(): DeviceCaptureFeatures = repository.probe()
 }

@@ -1,24 +1,27 @@
 package com.arindam.camerax.ui.home.camera
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.arindam.camerax.di.CameraInteractors
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.arindam.camerax.di.AppContainer
 
 /**
- * Builds [CameraViewModel] with [CameraInteractors] from [com.arindam.camerax.di.AppContainer].
+ * Builds [CameraViewModel] with [com.arindam.camerax.di.CameraInteractors] from [AppContainer].
  */
 class CameraViewModelFactory(
-    private val interactors: CameraInteractors,
-    context: Context
+    private val container: AppContainer
 ) : ViewModelProvider.Factory {
-    private val appContext = context.applicationContext
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(CameraViewModel::class.java)) {
-            return CameraViewModel(interactors, appContext) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+        if (!modelClass.isAssignableFrom(CameraViewModel::class.java)) {
+            throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
-        throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
+        return CameraViewModel(
+            interactors = container.cameraInteractors,
+            savedState = extras.createSavedStateHandle(),
+            dispatchers = container.dispatchers
+        ) as T
     }
 }

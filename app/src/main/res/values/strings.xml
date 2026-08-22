@@ -200,6 +200,9 @@
     <string name="pref_title_version">Version</string>
     <string name="pref_subtitle_version">@string/app_version</string>
 
+    <string name="permission_request_denied">Camera permission denied</string>
+    <string name="permission_request_granted">Camera permission granted</string>
+
     <!-- Links -->
     <string name="link_playstore" translatable="false">https://play.google.com/store/apps/details?id=com.arindam.camerax</string>
     <string name="link_repository" translatable="false">https://github.com/arindamxd/android-camerax</string>

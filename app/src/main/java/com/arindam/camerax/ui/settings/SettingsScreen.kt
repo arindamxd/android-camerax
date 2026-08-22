@@ -42,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,18 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.R
-import com.arindam.camerax.data.camera.SlowMotionOptions
-import com.arindam.camerax.data.camera.isFullSensorRawSupported
-import com.arindam.camerax.data.camera.isLowLightBoostSupported
-import com.arindam.camerax.data.camera.isRawCaptureSupported
-import com.arindam.camerax.data.camera.isUltraHdrSupported
-import com.arindam.camerax.data.camera.isVideoFps60Supported
-import com.arindam.camerax.data.camera.isVideoStabilizationSupported
-import com.arindam.camerax.data.camera.slowMotionOptions
-import com.arindam.camerax.data.camera.supportedVideoHdrRanges
-import com.arindam.camerax.data.camera.supportedVideoQualities
-import com.arindam.camerax.domain.model.VideoHdrRange
-import com.arindam.camerax.domain.model.VideoQuality
+import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
@@ -80,54 +68,28 @@ import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.util.theme.NightMode
 import java.util.Locale
 
-/** Renders [settingsSections]. Camera prefs apply on [com.arindam.camerax.ui.home.camera.CameraFragment] resume. */
+/** Renders [settingsSections]. Camera prefs apply through [LoadCaptureSettings] on camera resume. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    features: DeviceCaptureFeatures = DeviceCaptureFeatures(),
+    versionLabel: String = ""
+) {
     val context = LocalContext.current
     val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
-    var videoQualities by remember { mutableStateOf<List<VideoQuality>>(VideoQuality.entries) }
-    var videoHdrRanges by remember { mutableStateOf(listOf(VideoHdrRange.SDR)) }
-    var videoStabilizationAvailable by remember { mutableStateOf(true) }
-    var slowMotion by remember { mutableStateOf(SlowMotionOptions()) }
-    var ultraHdrAvailable by remember { mutableStateOf(false) }
-    var rawCaptureAvailable by remember { mutableStateOf(false) }
-    var fullSensorRawAvailable by remember { mutableStateOf(false) }
-    var lowLightBoostAvailable by remember { mutableStateOf(false) }
-    var videoFps60Available by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        videoQualities = supportedVideoQualities(context)
-        videoHdrRanges = supportedVideoHdrRanges(context)
-        videoStabilizationAvailable = isVideoStabilizationSupported(context)
-        slowMotion = slowMotionOptions(context)
-        ultraHdrAvailable = isUltraHdrSupported(context)
-        rawCaptureAvailable = isRawCaptureSupported(context)
-        fullSensorRawAvailable = isFullSensorRawSupported(context)
-        lowLightBoostAvailable = isLowLightBoostSupported(context)
-        videoFps60Available = isVideoFps60Supported(context)
-    }
-    val sections = remember(
-        videoQualities,
-        videoHdrRanges,
-        videoStabilizationAvailable,
-        slowMotion,
-        ultraHdrAvailable,
-        rawCaptureAvailable,
-        fullSensorRawAvailable,
-        lowLightBoostAvailable,
-        videoFps60Available
-    ) {
+    val sections = remember(features, versionLabel) {
         settingsSections(
-            versionLabel = context.getString(R.string.app_version),
-            videoQualities = videoQualities,
-            videoHdrRanges = videoHdrRanges,
-            videoStabilizationAvailable = videoStabilizationAvailable,
-            slowMotion = slowMotion,
-            ultraHdrAvailable = ultraHdrAvailable,
-            rawCaptureAvailable = rawCaptureAvailable,
-            fullSensorRawAvailable = fullSensorRawAvailable,
-            lowLightBoostAvailable = lowLightBoostAvailable,
-            videoFps60Available = videoFps60Available
+            versionLabel = versionLabel.ifEmpty { context.getString(R.string.app_version) },
+            videoQualities = features.videoQualities,
+            videoHdrRanges = features.videoHdrRanges,
+            videoStabilizationAvailable = features.videoStabilization,
+            slowMotion = features.slowMotion,
+            ultraHdrAvailable = features.ultraHdr,
+            rawCaptureAvailable = features.rawCapture,
+            fullSensorRawAvailable = features.fullSensorRaw,
+            lowLightBoostAvailable = features.lowLightBoost,
+            videoFps60Available = features.videoFps60
         )
     }
     val scheme = MaterialTheme.colorScheme

@@ -23,7 +23,7 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.arindam.camerax.R
-import com.arindam.camerax.data.camera.SlowMotionOptions
+import com.arindam.camerax.domain.model.SlowMotionOptions
 import com.arindam.camerax.domain.model.CaptureAspect
 import com.arindam.camerax.domain.model.SlowMotionRate
 import com.arindam.camerax.domain.model.VideoHdrRange
@@ -31,7 +31,7 @@ import com.arindam.camerax.domain.model.VideoQuality
 
 /**
  * Compose Settings catalog. Append a [SettingsRow] in [settingsSections] — camera reads the
- * same preference keys in [com.arindam.camerax.ui.home.camera.CameraFragment] on resume.
+ * same preference keys via [com.arindam.camerax.domain.usecase.LoadCaptureSettings] on resume.
  */
 fun settingsSections(
     versionLabel: String,

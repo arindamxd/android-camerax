@@ -11,6 +11,7 @@ import com.arindam.camerax.domain.model.LowLightBoost
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.RecordingEvent
 import com.arindam.camerax.domain.model.ZoomInfo
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
@@ -22,25 +23,22 @@ interface CameraRepository {
 
     val nightScene: StateFlow<NightScene>
     val lowLightBoost: StateFlow<LowLightBoost>
+    val recordingEvents: SharedFlow<RecordingEvent>
 
     suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult
 
-    fun capturePhoto(
+    suspend fun capturePhoto(
         outputDirectory: File,
         lens: CameraLens,
         colorFilter: ColorFilterType,
-        motionPhoto: Boolean,
-        onSaved: (File) -> Unit,
-        onError: (String) -> Unit
-    )
+        motionPhoto: Boolean
+    ): Result<File>
 
     fun startRecording(
         outputDirectory: File,
         muted: Boolean,
-        persistent: Boolean = false,
-        onEvent: (RecordingEvent) -> Unit,
-        onError: (String) -> Unit
-    ): File?
+        persistent: Boolean = false
+    ): Result<File>
 
     fun pauseRecording()
     fun resumeRecording()
@@ -62,7 +60,10 @@ interface CameraRepository {
  * out of still-processing.
  */
 interface MediaRepository {
-    fun latest(directory: File): File?
-    fun stitchPanorama(frames: List<File>, outputDirectory: File): File
-    fun publish(file: File)
+    fun picturesDirectory(): File
+    fun latest(directory: File = picturesDirectory()): File?
+    fun list(directory: File = picturesDirectory()): List<File>
+    fun delete(file: File): Boolean
+    fun stitchPanorama(frames: List<File>, outputDirectory: File): Result<File>
+    fun publish(file: File): Result<Unit>
 }

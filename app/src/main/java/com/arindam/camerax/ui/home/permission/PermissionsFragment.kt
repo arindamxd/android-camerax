@@ -3,6 +3,7 @@ package com.arindam.camerax.ui.home.permission
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
+import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIONS
 
@@ -24,9 +25,9 @@ class PermissionsFragment : BaseFragmentCompose() {
             if (it.key in REQUIRED_PERMISSIONS && !it.value) permissionGranted = false
         }
         if (!permissionGranted) {
-            showToast("Permission request denied")
+            showToast(R.string.permission_request_denied)
         } else {
-            showToast("Permission request granted")
+            showToast(R.string.permission_request_granted)
             // Take the user to the success fragment when permission is granted
             navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
         }

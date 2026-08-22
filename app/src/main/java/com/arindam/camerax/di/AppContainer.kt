@@ -1,17 +1,27 @@
 package com.arindam.camerax.di
 
 import android.content.Context
+import com.arindam.camerax.data.camera.CameraDeviceFeaturesRepository
 import com.arindam.camerax.data.camera.CameraSession
 import com.arindam.camerax.data.media.FileMediaRepository
+import com.arindam.camerax.data.settings.PreferenceSettingsRepository
 import com.arindam.camerax.domain.repository.CameraRepository
+import com.arindam.camerax.domain.repository.DeviceFeaturesRepository
 import com.arindam.camerax.domain.repository.MediaRepository
+import com.arindam.camerax.domain.repository.SettingsRepository
 import com.arindam.camerax.domain.usecase.BindCamera
 import com.arindam.camerax.domain.usecase.CapturePhoto
+import com.arindam.camerax.domain.usecase.DeleteMedia
 import com.arindam.camerax.domain.usecase.GetLatestMedia
+import com.arindam.camerax.domain.usecase.ListMedia
+import com.arindam.camerax.domain.usecase.LoadCaptureSettings
 import com.arindam.camerax.domain.usecase.MuteRecording
 import com.arindam.camerax.domain.usecase.ObserveLowLightBoost
 import com.arindam.camerax.domain.usecase.ObserveNightScene
+import com.arindam.camerax.domain.usecase.ObserveRecording
 import com.arindam.camerax.domain.usecase.PauseRecording
+import com.arindam.camerax.domain.usecase.PicturesDirectory
+import com.arindam.camerax.domain.usecase.ProbeDeviceFeatures
 import com.arindam.camerax.domain.usecase.PublishMedia
 import com.arindam.camerax.domain.usecase.ReleaseCamera
 import com.arindam.camerax.domain.usecase.ResumeRecording
@@ -33,30 +43,17 @@ import com.arindam.camerax.domain.usecase.TapToFocus
  */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
+    val dispatchers = AppDispatchers()
     val cameraRepository: CameraRepository = CameraSession(appContext)
     val mediaRepository: MediaRepository = FileMediaRepository(appContext)
-    val cameraInteractors = CameraInteractors(
-        bindCamera = BindCamera(cameraRepository),
-        capturePhoto = CapturePhoto(cameraRepository),
-        startRecording = StartRecording(cameraRepository),
-        pauseRecording = PauseRecording(cameraRepository),
-        resumeRecording = ResumeRecording(cameraRepository),
-        stopRecording = StopRecording(cameraRepository),
-        muteRecording = MuteRecording(cameraRepository),
-        setFlash = SetFlash(cameraRepository),
-        setLowLightBoost = SetLowLightBoost(cameraRepository),
-        setZoom = SetZoom(cameraRepository),
-        tapToFocus = TapToFocus(cameraRepository),
-        setColorFilter = SetColorFilter(cameraRepository),
-        setTargetRotation = SetTargetRotation(cameraRepository),
-        setExposure = SetExposure(cameraRepository),
-        setExposureCompensation = SetExposureCompensation(cameraRepository),
-        observeNightScene = ObserveNightScene(cameraRepository),
-        observeLowLightBoost = ObserveLowLightBoost(cameraRepository),
-        releaseCamera = ReleaseCamera(cameraRepository),
-        getLatestMedia = GetLatestMedia(mediaRepository),
-        stitchPanorama = StitchPanorama(mediaRepository),
-        publishMedia = PublishMedia(mediaRepository)
+    val settingsRepository: SettingsRepository = PreferenceSettingsRepository(appContext)
+    val deviceFeaturesRepository: DeviceFeaturesRepository =
+        CameraDeviceFeaturesRepository(appContext)
+    val cameraInteractors = cameraInteractors(
+        cameraRepository,
+        mediaRepository,
+        settingsRepository,
+        deviceFeaturesRepository
     )
 }
 
@@ -81,8 +78,49 @@ data class CameraInteractors(
     val setExposureCompensation: SetExposureCompensation,
     val observeNightScene: ObserveNightScene,
     val observeLowLightBoost: ObserveLowLightBoost,
+    val observeRecording: ObserveRecording,
     val releaseCamera: ReleaseCamera,
     val getLatestMedia: GetLatestMedia,
+    val listMedia: ListMedia,
+    val deleteMedia: DeleteMedia,
     val stitchPanorama: StitchPanorama,
-    val publishMedia: PublishMedia
+    val publishMedia: PublishMedia,
+    val picturesDirectory: PicturesDirectory,
+    val loadCaptureSettings: LoadCaptureSettings,
+    val probeDeviceFeatures: ProbeDeviceFeatures
+)
+
+fun cameraInteractors(
+    cameraRepository: CameraRepository,
+    mediaRepository: MediaRepository,
+    settingsRepository: SettingsRepository,
+    deviceFeaturesRepository: DeviceFeaturesRepository
+) = CameraInteractors(
+    bindCamera = BindCamera(cameraRepository),
+    capturePhoto = CapturePhoto(cameraRepository),
+    startRecording = StartRecording(cameraRepository),
+    pauseRecording = PauseRecording(cameraRepository),
+    resumeRecording = ResumeRecording(cameraRepository),
+    stopRecording = StopRecording(cameraRepository),
+    muteRecording = MuteRecording(cameraRepository),
+    setFlash = SetFlash(cameraRepository),
+    setLowLightBoost = SetLowLightBoost(cameraRepository),
+    setZoom = SetZoom(cameraRepository),
+    tapToFocus = TapToFocus(cameraRepository),
+    setColorFilter = SetColorFilter(cameraRepository),
+    setTargetRotation = SetTargetRotation(cameraRepository),
+    setExposure = SetExposure(cameraRepository),
+    setExposureCompensation = SetExposureCompensation(cameraRepository),
+    observeNightScene = ObserveNightScene(cameraRepository),
+    observeLowLightBoost = ObserveLowLightBoost(cameraRepository),
+    observeRecording = ObserveRecording(cameraRepository),
+    releaseCamera = ReleaseCamera(cameraRepository),
+    getLatestMedia = GetLatestMedia(mediaRepository),
+    listMedia = ListMedia(mediaRepository),
+    deleteMedia = DeleteMedia(mediaRepository),
+    stitchPanorama = StitchPanorama(mediaRepository),
+    publishMedia = PublishMedia(mediaRepository),
+    picturesDirectory = PicturesDirectory(mediaRepository),
+    loadCaptureSettings = LoadCaptureSettings(settingsRepository),
+    probeDeviceFeatures = ProbeDeviceFeatures(deviceFeaturesRepository)
 )

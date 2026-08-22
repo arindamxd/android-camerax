@@ -228,5 +228,45 @@ sealed interface RecordingEvent {
     data class Finalized(val success: Boolean) : RecordingEvent
 }
 
+/** High-speed capture options for Slo-mo. Empty lists means the device cannot do it. */
+data class SlowMotionOptions(
+    val qualities: List<VideoQuality> = emptyList(),
+    val frameRates: List<Int> = emptyList()
+) {
+    val available: Boolean get() = qualities.isNotEmpty() && frameRates.isNotEmpty()
+}
+
+/** Settings that rebind or change capture behavior. Loaded from app preferences. */
+data class CaptureSettings(
+    val confirmEnabled: Boolean = false,
+    val aspect: CaptureAspect = CaptureAspect.FULL,
+    val videoQuality: VideoQuality = VideoQuality.FHD,
+    val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
+    val videoStabilization: Boolean = true,
+    val slowMotionQuality: VideoQuality = VideoQuality.FHD,
+    val slowMotionRate: SlowMotionRate = SlowMotionRate.AUTO,
+    val ultraHdr: Boolean = true,
+    val rawCapture: Boolean = false,
+    val rawFullSensor: Boolean = false,
+    val flipWhileRecording: Boolean = false,
+    val recordMuted: Boolean = false,
+    val lowLightBoost: Boolean = true,
+    val videoFps60: Boolean = false
+)
+
+/** Device CameraX capabilities. Probed once per Settings open / camera start. */
+data class DeviceCaptureFeatures(
+    val slowMotion: SlowMotionOptions = SlowMotionOptions(),
+    val concurrent: Boolean = false,
+    val videoQualities: List<VideoQuality> = VideoQuality.entries,
+    val videoHdrRanges: List<VideoHdrRange> = listOf(VideoHdrRange.SDR),
+    val videoStabilization: Boolean = false,
+    val ultraHdr: Boolean = false,
+    val rawCapture: Boolean = false,
+    val fullSensorRaw: Boolean = false,
+    val lowLightBoost: Boolean = false,
+    val videoFps60: Boolean = false
+)
+
 /** Opaque preview/lifecycle handle. Data layer provides the CameraX implementation. */
 interface CameraHost

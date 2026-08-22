@@ -55,7 +55,6 @@ import java.io.File
  */
 @Composable
 fun CameraScreen(
-    outputDirectory: File?,
     onGalleryClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
     onExternalCaptureReady: (File) -> Unit,
@@ -84,9 +83,6 @@ fun CameraScreen(
         }
     }
 
-    LaunchedEffect(outputDirectory) {
-        outputDirectory?.let { viewModel.setOutputDirectory(it) }
-    }
     LaunchedEffect(
         state.bindRevision,
         state.lens,

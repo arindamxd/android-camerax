@@ -79,9 +79,13 @@ import com.arindam.camerax.domain.model.usesMedia3
 import com.arindam.camerax.domain.repository.CameraRepository
 import com.arindam.camerax.util.commons.Constants
 import com.arindam.camerax.util.log.Logger
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -118,6 +122,8 @@ class CameraSession(private val context: Context) : CameraRepository {
     override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
     private val _lowLightBoost = MutableStateFlow(LowLightBoost.OFF)
     override val lowLightBoost: StateFlow<LowLightBoost> = _lowLightBoost.asStateFlow()
+    private val _recordingEvents = MutableSharedFlow<RecordingEvent>(extraBufferCapacity = 16)
+    override val recordingEvents: SharedFlow<RecordingEvent> = _recordingEvents.asSharedFlow()
     private var lowLightBoostLiveData: LiveData<Int>? = null
     private val lowLightBoostObserver = Observer<Int> { value ->
         _lowLightBoost.value = when (value) {
@@ -314,32 +320,47 @@ class CameraSession(private val context: Context) : CameraRepository {
         )
     }
 
-    override fun capturePhoto(
+    override suspend fun capturePhoto(
         outputDirectory: File,
         lens: CameraLens,
         colorFilter: ColorFilterType,
-        motionPhoto: Boolean,
-        onSaved: (File) -> Unit,
-        onError: (String) -> Unit
-    ) {
+        motionPhoto: Boolean
+    ): Result<File> = suspendCancellableCoroutine { continuation ->
+        val onSaved: (File) -> Unit = { file ->
+            if (continuation.isActive) continuation.resume(Result.success(file))
+        }
+        val onError: (String) -> Unit = { message ->
+            if (continuation.isActive) {
+                continuation.resume(Result.failure(IllegalStateException(message)))
+            }
+        }
         if (motionPhoto && stillFormat != StillFormat.RAW_JPEG && videoCapture != null) {
             captureMotionPhoto(outputDirectory, lens, colorFilter, onSaved, onError)
-            return
+        } else {
+            takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
         }
-        takeStill(outputDirectory, lens, colorFilter, onSaved, onError)
     }
 
     override fun startRecording(
         outputDirectory: File,
         muted: Boolean,
+        persistent: Boolean
+    ): Result<File> = beginRecording(
+        outputDirectory = outputDirectory,
+        muted = muted,
+        persistent = persistent,
+        emitEvents = true
+    )
+
+    private fun beginRecording(
+        outputDirectory: File,
+        muted: Boolean,
         persistent: Boolean,
-        onEvent: (RecordingEvent) -> Unit,
-        onError: (String) -> Unit
-    ): File? {
-        val capture = videoCapture ?: run {
-            onError("Video capture is not available with this effect")
-            return null
-        }
+        emitEvents: Boolean
+    ): Result<File> {
+        val capture = videoCapture ?: return Result.failure(
+            IllegalStateException("Video capture is not available with this effect")
+        )
         recording?.stop()
         val videoFile = createFile(outputDirectory, Constants.FILE.VIDEO_EXTENSION)
         val output = FileOutputOptions.Builder(videoFile).build()
@@ -364,12 +385,12 @@ class CameraSession(private val context: Context) : CameraRepository {
                     finishMotionIfReady()
                 }
             }
-            onEvent(domain)
+            if (emitEvents) _recordingEvents.tryEmit(domain)
         }
         if (withAudio && muted) {
             recording?.mute(true)
         }
-        return videoFile
+        return Result.success(videoFile)
     }
 
     override fun pauseRecording() {
@@ -669,18 +690,18 @@ class CameraSession(private val context: Context) : CameraRepository {
         motionOnSaved = onSaved
         motionOnError = onError
         motionAwaitingVideo = true
-        val videoFile = startRecording(
+        val videoFile = beginRecording(
             outputDirectory = outputDirectory,
             muted = true,
             persistent = false,
-            onEvent = {},
-            onError = { message ->
-                motionAwaitingVideo = false
-                motionVideo = null
-                Logger.warning(TAG, "Motion video failed: $message")
-                finishMotionIfReady()
-            }
-        )
+            emitEvents = false
+        ).getOrElse { error ->
+            motionAwaitingVideo = false
+            motionVideo = null
+            Logger.warning(TAG, "Motion video failed: ${error.message}")
+            finishMotionIfReady()
+            null
+        }
         if (videoFile == null) {
             motionAwaitingVideo = false
             takeStill(outputDirectory, lens, colorFilter, onSaved, onError)

@@ -21,7 +21,7 @@ Do not construct `CameraSession` from the UI. Keep use cases; do not collapse to
 | Bind / capture / zoom / flash / AE | `CameraViewModel` → `domain/usecase` → `CameraRepository` → `data/camera/CameraSession.kt` |
 | Live-feed chrome (header, shutter, zoom) | `ui/home/camera/CameraChrome.kt` |
 | Mode pager physics | `ui/home/camera/CameraPager.kt` |
-| Settings row | `settingsSections()` in `ui/settings/SettingsCatalog.kt` |
+| Settings row | `settingsSections()` in `ui/settings/SettingsCatalog.kt`; capabilities in `SettingsViewModel` |
 | Theme (Light/Dark/System) | `util/theme/NightMode.kt` + `SettingsActivity` |
 | Motion Photo mux / gallery play | `data/camera/MotionPhotoMuxer.kt` |
 | Panorama stitch | `data/camera/PanoramaStitcher.kt` |

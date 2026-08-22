@@ -2,8 +2,6 @@
 
 package com.arindam.camerax.ui.home.gallery
 
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.widget.VideoView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -42,13 +40,11 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +64,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.data.media.mediaFileInfo
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.home.camera.formatRecordingTime
 import com.arindam.camerax.ui.theme.AppTheme
@@ -81,16 +78,16 @@ import java.io.File
 /** Full-screen pager over captured files (photos, video, motion, DNG). */
 @Composable
 fun GalleryScreen(
-    dataList: List<File?> = listOf(),
+    items: List<File> = emptyList(),
     navigateBack: () -> Unit,
-    onShareClicked: (Int) -> Unit
+    onShareClicked: (Int) -> Unit,
+    onDelete: (File) -> Unit
 ) {
     val chrome = themedOverlayChrome()
-    val mediaList = rememberSaveable { mutableStateOf(listOf<File?>()) }
-    val pagerState = rememberPagerState(pageCount = { mediaList.value.size })
+    val pagerState = rememberPagerState(pageCount = { items.size })
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var motionPlaying by remember { mutableStateOf(false) }
-    val current = mediaList.value.getOrNull(pagerState.currentPage)
+    val current = items.getOrNull(pagerState.currentPage)
     val isMotion = current != null && MotionPhotoMuxer.isMotionPhoto(current)
     val isVideo = current?.extension?.equals("mp4", ignoreCase = true) == true
     val formatText = if (current?.extension?.equals("dng", ignoreCase = true) == true) {
@@ -102,9 +99,6 @@ fun GalleryScreen(
         current?.let { galleryMetadataLabel(it, formatText) }.orEmpty()
     }
 
-    LaunchedEffect(dataList) {
-        mediaList.value = dataList.toMutableList()
-    }
     LaunchedEffect(pagerState.currentPage) {
         playbackSpeed = 1f
         motionPlaying = false
@@ -116,7 +110,7 @@ fun GalleryScreen(
             .background(chrome.canvas)
     ) {
         GalleryPager(
-            dataList = mediaList,
+            items = items,
             pagerState = pagerState,
             playbackSpeed = playbackSpeed,
             motionPlaying = motionPlaying
@@ -179,10 +173,10 @@ fun GalleryScreen(
                 )
             }
             GalleryFooter(
-                dataList = mediaList,
+                items = items,
                 pagerState = pagerState,
-                navigateBack = navigateBack,
-                onShareClicked = onShareClicked
+                onShareClicked = onShareClicked,
+                onDelete = onDelete
             )
         }
     }
@@ -194,7 +188,8 @@ private fun GalleryScreenPreview() {
     AppTheme {
         GalleryScreen(
             navigateBack = {},
-            onShareClicked = {}
+            onShareClicked = {},
+            onDelete = {}
         )
     }
 }
@@ -248,20 +243,16 @@ private fun GalleryHeader(
 
 @Composable
 private fun GalleryFooter(
-    dataList: MutableState<List<File?>>,
+    items: List<File>,
     pagerState: PagerState,
-    navigateBack: () -> Unit,
-    onShareClicked: (Int) -> Unit
+    onShareClicked: (Int) -> Unit,
+    onDelete: (File) -> Unit
 ) {
     val showDialog = remember { mutableStateOf(false) }
     DeleteDialog(
         show = showDialog.value,
         onConfirmed = {
-            val deletedFile = dataList.value[pagerState.currentPage].also { it?.delete() }
-            dataList.value = dataList.value.filterNot { it == deletedFile }
-
-            // If all photos have been deleted, return to camera
-            if (dataList.value.isEmpty()) navigateBack()
+            items.getOrNull(pagerState.currentPage)?.let(onDelete)
         },
         onDismiss = { showDialog.value = false }
     )
@@ -273,7 +264,7 @@ private fun GalleryFooter(
             .fillMaxWidth()
             .padding(bottom = 12.dp)
     ) {
-        if (dataList.value.isEmpty()) return@Row
+        if (items.isEmpty()) return@Row
         GalleryActionButton(
             icon = R.drawable.ic_share,
             contentDescription = stringResource(R.string.share_button_alt),
@@ -319,7 +310,7 @@ private fun GalleryActionButton(
 
 @Composable
 private fun GalleryPager(
-    dataList: MutableState<List<File?>>,
+    items: List<File>,
     pagerState: PagerState,
     playbackSpeed: Float = 1f,
     motionPlaying: Boolean = false,
@@ -330,7 +321,7 @@ private fun GalleryPager(
         beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize()
     ) { page ->
-        dataList.value.getOrNull(page)?.let { file ->
+        items.getOrNull(page)?.let { file ->
             if (file.extension.lowercase() == "mp4") {
                 GalleryVideo(
                     file = file,
@@ -538,35 +529,8 @@ fun DeleteDialog(
 }
 
 private fun galleryMetadataLabel(file: File, formatText: String?): String {
-    val isVideo = file.extension.equals("mp4", ignoreCase = true)
-    val (width, height, durationNanos) = galleryMediaInfo(file, isVideo)
-    val size = if (width > 0 && height > 0) "$width × $height" else null
-    val duration = durationNanos?.let { formatRecordingTime(it) }
+    val info = mediaFileInfo(file)
+    val size = if (info.width > 0 && info.height > 0) "${info.width} × ${info.height}" else null
+    val duration = info.durationNanos?.let { formatRecordingTime(it) }
     return listOfNotNull(duration, size, formatText).joinToString(" · ")
-}
-
-private fun galleryMediaInfo(file: File, video: Boolean): Triple<Int, Int, Long?> {
-    if (video) {
-        val retriever = MediaMetadataRetriever()
-        return try {
-            retriever.setDataSource(file.absolutePath)
-            val width = retriever.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
-            )?.toIntOrNull() ?: 0
-            val height = retriever.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
-            )?.toIntOrNull() ?: 0
-            val durationMs = retriever.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_DURATION
-            )?.toLongOrNull() ?: 0L
-            Triple(width, height, durationMs * 1_000_000L)
-        } catch (_: Exception) {
-            Triple(0, 0, null)
-        } finally {
-            retriever.release()
-        }
-    }
-    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(file.absolutePath, options)
-    return Triple(options.outWidth, options.outHeight, null)
 }

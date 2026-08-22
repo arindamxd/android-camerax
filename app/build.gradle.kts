@@ -97,24 +97,6 @@ android {
             useLegacyPackaging = false
         }
     }
-
-    // Set the source of tests to same for both Unit and Instrumented tests
-    /*sourceSets {
-        String sharedTestDir = 'src/test/java'
-        test {
-            java.srcDir sharedTestDir
-        }
-        androidTest {
-            java.srcDir sharedTestDir
-        }
-    }*/
-
-    // Necessary for Robolectric (Unit tests)
-    /*testOptions {
-        unitTests {
-            includeAndroidResources = true
-        }
-    }*/
 }
 
 dependencies {
@@ -123,8 +105,6 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.localbroadcastmanager)
     implementation(libs.androidx.preference.ktx)
 
     // Lifecycle and LiveData
@@ -151,17 +131,11 @@ dependencies {
     implementation(libs.androidx.media3.effect)
     implementation(libs.androidx.media3.common)
 
-    // EXIF
-    implementation(libs.androidx.exifinterface)
-
     // Coil
     implementation(libs.coil.compose)
 
     // Material Design
     implementation(libs.material)
-
-    // Lottie
-    implementation(libs.lottie)
 
     // Firebase SDK
     implementation(libs.firebase.analytics.ktx)
@@ -202,16 +176,10 @@ dependencies {
 
     // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
-    // Optional - Integration with ViewModels
-    //implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
-    // Optional - Integration with LiveData
-    //implementation("androidx.compose.runtime:runtime-livedata")
-    // Optional - Integration with RxJava
-    //implementation("androidx.compose.runtime:runtime-rxjava2")
-
-    implementation(libs.androidx.paging.compose)
 
     // Unit testing
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.rules)
     testImplementation(libs.androidx.runner)
