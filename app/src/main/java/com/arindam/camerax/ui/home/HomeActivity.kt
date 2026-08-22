@@ -12,7 +12,6 @@ import com.arindam.camerax.util.commons.Constants.PERMISSIONS.REQUIRED_PERMISSIO
 /**
  * Presentation: main entry. Single-activity host; camera, gallery, and permissions are fragments.
  */
-
 class HomeActivity : BaseActivity<ActivityHomeBinding>() {
 
     override fun provideBinding(): ActivityHomeBinding = ActivityHomeBinding.inflate(layoutInflater)

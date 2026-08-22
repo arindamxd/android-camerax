@@ -92,7 +92,7 @@ Full-screen overlays with a back button (Gallery, Confirm / review, Permissions 
 - Share / capture results: `ClipData` + `FLAG_GRANT_READ_URI_PERMISSION`. IMAGE_CAPTURE writes `EXTRA_OUTPUT` or returns a thumbnail / FileProvider URI (FileProvider for motion photos and HEIC).
 - Background recording: start `RecordingForegroundService`; stop recording on `ON_STOP`.
 - `android.hardware.microphone` is optional.
-- Release: R8 minify + resource shrink, native `SYMBOL_TABLE` for Play Console, Crashlytics mapping when `app/google-services.json` is present. Firebase Analytics collection stays off (`firebase_analytics_collection_enabled=false`). Backup is off (`allowBackup=false` + data-extraction rules). Debug builds enable StrictMode (log only). See [RELEASE.md](RELEASE.md) for the Play Store checklist.
+- Release: R8 minify + resource shrink, native `SYMBOL_TABLE` for Play Console, Crashlytics mapping when `app/google-services.json` is present. Firebase Analytics collection stays off (`firebase_analytics_collection_enabled=false`). Backup is off (`allowBackup=false` + data-extraction rules). Public types should carry layer-tagged KDoc (`App:` / `DI:` / `Domain:` / `Data:` / `Presentation:` / `Util:`). Debug builds enable StrictMode (log only). See [RELEASE.md](RELEASE.md) for the Play Store checklist.
 
 ## Do not
 

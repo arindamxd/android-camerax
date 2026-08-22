@@ -104,10 +104,10 @@ Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java
 
 ## Stack
 
-- Kotlin **2.4**, Jetpack Compose, CameraX **1.6.1**
+- Kotlin **2.4.10**, Jetpack Compose, CameraX **1.6.1**
 - minSdk **23**, target/compileSdk **37**
 - Navigation, ViewModel, Coil
-- Optional Firebase Analytics / Crashlytics when `app/google-services.json` is present
+- Optional Firebase / Crashlytics when `app/google-services.json` is present (Analytics collection stays off in the manifest)
 - Release: R8 + resource shrinking, native debug symbols (`SYMBOL_TABLE`) for Play Console
 
 ## Build

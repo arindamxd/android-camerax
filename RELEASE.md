@@ -70,3 +70,21 @@ Upload all three to Play Console for deobfuscation and native crash symbolicatio
 - Keep `ui → domain ← data`; do not construct `CameraSession` from UI
 - Glass chrome height stays at **`ChromeControlSize` (44dp)**; overlay headers use Settings spacing (`safeDrawing` + 20dp / 8dp) — see [AGENTS.md](AGENTS.md)
 - See [AGENTS.md](AGENTS.md) for CameraX bind/rebind rules
+
+## Last local verification (2026-08-22)
+
+Automated checks already green on this machine for **1.7.0 / 10700**:
+
+- [x] `./gradlew testDebugUnitTest` — 102 tests, 0 failures
+- [x] `./gradlew lintDebug` — completed (warnings only; no fatal lint)
+- [x] `./gradlew assembleRelease` — signed release APK produced
+- [x] Privacy policy URL returns HTTP 200
+- [x] `assetlinks.json` includes `com.arindam.camerax`
+- [x] Docs name types that exist in code (`AppDispatchers`, `ChromeControlSize`, `CameraInteractors`, `CameraSession`)
+
+Still required before Play upload (manual):
+
+- [ ] Device smoke test
+- [ ] Confirm `assetlinks.json` SHA-256 matches Play **App signing** key
+- [ ] Play Data safety + privacy policy disclose Crashlytics if it ships
+- [ ] `./gradlew bundleRelease` and upload AAB + R8 mapping + native symbols

@@ -25,7 +25,6 @@ import com.arindam.camerax.util.theme.applyEdgeToEdgeBars
 /**
  * Created by Arindam Karmakar on 12/09/23.
  */
-
 private val lightColors = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,

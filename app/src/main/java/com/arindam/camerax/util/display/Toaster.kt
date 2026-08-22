@@ -8,7 +8,6 @@ import com.google.android.material.snackbar.Snackbar
 /**
  * Util: short Toast / Snackbar helpers for permission and error feedback from Activities.
  */
-
 object Toaster {
 
     /**

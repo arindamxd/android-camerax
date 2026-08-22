@@ -134,7 +134,6 @@ import java.io.File
  * Overlay chrome (header, HUD, zoom, footer). Visibility flags come from
  * [com.arindam.camerax.domain.model.CameraModeProfile] via [CameraUiState].
  */
-
 @Composable
 fun CameraHeader(
     state: CameraUiState,
