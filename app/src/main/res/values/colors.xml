@@ -1,46 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="colorPrimary">#00695C</color>
-    <color name="colorPrimaryVariant">#004D40</color>
-    <color name="colorSecondary">#1DE9B6</color>
-    <color name="colorSecondaryVariant">#00BFA5</color>
+    <!-- Brand — electric mint (modern lift of launcher #51BBA8) -->
+    <color name="colorPrimary">#006B5C</color>
+    <color name="colorPrimaryVariant">#004D42</color>
+    <color name="colorSecondary">#00E8BE</color>
+    <color name="colorSecondaryVariant">#00C9A5</color>
+    <color name="colorAccent">#00E8BE</color>
 
-    <color name="colorAccent">#FF4081</color>
+    <!-- Icon state -->
     <color name="icActive">#FFFFFFFF</color>
     <color name="icFocused">#DDFFFFFF</color>
     <color name="icPressed">#AAFFFFFF</color>
 
+    <!-- Neutrals (cool charcoal, not teal-tinted) -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-
-    <!--Color palette-->
     <color name="white_50">#ffffff</color>
+    <color name="black_800">#0E1012</color>
+    <color name="black_900">#070809</color>
 
-    <color name="black_800">#121212</color>
-    <color name="black_900">#000000</color>
+    <!-- Cool slate (surfaces / chrome) -->
+    <color name="blue_50">#f7f9f8</color>
+    <color name="blue_100">#dce5e2</color>
+    <color name="blue_200">#bfc9c6</color>
+    <color name="blue_300">#899390</color>
+    <color name="blue_600">#404947</color>
+    <color name="blue_700">#1a1d21</color>
+    <color name="blue_800">#0e1012</color>
 
-    <color name="blue_50">#eef0f2</color>
-    <color name="blue_100">#d2dbe0</color>
-    <color name="blue_200">#adbbc4</color>
-    <color name="blue_300">#8ca2ae</color>
-    <color name="blue_600">#4a6572</color>
-    <color name="blue_700">#344955</color>
-    <color name="blue_800">#232f34</color>
+    <!-- Accent scale -->
+    <color name="teal_300">#7affe6</color>
+    <color name="teal_400">#3df5d0</color>
+    <color name="teal_500">#00e8be</color>
 
-    <color name="orange_300">#fbd790</color>
-    <color name="orange_400">#f9be64</color>
-    <color name="orange_500">#f9aa33</color>
+    <!-- Legacy aliases → accent -->
+    <color name="orange_300">@color/teal_300</color>
+    <color name="orange_400">@color/teal_400</color>
+    <color name="orange_500">@color/teal_500</color>
 
-    <color name="red_200">#cf7779</color>
-    <color name="red_400">#ff4c5d</color>
+    <!-- Danger / error -->
+    <color name="red_200">#ff8a9a</color>
+    <color name="red_400">#ff375f</color>
 
+    <!-- Alpha overlays -->
     <color name="white_50_alpha_060">#99ffffff</color>
-
-    <color name="blue_50_alpha_060">#99eef0f2</color>
-
+    <color name="blue_50_alpha_060">#99f7f9f8</color>
     <color name="black_900_alpha_020">#33000000</color>
-    <color name="black_900_alpha_087">#de000000</color>
     <color name="black_900_alpha_060">#99000000</color>
+    <color name="black_900_alpha_087">#de000000</color>
 
 </resources>

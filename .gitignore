@@ -62,3 +62,9 @@ fastlane/readme.md
 
 .DS_Store
 *.DS_Store
+
+# Kotlin incremental / compiler sessions
+.kotlin/
+
+# Local R8 / agent analysis scratch
+tmp/

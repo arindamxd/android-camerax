@@ -1,90 +1,179 @@
-# Android CameraX
+# CameraX
 
-CameraX aims to demonstrate how to use CameraX APIs written in Kotlin.
+A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live ColorMatrix effects (`ImageAnalysis`), and Dual preview, with a Compose UI.
 
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" 
+[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
 alt="Get it on Google Play" height="90">](https://play.google.com/store/apps/details?id=com.arindam.camerax)
 
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://opensource.org/licenses/Apache-2.0)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## Overview
+- [Project page](https://arindamxd.github.io/projects/camerax)
+- [Privacy policy](https://arindamxd.github.io/projects/camerax/privacy-policy)
+- [Author](https://arindamxd.github.io/)
 
-CameraX is a Jet-pack support library, built to help you make camera app development easier. It 
-provides a consistent and easy-to-use API surface that works across most Android devices, with 
-backward-compatibility to Android 5.0 (API level 21).
+## What this project is
 
-- Ease of use
-- Consistency across devices
-- New camera experiences
+The **app** is named CameraX. It is built with the Jetpack **CameraX library** (lifecycle-aware, Camera2 under the hood, API 21+). This repo is the app, not the library — you can install it, tap through it, and copy patterns from it.
 
-While it leverages the capabilities of camera2, it uses a simpler, uses a case-based approach that 
-is lifecycle-aware. It also resolves device compatibility issues for you so that you don't have to 
-include device-specific code in your codebase. These features reduce the amount of code you need 
-to write when adding camera capabilities to your app.
+| In the app | What it demonstrates |
+| --- | --- |
+| **Photo** | Still capture with flash, timer, grid, pinch zoom, tap-to-focus |
+| **Video** | Record with audio, pause / resume, mute, 60 fps when listed, `.mp4` in gallery |
+| **Slo-mo** | High-speed `Preview` + `VideoCapture` when the device lists SDR high-speed qualities |
+| **Effects** | Live ColorMatrix effects on `ImageAnalysis` (None, Grayscale, Invert, Sepia, Cool, Warm, Vivid) |
+| **Pano** | Horizontal sweep stitch |
+| **Dual** | Concurrent front + back preview (`availableConcurrentCameraInfos`) |
 
-Lastly, CameraX enables developers to leverage the same camera experiences and features that 
-pre-installed camera apps provide, with as little as two lines of code. CameraX Extensions are 
-optional add-ons that enable you to add effects like Portrait, HDR, Night, and Beauty within your 
-application on supported devices.
+Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video together, the camera falls back (drop video, stills only) instead of crashing. Dual falls back to concurrent preview-only if stills cannot bind.
+
+## Try it
+
+1. Grant **camera** and **microphone**.
+2. Swipe **Photo / Video / Slo-mo / Effects / Pano / Dual** at the bottom (Slo-mo and Dual hide when unsupported). Quick controls on the live feed change with the selected mode; the gear opens full Settings.
+3. Photo shutter is a white disc; video is red and becomes a stop square while recording.
+4. In **Effects**, pick None / Grayscale / Invert / Sepia / Cool / Warm / Vivid. The live feed is the processed `ImageAnalysis` frame; switching chips does not rebind.
+5. Open the thumbnail to browse, share, or delete photos and videos.
+
+## Architecture
+
+Single `:app` module, package-level Clean Architecture:
+
+```
+ui  →  domain  ←  data
+```
+
+```mermaid
+flowchart LR
+  CameraScreen --> CameraViewModel
+  CameraViewModel --> UseCases
+  UseCases --> CameraRepository
+  CameraSession --> CameraRepository
+  CameraSession --> ProcessCameraProvider
+  CameraSession --> Preview
+  CameraSession --> ImageCapture
+  CameraSession --> VideoCapture
+  CameraSession --> ImageAnalysis
+  CameraSession --> OverlayEffect
+```
+
+| Layer | Package | Role |
+| --- | --- | --- |
+| Presentation | `ui/` | Compose chrome, `CameraViewModel` (UI state, countdown, mode) |
+| Domain | `domain/` | Models, `CameraRepository`, use cases (`CapturePhoto`, `StartRecording`, `BindCamera`, …) |
+| Data | `data/camera/` | `CameraSession` — CameraX implementation of `CameraRepository` |
+| Data | `data/media/` | `FileMediaRepository` — disk + MediaStore on `AppDispatchers.io` |
+| Composition root | `di/AppContainer` | Manual DI + `AppDispatchers`; UI never constructs `CameraSession` |
+
+`CameraFragment` is only a Compose host. Preview is wrapped as `PreviewViewHost` (`CameraHost`) so domain code does not import `PreviewView`.
+
+### Where to look
+
+```
+app/src/main/java/com/arindam/camerax/
+  domain/model/          CameraMode, CameraModeCatalog, bind config
+  domain/repository/     CameraRepository, MediaRepository
+  domain/usecase/        CapturePhoto, StartRecording, BindCamera, …
+  data/camera/           CameraSession, ColorEffectAnalyzer, mappers
+  data/media/            FileMediaRepository, MediaStorePublisher
+  di/                    AppContainer (composition root)
+  ui/home/camera/        CameraScreen, CameraChrome, CameraViewModel
+  ui/home/gallery/       Photo + video pager
+  ui/settings/           SettingsCatalog + SettingsScreen
+  ui/compose/            CameraGlassButton, ChromeActionPill (ChromeControlSize = 44.dp)
+```
+
+Glass chrome controls (back, motion chip, Retake/Done, gallery actions) share **`ChromeControlSize` (44dp)**. Full-screen headers use **20dp** side / **8dp** top padding after `safeDrawing` only — see [AGENTS.md](AGENTS.md#chrome-control-size) and [header padding](AGENTS.md#chrome-screen-insets--header-padding).
+
+## CameraX API map
+
+| Control | API |
+| --- | --- |
+| Viewfinder | `Preview` + `PreviewView` |
+| Photo | `ImageCapture` |
+| Video, pause, mute | `VideoCapture` + `Recorder` + `Recording` |
+| Flash / torch | `ImageCapture.flashMode` + `CameraControl.enableTorch` |
+| Pinch zoom and 0.5 / 1x / 2x chips | `CameraControl.setZoomRatio` / `ZoomState` |
+| Tap to focus | `FocusMeteringAction` |
+| HDR / Night / Portrait / Beauty | `ExtensionsManager` (`ExtensionMode`) |
+| Live color-matrix effects | `ImageAnalysis` + `ColorMatrix` / `ColorMatrixColorFilter` (`ColorEffectAnalyzer`) |
+| Dual preview | `ProcessCameraProvider.bindToLifecycle(List)` + concurrent camera infos |
+| 60 fps video | `SessionConfig` + `GroupableFeature.FPS_60` after `isSessionConfigSupported` |
+
+Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java/com/arindam/camerax/domain/repository/CameraRepository.kt) and [`CameraSession`](app/src/main/java/com/arindam/camerax/data/camera/CameraSession.kt).
+
+## Stack
+
+- Kotlin **2.4.10**, Jetpack Compose, CameraX **1.6.1**
+- minSdk **23**, target/compileSdk **37**
+- Navigation, ViewModel, Coil
+- Optional Firebase / Crashlytics when `app/google-services.json` is present (Analytics collection stays off in the manifest)
+- Release: R8 + resource shrinking, native debug symbols (`SYMBOL_TABLE`) for Play Console
 
 ## Build
 
-To build the app directly from the command line, run:
 ```sh
 ./gradlew assembleDebug
+./gradlew bundleRelease              # Play Store App Bundle (needs signing in local.properties)
+./gradlew printNativeDebugSymbols    # after bundleRelease — prints native-debug-symbols.zip path (or if missing)
 ```
+
+Signing for `bundleRelease` is read from `local.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). Release signing applies to the `release` build type only. Do not commit the keystore.
+
+Open the project in Android Studio and run the `app` configuration on a device or emulator with a camera. Microphone is optional hardware (`android.hardware.microphone` is not required).
 
 ## Test
 
-Unit testing and instrumented device testing share the same code. To test the app using Roboelectric, no device required, run:
 ```sh
-./gradlew test
+./gradlew testDebugUnitTest     # JVM (Robolectric + fakes)
+./gradlew lintDebug             # Android lint (CI runs this)
+./gradlew connectedDebugAndroidTest  # device / emulator via ADB
 ```
 
-To run the same tests in an Android device connected via ADB, run:
-```sh
-./gradlew connectedAndroidTest
-```
+In Android Studio: **Run → Edit Configurations → Add** → `Android JUnit` (Robolectric) or `Android Instrumented Tests`, module `app`, class `com.arindam.camerax.MainInstrumentedTest`.
 
-Alternatively, test running configurations can be added to Android Studio for convenience (and a nice UI). To do that:
-1. Go to: `Run` > `Edit Configurations` > `Add New Configuration`.
-1. For Roboelectric select `Android JUnit`, for connected device select `Android Instrumented Tests`.
-1. Select `app` module and `com.arindam.camerax.MainInstrumentedTest` class.
-1. Optional: Give the run configuration a name, like `test roboelectric` or `test device`
+## Play Store release
 
-### Find this project useful ? :heart:
-> Support it by clicking the :star:   button on the upper right of this page. :v:
+See **[RELEASE.md](RELEASE.md)** for the full checklist (version bump, signing, artifacts, upload).
 
-### TODO
+Quick paths:
 
-> Implement photo editor, live filters and face detection.
-> Add many more features and bug fixes.
+| Artifact | Command / path |
+| --- | --- |
+| AAB | `./gradlew bundleRelease` → `app/build/outputs/bundle/release/` |
+| R8 mapping | `app/build/outputs/mapping/release/mapping.txt` |
+| Native symbols | `./gradlew printNativeDebugSymbols` → `app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip` (upload in Play Console if present; some dependency `.so` files have no symbols) |
 
-### Contact - Let's become friends
+## Threading
 
+Repositories run disk and MediaStore work on `AppDispatchers.io`. ViewModels use `withContext` for metadata, review, and gallery probes. Debug builds enable StrictMode (log-only) to catch main-thread disk access. See [AGENTS.md](AGENTS.md).
+
+## Stretch (not in this app yet)
+
+Full photo editor; catalog-style green-screen (selfie segmentation over the back camera); Scan / ML Kit analysis. Dual is concurrent preview, not that overlay.
+
+## Contributing
+
+Pull requests are welcome. Follow [CONTRIBUTING.md](CONTRIBUTING.md) and target the `development` branch.
+
+### Find this project useful?
+
+Star the repo if it helped you ship a camera feature.
+
+### Contact
+
+- [Author](https://arindamxd.github.io/)
 - [Twitter](https://twitter.com/arindamxd)
-- [Linkedin](https://in.linkedin.com/in/arindamxd)
+- [LinkedIn](https://in.linkedin.com/in/arindamxd)
 - [GitHub](https://github.com/arindamxd)
 
-### License
+## License
 
-```
-   Copyright (C) 2019 Arindam Karmakar, Android Open Source Project
+Copyright 2019-2026 Arindam Karmakar
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
-       http://www.apache.org/licenses/LICENSE-2.0
+## Reference
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-```
-
-### Contributing to Advanced Android Training
-
-All pull requests are welcome, make sure to follow the [contribution guidelines](CONTRIBUTING.md) when you submit pull request.
+CameraX API usage and patterns take reference from the
+[Android camera-samples](https://github.com/android/camera-samples) project.

@@ -1,0 +1,35 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="700.07"
+    android:viewportHeight="700.07">
+
+    <!--
+      Themed-icon alpha mask (system tints it). Same layout as
+      ic_launcher_foreground: body + flash housing, lens ring, aperture, LED.
+      Holes use evenOdd so the lens/LED stay visible instead of flattening
+      into the body. Black fill — white-on-white is invisible on light themes.
+    -->
+    <group
+        android:translateX="210.021"
+        android:translateY="210.021">
+
+        <!-- Lens rim, including the segment that sits above the body -->
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M122.512,35.004c57.992,0 105.01,47.018 105.01,105.01s-47.018,105.01 -105.01,105.01s-105.01,-47.018 -105.01,-105.01S64.52,35.004 122.512,35.004zM122.512,61.257c43.5,0 78.758,35.257 78.758,78.758c0,43.492 -35.257,78.758 -78.758,78.758s-78.758,-35.257 -78.758,-78.758C43.754,96.523 79.011,61.257 122.512,61.257z" />
+
+        <!-- Inner lens disc -->
+        <path
+            android:fillColor="#000000"
+            android:pathData="M122.512,87.51c29,0 52.505,23.514 52.505,52.505s-23.505,52.505 -52.505,52.505c-28.992,0 -52.505,-23.522 -52.505,-52.505S93.52,87.51 122.512,87.51z" />
+
+        <!-- Body + flash housing, with lens well and LED punched out -->
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M201.27,35.004h35.003c4.839,0 8.751,3.92 8.751,8.751v8.751h-52.505v-8.751C192.519,38.925 196.43,35.004 201.27,35.004zM17.502,52.506h245.024c9.661,0 17.502,7.841 17.502,17.502v140.014c0,9.661 -7.841,17.502 -17.502,17.502H17.502C7.841,227.523 0,219.682 0,210.022V70.008C0,60.347 7.841,52.506 17.502,52.506zM122.512,61.257c43.5,0 78.758,35.257 78.758,78.758c0,43.492 -35.257,78.758 -78.758,78.758s-78.758,-35.257 -78.758,-78.758C43.754,96.523 79.011,61.257 122.512,61.257zM249.399,70.008c7.246,0 13.126,5.872 13.126,13.126s-5.881,13.126 -13.126,13.126c-7.246,0 -13.126,-5.872 -13.126,-13.126C236.273,75.88 242.154,70.008 249.399,70.008z" />
+    </group>
+
+</vector>

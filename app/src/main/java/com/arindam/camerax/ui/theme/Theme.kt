@@ -1,29 +1,30 @@
 package com.arindam.camerax.ui.theme
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBars
 
 /**
  * Created by Arindam Karmakar on 12/09/23.
  */
-
 private val lightColors = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
@@ -88,10 +89,16 @@ private val darkColors = darkColorScheme(
     scrim = md_theme_dark_scrim
 )
 
+/**
+ * Material3 theme. Live viewfinder passes [isDarkTheme] true so chrome and system-bar icons
+ * stay dark-canvas / light-tint regardless of Settings Light / Dark / System.
+ */
 @Composable
 fun AppTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
-    isDynamicColor: Boolean = true,
+    // Brand teal from the launcher icon — keep static so wallpaper dynamic color does not override it.
+    isDynamicColor: Boolean = false,
+    applySystemBars: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val dynamicColor = isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -101,29 +108,6 @@ fun AppTheme(
         isDarkTheme -> darkColors
         else -> lightColors
     }
-    val typography = Typography(
-        titleLarge = TextStyle(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 22.sp,
-            lineHeight = 28.sp,
-            letterSpacing = 0.sp
-        ),
-        titleMedium = TextStyle(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            letterSpacing = 0.15.sp
-        ),
-        bodyLarge = TextStyle(
-            fontWeight = FontWeight.Normal,
-            fontFamily = FontFamily.SansSerif,
-            fontStyle = FontStyle.Italic,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            letterSpacing = 0.15.sp,
-            baselineShift = BaselineShift.Subscript
-        )
-    )
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),
         small = RoundedCornerShape(8.dp),
@@ -132,10 +116,82 @@ fun AppTheme(
         extraLarge = RoundedCornerShape(24.dp)
     )
 
+    val view = LocalView.current
+    if (applySystemBars && !view.isInEditMode) {
+        SideEffect {
+            val activity = view.context.findActivity() ?: return@SideEffect
+            activity.applyEdgeToEdgeBars(lightIcons = isDarkTheme)
+            WindowCompat.getInsetsController(activity.window, view).apply {
+                isAppearanceLightStatusBars = !isDarkTheme
+                isAppearanceLightNavigationBars = !isDarkTheme
+            }
+        }
+    }
+
     MaterialTheme(
         colorScheme = colors,
-        typography = typography,
+        typography = CameraTypography,
         shapes = shapes,
         content = content
     )
+}
+
+/** Glass chrome over photos / confirm; follows Light / Dark unlike live viewfinder tokens. */
+data class ThemedOverlayChrome(
+    val canvas: Color,
+    val glass: Color,
+    val stroke: Color,
+    val onGlass: Color,
+    val muted: Color,
+    val scrim: Color,
+    val chipIdle: Color,
+    /** Brand accent for this theme (electric mint on dark, deep teal on light). */
+    val accent: Color,
+    /** Content on filled [accent] (black on mint, white on deep teal). */
+    val onAccent: Color
+)
+
+/** Theme-aware brand accent for Settings / Gallery / Tools (not live viewfinder). */
+@Composable
+fun cameraAccent(): Color = themedOverlayChrome().accent
+
+/** Content color for filled [cameraAccent] surfaces. */
+@Composable
+fun cameraOnAccent(): Color = themedOverlayChrome().onAccent
+
+@Composable
+fun themedOverlayChrome(): ThemedOverlayChrome {
+    val scheme = MaterialTheme.colorScheme
+    val dark = scheme.background.luminance() < 0.5f
+    return if (dark) {
+        ThemedOverlayChrome(
+            canvas = Color.Black,
+            glass = CameraGlassStrong,
+            stroke = Color.White.copy(alpha = 0.14f),
+            onGlass = CameraOnGlass,
+            muted = CameraOnGlassMuted,
+            scrim = Color.Black,
+            chipIdle = Color.White.copy(alpha = 0.08f),
+            accent = CameraAccent,
+            onAccent = CameraOnAccent
+        )
+    } else {
+        ThemedOverlayChrome(
+            canvas = scheme.background,
+            glass = Color.White.copy(alpha = 0.82f),
+            stroke = Color.Black.copy(alpha = 0.12f),
+            onGlass = scheme.onBackground,
+            muted = scheme.onBackground.copy(alpha = 0.55f),
+            scrim = Color.White,
+            chipIdle = Color.Black.copy(alpha = 0.06f),
+            accent = CameraAccentLight,
+            onAccent = CameraOnAccentLight
+        )
+    }
+}
+
+internal tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

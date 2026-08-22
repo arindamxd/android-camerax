@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!--Components-->
-
+    <!-- Widgets -->
     <style name="Widget.CameraX.NavigationView" parent="Widget.MaterialComponents.NavigationView">
-        <!--Remove any scrim insets applied by NavigationView for system bars-->
+        <!-- Remove NavigationView system-bar scrim insets -->
         <item name="insetForeground">@android:color/transparent</item>
-        <!--Set the background color of NavigationView-->
         <item name="android:background">@android:color/transparent</item>
         <item name="elevation">0dp</item>
         <item name="itemTextAppearance">?attr/textAppearanceBody2</item>
@@ -16,16 +14,15 @@
 
     <style name="Widget.Catalog.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="rippleColor">@color/blue_100</item>
-        <item name="fontFamily">@font/work_sans</item>
+        <item name="fontFamily">@font/space_grotesk</item>
         <item name="android:textColor">@color/color_on_surface_emphasis_high</item>
     </style>
 
+    <!-- Splash -->
     <style name="Theme.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/blue_800</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="windowSplashScreenAnimationDuration">500</item>
-        <!-- Set the theme of the Activity that directly follows your splash screen. -->
-        <!-- Required -->
+        <item name="windowSplashScreenAnimationDuration">0</item>
         <item name="postSplashScreenTheme">@style/Theme.CameraX.DayNight.NoActionBar</item>
     </style>
 

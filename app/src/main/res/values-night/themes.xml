@@ -4,26 +4,26 @@
     <!-- Base Theme with ActionBar -->
     <style name="Theme.CameraX.Dark" parent="Theme.CameraX">
 
-        <!-- Color -->
-        <item name="colorPrimary">@color/blue_200</item>
-        <item name="colorPrimaryVariant">@color/blue_300</item>
-        <item name="colorSecondary">@color/red_400</item>
-        <item name="colorSecondaryVariant">@color/red_400</item>
+        <!-- Color — launcher teal / mint on cool dark canvas -->
+        <item name="colorPrimary">@color/teal_500</item>
+        <item name="colorPrimaryVariant">@color/colorPrimary</item>
+        <item name="colorSecondary">@color/teal_400</item>
+        <item name="colorSecondaryVariant">@color/teal_300</item>
 
-        <item name="android:colorBackground">@color/black_800</item>
+        <item name="android:colorBackground">@color/black_900</item>
         <item name="colorSurface">@color/black_800</item>
         <item name="colorPrimarySurfaceVariant">?attr/colorSurface</item>
         <item name="colorError">@color/red_200</item>
 
         <item name="colorOnPrimary">@color/black_900</item>
         <item name="colorOnSecondary">@color/black_900</item>
-        <item name="colorOnBackground">@color/black_800</item>
+        <item name="colorOnBackground">@color/white_50</item>
         <item name="colorOnSurface">@color/white_50</item>
         <item name="colorOnError">@color/red_200</item>
 
         <item name="scrimBackground">@color/black_900_alpha_087</item>
-        <item name="android:statusBarColor">@color/black_800</item>
-        <item name="android:navigationBarColor">@color/black_800</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
 
         <item name="elevationOverlayEnabled">false</item>
 
@@ -31,6 +31,7 @@
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
     </style>
 

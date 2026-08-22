@@ -4,29 +4,29 @@
     <!-- Base Theme with ActionBar -->
     <style name="Theme.CameraX" parent="Theme.MaterialComponents.DayNight">
 
-        <!-- Color -->
-        <item name="colorPrimary">@color/blue_50</item>
-        <item name="colorPrimaryVariant">@color/blue_100</item>
-        <item name="colorSecondary">@color/red_400</item>
-        <item name="colorSecondaryVariant">@color/red_400</item>
+        <!-- Color — launcher teal / mint -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
+        <item name="colorSecondary">@color/teal_500</item>
+        <item name="colorSecondaryVariant">@color/colorSecondaryVariant</item>
 
         <item name="android:colorBackground">@color/blue_50</item>
         <item name="colorSurface">@color/white_50</item>
         <item name="colorPrimarySurfaceVariant">?attr/colorSecondaryVariant</item>
         <item name="colorError">@color/red_400</item>
 
-        <item name="colorOnPrimary">@color/black_900_alpha_060</item>
+        <item name="colorOnPrimary">@color/white_50</item>
         <item name="colorOnSecondary">@color/black_900</item>
         <item name="colorOnBackground">@color/black_900</item>
         <item name="colorOnSurface">@color/black_900</item>
         <item name="colorOnError">@color/black_900</item>
 
         <item name="scrimBackground">@color/white_50_alpha_060</item>
-        <item name="android:statusBarColor">@color/blue_50</item>
-        <item name="android:navigationBarColor">@color/blue_50</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
 
         <!-- Typography -->
-        <item name="android:fontFamily">@font/work_sans</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="textAppearanceHeadline2">@style/TextAppearance.CameraX.Headline2</item>
         <item name="textAppearanceHeadline3">@style/TextAppearance.CameraX.Headline3</item>
         <item name="textAppearanceHeadline4">@style/TextAppearance.CameraX.Headline4</item>
@@ -57,6 +57,7 @@
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
         <!--<item name="buttonBarButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.Catalog.Button.Dialog</item>

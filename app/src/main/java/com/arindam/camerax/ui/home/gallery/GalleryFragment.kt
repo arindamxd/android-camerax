@@ -1,123 +1,88 @@
 package com.arindam.camerax.ui.home.gallery
 
+import android.content.ClipData
 import android.content.Intent
-import android.os.Bundle
 import android.webkit.MimeTypeMap
-import androidx.annotation.StyleRes
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.FileProvider
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.fragment.navArgs
 import com.arindam.camerax.BuildConfig
+import com.arindam.camerax.CameraX
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.theme.AppTheme
-import com.arindam.camerax.util.commons.Constants.FILE.EXTENSION_WHITELIST
+import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 import java.io.File
-import java.util.*
 
 /**
- * Fragment used to present the user with a gallery of photos taken
- *
- * Created by Arindam Karmakar on 9/5/19.
+ * Presentation: in-app viewer for files in the app pictures directory. Share is hosted here
+ * (FileProvider); delete goes through [GalleryViewModel] /
+ * [com.arindam.camerax.domain.usecase.DeleteMedia].
  */
-
 class GalleryFragment : BaseFragmentCompose() {
 
-    /** AndroidX navigation arguments */
     private val args: GalleryFragmentArgs by navArgs()
+    private val viewModel: GalleryViewModel by viewModels {
+        val app = requireActivity().application as CameraX
+        GalleryViewModelFactory(
+            app.container.cameraInteractors,
+            File(args.rootDirectory),
+            app.container.dispatchers
+        )
+    }
 
-    private lateinit var mediaList: MutableList<File>
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
-        retainInstance = true
-
-        // Get root directory of media from navigation arguments
-        val rootDirectory = File(args.rootDirectory)
-
-        // Walk through all files in the root directory
-        // We reverse the order of the list to present the last photos first
-        mediaList = rootDirectory.listFiles { file ->
-            EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
-        }?.sortedDescending()?.toMutableList() ?: mutableListOf()
+    override fun onResume() {
+        super.onResume()
+        requireActivity().applyEdgeToEdgeBarsForNightMode()
+        viewModel.refresh()
     }
 
     @OptIn(ExperimentalFoundationApi::class)
     override fun setComposeView(view: ComposeView) = view.setContent {
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        LaunchedEffect(state.loading, state.items) {
+            if (!state.loading && state.items.isEmpty()) navigateBack()
+        }
         AppTheme {
             GalleryScreen(
-                dataList = mediaList,
-                navigateBack = {
-                    // Handle back button press
-                    navigateBack()
-                },
-                onShareClicked = { currentItem -> // Handle share button press
-                    // Make sure that we have a file to share
-                    mediaList.getOrNull(currentItem)?.let { mediaFile ->
-
-                        // Create a sharing intent
-                        val intent = Intent().apply {
-                            // Infer media type from file extension
-                            val mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mediaFile.extension)
-                            // Get URI from our FileProvider implementation
-                            val uri = FileProvider.getUriForFile(requireContext(), BuildConfig.APPLICATION_ID + ".provider", mediaFile)
-                            // Set the appropriate intent extra, type, action and flags
-                            putExtra(Intent.EXTRA_STREAM, uri)
-
-                            type = mediaType
-                            action = Intent.ACTION_SEND
-                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        }
-
-                        // Launch the intent letting the user choose which app to share with
-                        startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
-                    }
-                }/*,
-                onDeleteClicked = { pager -> // Handle delete button press
-                    // Make sure that we have a file to delete
-                    mediaList.getOrNull(pager.currentPage)?.let { mediaFile ->
-                        val listener = DialogInterface.OnClickListener { dialog, which ->
-                            if (which == DialogInterface.BUTTON_POSITIVE) {
-                                // Delete current photo
-                                mediaFile.delete()
-
-                                // Send relevant broadcast to notify other apps of deletion
-                                MediaScannerConnection.scanFile(requireContext(), arrayOf(mediaFile.absolutePath), null, null)
-
-                                // Notify our view pager
-                                mediaList.removeAt(pager.currentPage)
-
-                                // If all photos have been deleted, return to camera
-                                if (mediaList.isEmpty()) navigateBack()
-                                //navigateBack()
-                            } else {
-                                dialog.dismiss()
+                items = state.items,
+                videoAutoplay = state.videoAutoplay,
+                navigateBack = { navigateBack() },
+                onShareClicked = { currentItem ->
+                    state.items.getOrNull(currentItem)?.file?.let { mediaFile ->
+                        try {
+                            val intent = Intent().apply {
+                                val mediaType = MimeTypeMap.getSingleton()
+                                    .getMimeTypeFromExtension(mediaFile.extension)
+                                val uri = FileProvider.getUriForFile(
+                                    requireContext(),
+                                    BuildConfig.APPLICATION_ID + ".provider",
+                                    mediaFile
+                                )
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                clipData = ClipData.newRawUri("", uri)
+                                type = mediaType
+                                action = Intent.ACTION_SEND
+                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                             }
+                            startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
+                        } catch (error: Exception) {
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: getString(R.string.share_hint),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-
-                        MaterialAlertDialogBuilder(requireContext(), getAlertDialogButtonStyle())
-                            .setTitle(R.string.delete_title)
-                            .setMessage(R.string.delete_subtitle)
-                            .setPositiveButton(R.string.delete_button_alt, listener)
-                            .setNegativeButton(R.string.delete_button_cancel, listener)
-                            .show()
                     }
-                }*/
+                },
+                onDelete = { item -> viewModel.delete(item.file) }
             )
         }
     }
-
-    /*override fun setupView(view: View, savedInstanceState: Bundle?) {
-        // Make sure that the cutout "safe area" avoids the screen notch if any
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            // Use extension method to pad "inside" view containing UI using display cutout's bounds
-            binding.root.padWithDisplayCutout()
-        }
-    }*/
-
-    @StyleRes
-    private fun getAlertDialogButtonStyle(): Int = R.style.MaterialAlertDialogButton_DayNight
 }
