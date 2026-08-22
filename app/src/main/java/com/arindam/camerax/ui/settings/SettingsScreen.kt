@@ -58,7 +58,6 @@ import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
@@ -131,7 +130,7 @@ fun SettingsScreen(
             sections.forEachIndexed { sectionIndex, section ->
                 Text(
                     text = stringResource(section.titleRes).uppercase(Locale.US),
-                    color = CameraAccent,
+                    color = chrome.accent,
                     fontFamily = CameraMono,
                     fontSize = 10.sp,
                     letterSpacing = 1.2.sp,
@@ -182,6 +181,7 @@ private fun SettingsRowView(
     onRequestMicrophonePermission: () -> Unit
 ) {
     val context = LocalContext.current
+    val chrome = themedOverlayChrome()
     when (row) {
         is SettingsRow.Toggle -> {
             val key = stringResource(row.keyRes)
@@ -218,9 +218,9 @@ private fun SettingsRowView(
                             prefs.edit().putBoolean(key, checked).apply()
                         },
                         colors = SwitchDefaults.colors(
-                            checkedTrackColor = CameraAccent,
-                            checkedThumbColor = Color.Black,
-                            checkedBorderColor = CameraAccent
+                            checkedTrackColor = chrome.accent,
+                            checkedThumbColor = chrome.onAccent,
+                            checkedBorderColor = chrome.accent
                         )
                     )
                 }
@@ -268,8 +268,8 @@ private fun SettingsRowView(
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = CameraAccent,
-                                    selectedLabelColor = Color.Black,
+                                    selectedContainerColor = chrome.accent,
+                                    selectedLabelColor = chrome.onAccent,
                                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     disabledSelectedContainerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -326,6 +326,7 @@ private fun SettingsBaseRow(
     enabled: Boolean = true,
     trailing: @Composable (() -> Unit)? = null
 ) {
+    val chrome = themedOverlayChrome()
     val rowModifier = Modifier
         .fillMaxWidth()
         .disabledAlpha(enabled)
@@ -345,13 +346,13 @@ private fun SettingsBaseRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(CameraAccent.copy(alpha = 0.16f)),
+                .background(chrome.accent.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = CameraAccent,
+                tint = chrome.accent,
                 modifier = Modifier.size(20.dp)
             )
         }

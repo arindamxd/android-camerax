@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.arindam.camerax.R
 import com.arindam.camerax.ui.compose.ChromeActionPill
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
@@ -101,7 +100,7 @@ fun PermissionsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.app_name),
-                    color = CameraAccent,
+                    color = chrome.accent,
                     fontFamily = CameraMono,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
@@ -125,13 +124,13 @@ fun PermissionsScreen(
                     modifier = Modifier
                         .size(88.dp)
                         .clip(CircleShape)
-                        .background(CameraAccent.copy(alpha = 0.16f)),
+                        .background(chrome.accent.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PhotoCamera,
                         contentDescription = null,
-                        tint = CameraAccent,
+                        tint = chrome.accent,
                         modifier = Modifier.size(40.dp)
                     )
                 }

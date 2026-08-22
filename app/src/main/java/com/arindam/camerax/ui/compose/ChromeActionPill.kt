@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 
@@ -41,7 +40,7 @@ fun ChromeActionPill(
 ) {
     val chrome = themedOverlayChrome()
     val shape = RoundedCornerShape(ChromeControlSize / 2)
-    val contentColor = if (filled) Color.Black else chrome.onGlass
+    val contentColor = if (filled) chrome.onAccent else chrome.onGlass
     // Outer Box owns the fixed height so RowScope.weight(fill = true) cannot stretch it.
     Box(
         modifier = modifier
@@ -49,7 +48,7 @@ fun ChromeActionPill(
             .clip(shape)
             .then(
                 if (filled) {
-                    Modifier.background(CameraAccent)
+                    Modifier.background(chrome.accent)
                 } else {
                     Modifier
                         .background(chrome.glass)

@@ -70,7 +70,6 @@ import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.ui.compose.CameraGlassButton
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.ThemedOverlayChrome
@@ -196,7 +195,7 @@ private fun OthersHub(
     ) {
         Text(
             text = stringResource(R.string.others_hub_kicker).uppercase(),
-            color = CameraAccent,
+            color = chrome.accent,
             fontFamily = CameraMono,
             fontSize = 10.sp,
             lineHeight = 12.sp,
@@ -286,13 +285,13 @@ private fun ToolCard(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(CameraAccent.copy(alpha = 0.18f)),
+                .background(chrome.accent.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = CameraAccent,
+                tint = chrome.accent,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -443,7 +442,7 @@ private fun CameraEngineScreen(
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.engine_cameras_heading).uppercase(),
-            color = CameraAccent,
+            color = chrome.accent,
             fontFamily = CameraMono,
             fontSize = 10.sp,
             letterSpacing = 1.2.sp
@@ -470,7 +469,7 @@ private fun CameraEngineScreen(
         Spacer(Modifier.height(14.dp))
         Text(
             text = stringResource(R.string.engine_capabilities_heading).uppercase(),
-            color = CameraAccent,
+            color = chrome.accent,
             fontFamily = CameraMono,
             fontSize = 10.sp,
             letterSpacing = 1.2.sp
@@ -611,12 +610,12 @@ private fun EngineHero(chrome: ThemedOverlayChrome) {
             .background(
                 Brush.linearGradient(
                     listOf(
-                        CameraAccent.copy(alpha = 0.22f),
+                        chrome.accent.copy(alpha = 0.22f),
                         chrome.chipIdle
                     )
                 )
             )
-            .border(1.dp, CameraAccent.copy(alpha = 0.28f), RoundedCornerShape(20.dp))
+            .border(1.dp, chrome.accent.copy(alpha = 0.28f), RoundedCornerShape(20.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -624,13 +623,13 @@ private fun EngineHero(chrome: ThemedOverlayChrome) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(CameraAccent.copy(alpha = 0.2f)),
+                .background(chrome.accent.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Outlined.Bolt,
                 contentDescription = null,
-                tint = CameraAccent,
+                tint = chrome.accent,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -691,7 +690,7 @@ private fun ToolScreen(
             Column(verticalArrangement = Arrangement.Center) {
                 Text(
                     text = kicker.uppercase(),
-                    color = CameraAccent,
+                    color = chrome.accent,
                     fontFamily = CameraMono,
                     fontSize = 10.sp,
                     lineHeight = 12.sp,
@@ -1080,8 +1079,8 @@ private fun StatusRow(
 
 @Composable
 private fun ReadyPill(chrome: ThemedOverlayChrome, ready: Boolean) {
-    val fill = if (ready) CameraAccent.copy(alpha = 0.18f) else chrome.chipIdle
-    val tint = if (ready) CameraAccent else chrome.muted
+    val fill = if (ready) chrome.accent.copy(alpha = 0.18f) else chrome.chipIdle
+    val tint = if (ready) chrome.accent else chrome.muted
     Text(
         text = stringResource(
             if (ready) R.string.others_ready else R.string.others_unavailable

@@ -57,7 +57,6 @@ import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.compose.ChromeControlSize
 import com.arindam.camerax.ui.compose.ChromeActionPill
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
@@ -147,7 +146,7 @@ fun CaptureConfirmOverlay(
                 ) {
                     Text(
                         text = stringResource(R.string.motion_photo_badge),
-                        color = CameraAccent,
+                        color = chrome.accent,
                         fontFamily = CameraMono,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp

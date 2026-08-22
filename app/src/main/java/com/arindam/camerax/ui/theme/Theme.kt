@@ -144,8 +144,20 @@ data class ThemedOverlayChrome(
     val onGlass: Color,
     val muted: Color,
     val scrim: Color,
-    val chipIdle: Color
+    val chipIdle: Color,
+    /** Brand accent for this theme (electric mint on dark, deep teal on light). */
+    val accent: Color,
+    /** Content on filled [accent] (black on mint, white on deep teal). */
+    val onAccent: Color
 )
+
+/** Theme-aware brand accent for Settings / Gallery / Tools (not live viewfinder). */
+@Composable
+fun cameraAccent(): Color = themedOverlayChrome().accent
+
+/** Content color for filled [cameraAccent] surfaces. */
+@Composable
+fun cameraOnAccent(): Color = themedOverlayChrome().onAccent
 
 @Composable
 fun themedOverlayChrome(): ThemedOverlayChrome {
@@ -159,7 +171,9 @@ fun themedOverlayChrome(): ThemedOverlayChrome {
             onGlass = CameraOnGlass,
             muted = CameraOnGlassMuted,
             scrim = Color.Black,
-            chipIdle = Color.White.copy(alpha = 0.08f)
+            chipIdle = Color.White.copy(alpha = 0.08f),
+            accent = CameraAccent,
+            onAccent = CameraOnAccent
         )
     } else {
         ThemedOverlayChrome(
@@ -169,7 +183,9 @@ fun themedOverlayChrome(): ThemedOverlayChrome {
             onGlass = scheme.onBackground,
             muted = scheme.onBackground.copy(alpha = 0.55f),
             scrim = Color.White,
-            chipIdle = Color.Black.copy(alpha = 0.06f)
+            chipIdle = Color.Black.copy(alpha = 0.06f),
+            accent = CameraAccentLight,
+            onAccent = CameraOnAccentLight
         )
     }
 }

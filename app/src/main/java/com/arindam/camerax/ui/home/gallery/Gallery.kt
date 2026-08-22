@@ -76,7 +76,6 @@ import com.arindam.camerax.ui.compose.ChromeControlSize
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.home.camera.formatRecordingTime
 import com.arindam.camerax.ui.theme.AppTheme
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
@@ -312,7 +311,7 @@ private fun GalleryHeader(
                 modifier = Modifier
                     .height(ChromeControlSize)
                     .clip(chipShape)
-                    .background(if (motionPlaying) CameraAccent else chrome.glass)
+                    .background(if (motionPlaying) chrome.accent else chrome.glass)
                     .border(1.dp, chrome.stroke, chipShape)
                     .clickable(onClick = onMotionClicked)
                     .padding(horizontal = 16.dp)
@@ -321,7 +320,7 @@ private fun GalleryHeader(
                     text = stringResource(
                         if (motionPlaying) R.string.motion_photo_badge else R.string.play_motion_photo
                     ),
-                    color = if (motionPlaying) Color.Black else CameraAccent,
+                    color = if (motionPlaying) chrome.onAccent else chrome.accent,
                     fontFamily = CameraMono,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp
@@ -497,7 +496,7 @@ private fun PlaybackSpeedRow(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(
-                            if (selected) CameraAccent else chrome.chipIdle
+                            if (selected) chrome.accent else chrome.chipIdle
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -508,7 +507,7 @@ private fun PlaybackSpeedRow(
                 ) {
                     Text(
                         text = label,
-                        color = if (selected) Color.Black else chrome.onGlass,
+                        color = if (selected) chrome.onAccent else chrome.onGlass,
                         fontFamily = CameraMono,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = if (value < 1f) 11.sp else 12.sp

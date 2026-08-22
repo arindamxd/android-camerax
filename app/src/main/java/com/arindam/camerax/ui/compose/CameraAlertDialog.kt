@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.arindam.camerax.ui.theme.AppTheme
-import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraDanger
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 import com.arindam.camerax.ui.theme.CameraFontFamily
 
 private val AlertTitleSize = 20.sp
@@ -53,6 +53,7 @@ fun CameraAlertDialog(
     if (!show) return
 
     val scheme = MaterialTheme.colorScheme
+    val chrome = themedOverlayChrome()
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -101,13 +102,13 @@ fun CameraAlertDialog(
                 }
                 Text(
                     text = confirmLabel,
-                    color = Color.Black,
+                    color = if (destructiveConfirm) Color.White else chrome.onAccent,
                     fontFamily = CameraFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = AlertActionSize,
                     modifier = Modifier
                         .clip(AlertActionShape)
-                        .background(if (destructiveConfirm) CameraDanger else CameraAccent)
+                        .background(if (destructiveConfirm) CameraDanger else chrome.accent)
                         .clickable {
                             onDismiss()
                             onConfirm()
