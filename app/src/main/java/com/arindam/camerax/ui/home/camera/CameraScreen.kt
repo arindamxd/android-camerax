@@ -10,7 +10,14 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -29,7 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,7 +63,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
+import androidx.compose.material3.MaterialTheme
 import java.io.File
+import kotlinx.coroutines.delay
 
 /**
  * Compose viewfinder: [PreviewView] plus overlay chrome from [CameraChrome].
@@ -90,6 +101,7 @@ fun CameraScreen(
         }
     }
 
+    var keepPreview by remember { mutableStateOf(true) }
     LaunchedEffect(
         state.bindRevision,
         state.lens,
@@ -98,7 +110,13 @@ fun CameraScreen(
         state.showsPip,
         previewView
     ) {
-        if (!inspection) {
+        if (inspection) return@LaunchedEffect
+        if (state.showsTools) {
+            delay(OTHERS_ENTER_MILLIS)
+            keepPreview = false
+            viewModel.unbindPreview()
+        } else {
+            keepPreview = true
             viewModel.bind(
                 lifecycleOwner,
                 previewView,
@@ -164,47 +182,59 @@ fun CameraScreen(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val compact = maxHeight < 480.dp ||
             configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        Box(Modifier.fillMaxSize()) {
-            if (state.showsEffects) {
-                AndroidView(
-                    factory = { previewView },
-                    modifier = Modifier.size(1.dp)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    if (state.showsTools) {
+                        MaterialTheme.colorScheme.background
+                    } else {
+                        Color.Black
+                    }
                 )
-                val effectFrame = state.effectFrame
-                if (effectFrame != null) {
-                    Image(
-                        bitmap = effectFrame,
-                        contentDescription = stringResource(R.string.effect_frame_description),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = if (state.lens == CameraLens.FRONT && state.frontMirror) {
-                                    -1f
-                                } else {
-                                    1f
-                                }
-                            },
-                        contentScale = ContentScale.Crop
+        ) {
+            if (keepPreview) {
+                if (state.showsEffects) {
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.size(1.dp)
+                    )
+                    val effectFrame = state.effectFrame
+                    if (effectFrame != null) {
+                        Image(
+                            bitmap = effectFrame,
+                            contentDescription = stringResource(R.string.effect_frame_description),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = if (state.lens == CameraLens.FRONT && state.frontMirror) {
+                                        -1f
+                                    } else {
+                                        1f
+                                    }
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
-            } else {
-                AndroidView(
-                    factory = { previewView },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            if (state.showsPip) {
-                AndroidView(
-                    factory = { pipPreviewView },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .zIndex(0.5f)
-                        .padding(end = 16.dp, bottom = 228.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.5.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(16.dp))
-                        .width(108.dp)
-                        .height(144.dp)
-                )
+                if (state.showsPip) {
+                    AndroidView(
+                        factory = { pipPreviewView },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .zIndex(0.5f)
+                            .padding(end = 16.dp, bottom = 228.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.5.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(16.dp))
+                            .width(108.dp)
+                            .height(144.dp)
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -269,11 +299,22 @@ fun CameraScreen(
                 RuleOfThirdsGrid()
             }
             FocusRing(state.focusPoint)
-            if (state.showsTools) {
+            AnimatedVisibility(
+                visible = state.showsTools,
+                modifier = Modifier.zIndex(0.7f),
+                enter = fadeIn(tween(OTHERS_ENTER_MILLIS.toInt())) +
+                    slideInVertically(tween(OTHERS_ENTER_MILLIS.toInt())) { distance ->
+                        distance / 12
+                    },
+                exit = fadeOut(tween(260)) +
+                    slideOutVertically(tween(260)) { distance ->
+                        distance / 14
+                    }
+            ) {
                 OthersWorkspace(
                     state = state,
                     compact = compact,
-                    modifier = Modifier.zIndex(0.7f)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Column(
@@ -371,3 +412,5 @@ private fun CameraChromePreview() {
         }
     }
 }
+
+private const val OTHERS_ENTER_MILLIS = 360L

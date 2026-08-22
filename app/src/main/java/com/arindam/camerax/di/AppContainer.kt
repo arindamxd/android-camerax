@@ -37,6 +37,7 @@ import com.arindam.camerax.domain.usecase.StartRecording
 import com.arindam.camerax.domain.usecase.StitchPanorama
 import com.arindam.camerax.domain.usecase.StopRecording
 import com.arindam.camerax.domain.usecase.TapToFocus
+import com.arindam.camerax.domain.usecase.UnbindCamera
 
 /**
  * Composition root. Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
@@ -81,6 +82,7 @@ data class CameraInteractors(
     val observeLowLightBoost: ObserveLowLightBoost,
     val observeRecording: ObserveRecording,
     val observeEffectFrame: ObserveEffectFrame,
+    val unbindCamera: UnbindCamera,
     val releaseCamera: ReleaseCamera,
     val getLatestMedia: GetLatestMedia,
     val listMedia: ListMedia,
@@ -117,6 +119,7 @@ fun cameraInteractors(
     observeLowLightBoost = ObserveLowLightBoost(cameraRepository),
     observeRecording = ObserveRecording(cameraRepository),
     observeEffectFrame = ObserveEffectFrame(cameraRepository),
+    unbindCamera = UnbindCamera(cameraRepository),
     releaseCamera = ReleaseCamera(cameraRepository),
     getLatestMedia = GetLatestMedia(mediaRepository),
     listMedia = ListMedia(mediaRepository),

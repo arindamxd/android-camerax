@@ -54,6 +54,7 @@ interface CameraRepository {
     fun setTargetRotation(rotation: Int)
     fun setExposure(priority: ExposurePriority, iso: Int, shutterNanos: Long)
     fun setExposureCompensation(index: Int)
+    fun unbind()
     fun release()
 }
 

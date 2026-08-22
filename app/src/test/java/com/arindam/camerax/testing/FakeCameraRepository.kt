@@ -35,6 +35,7 @@ class FakeCameraRepository : CameraRepository {
     var captureResult: Result<File> = Result.failure(IllegalStateException("No capture"))
     var recordingResult: Result<File> = Result.failure(IllegalStateException("No recording"))
     var released = false
+    var unbound = false
 
     override suspend fun bind(host: CameraHost, config: CameraBindConfig): CameraBindResult {
         lastBindConfig = config
@@ -75,6 +76,9 @@ class FakeCameraRepository : CameraRepository {
     override fun setTargetRotation(rotation: Int) = Unit
     override fun setExposure(priority: ExposurePriority, iso: Int, shutterNanos: Long) = Unit
     override fun setExposureCompensation(index: Int) = Unit
+    override fun unbind() {
+        unbound = true
+    }
     override fun release() {
         released = true
     }

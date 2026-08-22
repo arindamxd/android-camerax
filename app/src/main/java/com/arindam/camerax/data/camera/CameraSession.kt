@@ -511,19 +511,34 @@ class CameraSession(private val context: Context) : CameraRepository {
         camera?.cameraControl?.setExposureCompensationIndex(index.coerceIn(range.lower, range.upper))
     }
 
-    override fun release() {
+    override fun unbind() {
         recording?.stop()
         recording = null
         stopRecordingService()
+        camera?.cameraControl?.enableTorch(false)
         cameraProvider?.unbindAll()
         stopColorAnalysis()
-        cameraExecutor.shutdown()
-        analysisExecutor.shutdown()
-        _nightScene.value = NightScene.UNKNOWN
+        camera = null
+        preview = null
+        pipPreview = null
+        imageCapture = null
+        videoCapture = null
+        boundPreviewView = null
+        boundPipPreviewView = null
+        highSpeedSession = false
+        fps60Active = false
+        previewBoosted = false
+        userExposureIndex = null
         stopWatchingLowLightBoost()
         _lowLightBoost.value = LowLightBoost.OFF
-        previewBoosted = false
+        _nightScene.value = NightScene.UNKNOWN
         clearMotionCapture()
+    }
+
+    override fun release() {
+        unbind()
+        cameraExecutor.shutdown()
+        analysisExecutor.shutdown()
     }
 
     @OptIn(ExperimentalCamera2Interop::class)

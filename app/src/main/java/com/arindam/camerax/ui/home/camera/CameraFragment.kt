@@ -8,7 +8,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.viewModels
@@ -41,7 +43,18 @@ class CameraFragment : BaseFragmentCompose() {
 
     override fun setComposeView(view: ComposeView) = view.setContent {
         val cameraState by viewModel.uiState.collectAsStateWithLifecycle()
-        AppTheme(isDarkTheme = true, applySystemBars = cameraState.review == null) {
+        val followAppTheme = cameraState.showsTools || cameraState.review != null
+        LaunchedEffect(cameraState.showsTools, cameraState.review) {
+            if (cameraState.review != null || cameraState.showsTools) {
+                requireActivity().applyEdgeToEdgeBarsForNightMode()
+            } else {
+                requireActivity().applyEdgeToEdgeBars(lightIcons = true)
+            }
+        }
+        AppTheme(
+            isDarkTheme = if (followAppTheme) isSystemInDarkTheme() else true,
+            applySystemBars = cameraState.review == null
+        ) {
             CameraScreen(
                 viewModel = viewModel,
                 onGalleryClicked = {
@@ -63,10 +76,10 @@ class CameraFragment : BaseFragmentCompose() {
 
     override fun onResume() {
         super.onResume()
-        if (viewModel.uiState.value.review == null) {
-            requireActivity().applyEdgeToEdgeBars(lightIcons = true)
-        } else {
+        if (viewModel.uiState.value.review != null || viewModel.uiState.value.showsTools) {
             requireActivity().applyEdgeToEdgeBarsForNightMode()
+        } else {
+            requireActivity().applyEdgeToEdgeBars(lightIcons = true)
         }
         viewModel.syncHost()
         if (!hasPermissions()) {

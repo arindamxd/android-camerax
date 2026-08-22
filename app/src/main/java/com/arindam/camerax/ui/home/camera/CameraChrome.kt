@@ -8,8 +8,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -121,6 +123,7 @@ import com.arindam.camerax.ui.theme.CameraGlassStrong
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.CameraOnGlass
 import com.arindam.camerax.ui.theme.CameraOnGlassMuted
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
 
 /**
@@ -143,6 +146,7 @@ fun CameraHeader(
     onCompensationChanged: (Int) -> Unit = {}
 ) {
     var exposureOpen by remember { mutableStateOf(false) }
+    val chrome = if (state.showsTools) themedOverlayChrome() else null
     LaunchedEffect(state.showsExposureControls) {
         if (!state.showsExposureControls) exposureOpen = false
     }
@@ -151,7 +155,11 @@ fun CameraHeader(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent)
+                    if (chrome != null) {
+                        listOf(chrome.canvas, Color.Transparent)
+                    } else {
+                        listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent)
+                    }
                 )
             )
             .windowInsetsPadding(
@@ -261,6 +269,9 @@ fun CameraHeader(
                     contentDescription = stringResource(R.string.settings),
                     compact = compact,
                     tooltip = true,
+                    onGlass = chrome?.onGlass,
+                    glass = chrome?.glass,
+                    stroke = chrome?.stroke,
                     onClick = onSettingsClicked
                 )
             }
@@ -656,12 +667,18 @@ fun CameraFooter(
     onEffectSelected: (EffectMode) -> Unit,
     onZoomSelected: (Float) -> Unit = {}
 ) {
+    val chrome = if (state.showsTools) themedOverlayChrome() else null
+    val idleModeColor = chrome?.muted ?: CameraOnGlassMuted
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.42f))
+                    if (chrome != null) {
+                        listOf(Color.Transparent, chrome.canvas)
+                    } else {
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.42f))
+                    }
                 )
             )
             .windowInsetsPadding(
@@ -702,7 +719,7 @@ fun CameraFooter(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = stringResource(item.labelRes).uppercase(),
-                            color = if (selected) CameraAccent else CameraOnGlassMuted,
+                            color = if (selected) CameraAccent else idleModeColor,
                             fontFamily = CameraFontFamily,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = if (compact) 12.sp else 13.sp,
@@ -722,7 +739,11 @@ fun CameraFooter(
             }
             Spacer(Modifier.height(if (compact) 8.dp else 10.dp))
         }
-        if (state.showsCaptureControls) {
+        AnimatedVisibility(
+            visible = state.showsCaptureControls,
+            enter = fadeIn(tween(280)) + expandVertically(tween(320)),
+            exit = fadeOut(tween(220)) + shrinkVertically(tween(280))
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -976,13 +997,18 @@ private fun GlassIconButton(
     compact: Boolean = false,
     embedded: Boolean = false,
     tooltip: Boolean = false,
-    diameter: Dp? = null
+    diameter: Dp? = null,
+    onGlass: Color? = null,
+    glass: Color? = null,
+    stroke: Color? = null
 ) {
     val background = when {
         selected -> CameraAccent
         embedded -> Color.White.copy(alpha = 0.08f)
-        else -> CameraGlassStrong
+        else -> glass ?: CameraGlassStrong
     }
+    val iconTint = if (selected) Color.Black else (onGlass ?: CameraOnGlass)
+    val borderColor = stroke ?: Color.White.copy(alpha = 0.14f)
     val size = diameter ?: if (compact || embedded) 40.dp else 44.dp
     val interactionSource = remember { MutableInteractionSource() }
     var showTooltip by remember { mutableStateOf(false) }
@@ -1012,7 +1038,7 @@ private fun GlassIconButton(
                 .background(background)
                 .then(
                     if (embedded) Modifier
-                    else Modifier.border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+                    else Modifier.border(1.dp, borderColor, CircleShape)
                 )
                 .clickable(
                     interactionSource = interactionSource,
@@ -1027,7 +1053,7 @@ private fun GlassIconButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = if (selected) Color.Black else CameraOnGlass,
+                tint = iconTint,
                 modifier = Modifier.size(
                 if (diameter != null) 22.dp else if (compact || embedded) 18.dp else 20.dp
             )

@@ -43,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -57,10 +56,9 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
-import com.arindam.camerax.ui.theme.CameraGlassStrong
 import com.arindam.camerax.ui.theme.CameraMono
-import com.arindam.camerax.ui.theme.CameraOnGlass
-import com.arindam.camerax.ui.theme.CameraOnGlassMuted
+import com.arindam.camerax.ui.theme.ThemedOverlayChrome
+import com.arindam.camerax.ui.theme.themedOverlayChrome
 
 private enum class OthersRoute {
     HUB,
@@ -79,21 +77,14 @@ fun OthersWorkspace(
         if (!state.showsTools) route = OthersRoute.HUB
     }
     if (!state.showsTools) return
+    val chrome = themedOverlayChrome()
     BackHandler(enabled = route != OthersRoute.HUB) {
         route = OthersRoute.HUB
     }
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.Black.copy(alpha = 0.55f),
-                        Color.Black.copy(alpha = 0.72f),
-                        Color.Black.copy(alpha = 0.88f)
-                    )
-                )
-            )
+            .background(chrome.canvas)
             .windowInsetsPadding(
                 WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
@@ -108,14 +99,17 @@ fun OthersWorkspace(
     ) {
         when (route) {
             OthersRoute.HUB -> OthersHub(
+                chrome = chrome,
                 onExperimental = { route = OthersRoute.EXPERIMENTAL },
                 onEngine = { route = OthersRoute.ENGINE }
             )
             OthersRoute.EXPERIMENTAL -> ExperimentalFeaturesScreen(
+                chrome = chrome,
                 features = state.deviceFeatures,
                 onBack = { route = OthersRoute.HUB }
             )
             OthersRoute.ENGINE -> CameraEngineScreen(
+                chrome = chrome,
                 features = state.deviceFeatures,
                 onBack = { route = OthersRoute.HUB }
             )
@@ -125,6 +119,7 @@ fun OthersWorkspace(
 
 @Composable
 private fun OthersHub(
+    chrome: ThemedOverlayChrome,
     onExperimental: () -> Unit,
     onEngine: () -> Unit
 ) {
@@ -144,7 +139,7 @@ private fun OthersHub(
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.others_hub_title),
-            color = CameraOnGlass,
+            color = chrome.onGlass,
             fontFamily = CameraFontFamily,
             fontSize = 32.sp,
             fontWeight = FontWeight.SemiBold,
@@ -153,13 +148,14 @@ private fun OthersHub(
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.others_hub_subtitle),
-            color = CameraOnGlassMuted,
+            color = chrome.muted,
             fontFamily = CameraFontFamily,
             fontSize = 15.sp,
             lineHeight = 22.sp
         )
         Spacer(Modifier.height(28.dp))
         ToolCard(
+            chrome = chrome,
             icon = Icons.Outlined.Science,
             title = stringResource(R.string.others_experimental_title),
             subtitle = stringResource(R.string.others_experimental_subtitle),
@@ -167,6 +163,7 @@ private fun OthersHub(
         )
         Spacer(Modifier.height(14.dp))
         ToolCard(
+            chrome = chrome,
             icon = Icons.Outlined.Memory,
             title = stringResource(R.string.others_engine_title),
             subtitle = stringResource(R.string.others_engine_subtitle),
@@ -177,6 +174,7 @@ private fun OthersHub(
 
 @Composable
 private fun ToolCard(
+    chrome: ThemedOverlayChrome,
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -186,8 +184,8 @@ private fun ToolCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CameraGlassStrong)
-            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
+            .background(chrome.glass)
+            .border(1.dp, chrome.stroke, RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
             .padding(18.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -213,7 +211,7 @@ private fun ToolCard(
         ) {
             Text(
                 text = title,
-                color = CameraOnGlass,
+                color = chrome.onGlass,
                 fontFamily = CameraFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp
@@ -221,7 +219,7 @@ private fun ToolCard(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = subtitle,
-                color = CameraOnGlassMuted,
+                color = chrome.muted,
                 fontFamily = CameraFontFamily,
                 fontSize = 13.sp,
                 lineHeight = 18.sp
@@ -230,13 +228,14 @@ private fun ToolCard(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = CameraOnGlassMuted
+            tint = chrome.muted
         )
     }
 }
 
 @Composable
 private fun ExperimentalFeaturesScreen(
+    chrome: ThemedOverlayChrome,
     features: DeviceCaptureFeatures,
     onBack: () -> Unit
 ) {
@@ -294,12 +293,13 @@ private fun ExperimentalFeaturesScreen(
         )
     )
     ToolScreen(
+        chrome = chrome,
         kicker = stringResource(R.string.others_experimental_kicker),
         title = stringResource(R.string.others_experimental_title),
         onBack = onBack
     ) {
         items.forEach { item ->
-            FeatureTile(item)
+            FeatureTile(chrome = chrome, item = item)
             Spacer(Modifier.height(10.dp))
         }
     }
@@ -307,6 +307,7 @@ private fun ExperimentalFeaturesScreen(
 
 @Composable
 private fun CameraEngineScreen(
+    chrome: ThemedOverlayChrome,
     features: DeviceCaptureFeatures,
     onBack: () -> Unit
 ) {
@@ -317,11 +318,12 @@ private fun CameraEngineScreen(
     val qualities = joinedQualityLabel(features.videoQualities, none)
     val extensions = joinedExtensionLabel(features.extensions, none)
     ToolScreen(
+        chrome = chrome,
         kicker = stringResource(R.string.others_engine_kicker),
         title = stringResource(R.string.others_engine_title),
         onBack = onBack
     ) {
-        EngineHero()
+        EngineHero(chrome = chrome)
         Spacer(Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.engine_cameras_heading),
@@ -333,6 +335,7 @@ private fun CameraEngineScreen(
         Spacer(Modifier.height(10.dp))
         if (features.cameras.isEmpty()) {
             StatusRow(
+                chrome = chrome,
                 label = stringResource(R.string.engine_cameras_empty),
                 value = none,
                 ready = false
@@ -340,6 +343,7 @@ private fun CameraEngineScreen(
         } else {
             features.cameras.forEach { camera ->
                 StatusRow(
+                    chrome = chrome,
                     label = stringResource(
                         if (camera.lens == CameraLens.FRONT) {
                             R.string.engine_lens_front
@@ -363,12 +367,14 @@ private fun CameraEngineScreen(
         )
         Spacer(Modifier.height(10.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_concurrent),
             value = if (features.concurrent) ready else unavailable,
             ready = features.concurrent
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_slow_motion),
             value = if (features.slowMotion.available) {
                 features.slowMotion.frameRates.joinToString { fps -> "$fps fps" }
@@ -379,48 +385,56 @@ private fun CameraEngineScreen(
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_fps60),
             value = if (features.videoFps60) ready else unavailable,
             ready = features.videoFps60
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_ultra_hdr),
             value = if (features.ultraHdr) ready else unavailable,
             ready = features.ultraHdr
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_raw),
             value = if (features.rawCapture) ready else unavailable,
             ready = features.rawCapture
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_llb),
             value = if (features.lowLightBoost) ready else unavailable,
             ready = features.lowLightBoost
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_stab),
             value = if (features.videoStabilization) ready else unavailable,
             ready = features.videoStabilization
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_video_hdr),
             value = hdrLabel,
             ready = features.videoHdrRanges.any { range -> range != VideoHdrRange.SDR }
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_qualities),
             value = qualities,
             ready = features.videoQualities.isNotEmpty()
         )
         Spacer(Modifier.height(8.dp))
         StatusRow(
+            chrome = chrome,
             label = stringResource(R.string.engine_row_extensions),
             value = extensions,
             ready = features.extensions.isNotEmpty()
@@ -479,7 +493,7 @@ private fun qualityRes(quality: VideoQuality): Int = when (quality) {
 }
 
 @Composable
-private fun EngineHero() {
+private fun EngineHero(chrome: ThemedOverlayChrome) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -488,7 +502,7 @@ private fun EngineHero() {
                 Brush.linearGradient(
                     listOf(
                         CameraAccent.copy(alpha = 0.22f),
-                        Color.White.copy(alpha = 0.06f)
+                        chrome.chipIdle
                     )
                 )
             )
@@ -512,7 +526,7 @@ private fun EngineHero() {
         Column(modifier = Modifier.padding(start = 16.dp)) {
             Text(
                 text = stringResource(R.string.engine_library),
-                color = CameraOnGlassMuted,
+                color = chrome.muted,
                 fontFamily = CameraMono,
                 fontSize = 11.sp,
                 letterSpacing = 1.2.sp
@@ -520,7 +534,7 @@ private fun EngineHero() {
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.engine_camerax_version),
-                color = CameraOnGlass,
+                color = chrome.onGlass,
                 fontFamily = CameraFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 20.sp
@@ -528,7 +542,7 @@ private fun EngineHero() {
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.engine_preview_impl),
-                color = CameraOnGlassMuted,
+                color = chrome.muted,
                 fontFamily = CameraFontFamily,
                 fontSize = 13.sp
             )
@@ -538,6 +552,7 @@ private fun EngineHero() {
 
 @Composable
 private fun ToolScreen(
+    chrome: ThemedOverlayChrome,
     kicker: String,
     title: String,
     onBack: () -> Unit,
@@ -556,14 +571,14 @@ private fun ToolScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .background(chrome.chipIdle)
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back_button_alt),
-                    tint = CameraOnGlass
+                    tint = chrome.onGlass
                 )
             }
             Column {
@@ -576,7 +591,7 @@ private fun ToolScreen(
                 )
                 Text(
                     text = title,
-                    color = CameraOnGlass,
+                    color = chrome.onGlass,
                     fontFamily = CameraFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 22.sp
@@ -589,30 +604,30 @@ private fun ToolScreen(
 }
 
 @Composable
-private fun FeatureTile(item: LabItem) {
+private fun FeatureTile(chrome: ThemedOverlayChrome, item: LabItem) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+            .background(chrome.chipIdle)
+            .border(1.dp, chrome.stroke, RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = item.title,
-                color = CameraOnGlass,
+                color = chrome.onGlass,
                 fontFamily = CameraFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
                 modifier = Modifier.weight(1f)
             )
-            ReadyPill(ready = item.ready)
+            ReadyPill(chrome = chrome, ready = item.ready)
         }
         Spacer(Modifier.height(6.dp))
         Text(
             text = item.body,
-            color = CameraOnGlassMuted,
+            color = chrome.muted,
             fontFamily = CameraFontFamily,
             fontSize = 13.sp,
             lineHeight = 18.sp
@@ -621,38 +636,43 @@ private fun FeatureTile(item: LabItem) {
 }
 
 @Composable
-private fun StatusRow(label: String, value: String, ready: Boolean) {
+private fun StatusRow(
+    chrome: ThemedOverlayChrome,
+    label: String,
+    value: String,
+    ready: Boolean
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.06f))
+            .background(chrome.chipIdle)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                color = CameraOnGlassMuted,
+                color = chrome.muted,
                 fontFamily = CameraFontFamily,
                 fontSize = 12.sp
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = value,
-                color = CameraOnGlass,
+                color = chrome.onGlass,
                 fontFamily = CameraMono,
                 fontSize = 13.sp
             )
         }
-        ReadyPill(ready = ready)
+        ReadyPill(chrome = chrome, ready = ready)
     }
 }
 
 @Composable
-private fun ReadyPill(ready: Boolean) {
-    val fill = if (ready) CameraAccent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.08f)
-    val tint = if (ready) CameraAccent else CameraOnGlassMuted
+private fun ReadyPill(chrome: ThemedOverlayChrome, ready: Boolean) {
+    val fill = if (ready) CameraAccent.copy(alpha = 0.18f) else chrome.chipIdle
+    val tint = if (ready) CameraAccent else chrome.muted
     Text(
         text = stringResource(if (ready) R.string.others_ready else R.string.others_unavailable),
         color = tint,

@@ -130,6 +130,11 @@ class ObserveEffectFrame(private val repository: CameraRepository) {
     operator fun invoke(): StateFlow<Bitmap?> = repository.effectFrame
 }
 
+/** Unbind use cases but keep the CameraX provider for a later bind. */
+class UnbindCamera(private val repository: CameraRepository) {
+    operator fun invoke() = repository.unbind()
+}
+
 /** Unbind and drop CameraX handles. */
 class ReleaseCamera(private val repository: CameraRepository) {
     operator fun invoke() = repository.release()

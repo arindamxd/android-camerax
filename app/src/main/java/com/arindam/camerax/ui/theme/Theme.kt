@@ -15,6 +15,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -148,8 +149,8 @@ data class ThemedOverlayChrome(
 
 @Composable
 fun themedOverlayChrome(): ThemedOverlayChrome {
-    val dark = isSystemInDarkTheme()
     val scheme = MaterialTheme.colorScheme
+    val dark = scheme.background.luminance() < 0.5f
     return if (dark) {
         ThemedOverlayChrome(
             canvas = Color.Black,

@@ -164,6 +164,7 @@ class CameraViewModel(
     ) {
         viewModelScope.launch {
             bindMutex.withLock {
+                if (_uiState.value.showsTools) return@withLock
                 try {
                     val state = _uiState.value
                     val profile = state.mode.profile()
@@ -301,6 +302,15 @@ class CameraViewModel(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fun unbindPreview() {
+        viewModelScope.launch {
+            bindMutex.withLock {
+                if (!_uiState.value.showsTools) return@withLock
+                interactors.unbindCamera()
             }
         }
     }
