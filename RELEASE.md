@@ -4,10 +4,11 @@ Use this before uploading a new version to Google Play.
 
 ## Version bump
 
-Edit `versionMajor`, `versionMinor`, or `versionPatch` in the root [`build.gradle.kts`](build.gradle.kts).  
-`versionCode` is derived automatically (`major * 10000 + minor * 100 + patch`).
+Edit `versionMajor`, `versionMinor`, or `versionPatch` in the root [`build.gradle.kts`](build.gradle.kts) for a new `versionName`.  
+For another Play upload of the **same** `X.Y.Z`, bump `versionCodeOffset` instead (keeps `versionName`, raises `versionCode`).  
+`versionCode` = `major * 10000 + minor * 100 + patch + versionCodeOffset`.
 
-Current shipping target: **1.7.0** (`versionCode` **10700**).
+Current shipping target: **1.7.0** (`versionCode` **10701**, `versionCodeOffset` **1**).
 
 ## Local signing
 
