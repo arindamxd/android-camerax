@@ -84,6 +84,10 @@ private enum class OthersRoute {
     INTENTS
 }
 
+/**
+ * Presentation: "Others" hub overlay (tools, links, about). Pure Compose chrome —
+ * no camera bind/capture; navigation and external intents only.
+ */
 @Composable
 fun OthersWorkspace(
     state: CameraUiState,

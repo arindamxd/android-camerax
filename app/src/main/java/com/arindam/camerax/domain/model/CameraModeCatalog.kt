@@ -1,8 +1,9 @@
 package com.arindam.camerax.domain.model
 
 /**
- * Policy for one capture mode. Add a [CameraMode] value and a row in [CameraModeCatalog.profiles]
- * first. Then implement any new CameraX session type in `CameraSession` if bind flags are not enough.
+ * Domain: policy for one capture mode. Add a [CameraMode] value and a row in
+ * [CameraModeCatalog.profiles] first. Then implement any new CameraX session type in
+ * `CameraSession` only if bind flags are not enough.
  */
 data class CameraModeProfile(
     val mode: CameraMode,
@@ -44,12 +45,14 @@ data class CameraModeProfile(
         }
 }
 
+/** Domain: whether a pager mode is always shown or gated on device capabilities. */
 enum class ModeAvailability {
     ALWAYS,
     HIGH_SPEED,
     CONCURRENT
 }
 
+/** Domain: shutter behavior for the mode (still, video, or panorama sweep). */
 enum class CaptureAction {
     STILL,
     VIDEO,
@@ -59,7 +62,7 @@ enum class CaptureAction {
 fun CameraMode.profile(): CameraModeProfile = CameraModeCatalog.profile(this)
 
 /**
- * Registry of pager modes. To add a mode: [CameraMode] value, a [CameraModeProfile] here,
+ * Domain: registry of pager modes. To add a mode: [CameraMode] value, a [CameraModeProfile] here,
  * then `CameraMode.labelRes`. Touch [com.arindam.camerax.data.camera.CameraSession] only
  * when bind flags (slow-motion / concurrent) are not enough.
  */

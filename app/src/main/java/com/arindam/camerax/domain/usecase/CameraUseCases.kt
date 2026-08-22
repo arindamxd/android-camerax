@@ -1,6 +1,7 @@
 /**
- * ViewModel-facing use cases. Each class is a thin wrapper over [CameraRepository] or
+ * Domain: ViewModel-facing use cases. Each class is a thin wrapper over [CameraRepository] or
  * [MediaRepository] so new camera features stay out of Compose and out of [CameraSession] call sites.
+ * UI reaches these only through [com.arindam.camerax.di.CameraInteractors].
  */
 package com.arindam.camerax.domain.usecase
 

@@ -4,8 +4,9 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 /**
- * Muxes a still JPEG and an MP4 clip into an Android Motion Photo 1.0 file
- * (JPEG primary + XMP + appended video).
+ * Data: muxes a still JPEG and an MP4 clip into an Android Motion Photo v1 file
+ * (JPEG primary + XMP + appended video). Call via [com.arindam.camerax.domain.usecase.CapturePhoto]
+ * / [CameraSession] — not from Compose or click handlers (runs on the IO dispatcher).
  */
 object MotionPhotoMuxer {
 

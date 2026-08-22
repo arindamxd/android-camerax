@@ -16,6 +16,7 @@ enum class CameraMode {
     OTHERS
 }
 
+/** Facing lens for bind / flip. */
 enum class CameraLens {
     BACK,
     FRONT;
@@ -94,6 +95,7 @@ enum class StillFormat {
     RAW_JPEG
 }
 
+/** Still / preview aspect from Settings (`4_3` / `16_9` / `full`). */
 enum class CaptureAspect(val prefValue: String) {
     RATIO_4_3("4_3"),
     RATIO_16_9("16_9"),
@@ -105,6 +107,7 @@ enum class CaptureAspect(val prefValue: String) {
     }
 }
 
+/** Recording quality from Settings (SD→UHD). */
 enum class VideoQuality(val prefValue: String) {
     SD("sd"),
     HD("hd"),
@@ -117,6 +120,7 @@ enum class VideoQuality(val prefValue: String) {
     }
 }
 
+/** Video dynamic range from Settings (SDR / HLG / HDR10 / …). */
 enum class VideoHdrRange(val prefValue: String) {
     SDR("sdr"),
     HLG10("hlg10"),
@@ -130,6 +134,7 @@ enum class VideoHdrRange(val prefValue: String) {
     }
 }
 
+/** High-speed capture fps from Settings (`auto` or a listed rate). */
 enum class SlowMotionRate(val prefValue: String, val fps: Int) {
     AUTO("auto", 0),
     FPS_120("120", 120),
@@ -146,6 +151,7 @@ enum class SlowMotionRate(val prefValue: String, val fps: Int) {
     }
 }
 
+/** Exposure compensation range and step reported by the bound camera. */
 data class ExposureLimits(
     val isoMin: Int = 50,
     val isoMax: Int = 3200,
@@ -158,8 +164,10 @@ data class ExposureLimits(
     val evStep: Float = 0f
 )
 
+/** Normalized viewfinder tap point for AF/AE metering. */
 data class FocusPoint(val x: Float, val y: Float)
 
+/** Physical camera zoom chip (ultra-wide / wide / tele) for rebind by camera id. */
 data class PhysicalZoom(
     val cameraId: String,
     val label: Float
@@ -234,6 +242,7 @@ data class BoundSession(
     val rawFullSensor: Boolean = false
 )
 
+/** Which CameraX session graph is currently bound (still+video, high-speed, dual, …). */
 enum class BoundSessionKind {
     STANDARD,
     HIGH_SPEED,
@@ -246,18 +255,21 @@ data class LastCameraSession(
     val bound: BoundSession
 )
 
+/** Low-light boost HUD state from [CameraRepository.lowLightBoost]. */
 enum class LowLightBoost {
     OFF,
     INACTIVE,
     ACTIVE
 }
 
+/** Live zoom ratio and min/max from the bound camera. */
 data class ZoomInfo(
     val ratio: Float,
     val min: Float,
     val max: Float
 )
 
+/** Domain: recording lifecycle events from [CameraRepository.recordingEvents]. */
 sealed interface RecordingEvent {
     data class Status(val durationNanos: Long) : RecordingEvent
     data object Paused : RecordingEvent

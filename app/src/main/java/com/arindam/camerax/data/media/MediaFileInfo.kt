@@ -4,7 +4,10 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import java.io.File
 
-/** Width / height / duration for a capture on disk. */
+/**
+ * Data: width / height / duration for a capture on disk.
+ * [mediaFileInfo] touches the filesystem / [MediaMetadataRetriever] — call off the main thread.
+ */
 data class MediaFileInfo(
     val width: Int,
     val height: Int,

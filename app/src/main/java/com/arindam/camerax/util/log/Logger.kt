@@ -5,8 +5,8 @@ import com.arindam.camerax.BuildConfig
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 /**
- * App-wide log helper. Debug/info stay in debug builds; warnings and errors always go to logcat
- * so Play Console / Crashlytics breadcrumbs survive a release build.
+ * Util: app-wide log helper. Debug/info stay in debug builds; warnings and errors always go to
+ * logcat so Play Console / Crashlytics breadcrumbs survive a release build.
  */
 object Logger {
 

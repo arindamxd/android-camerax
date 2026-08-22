@@ -40,8 +40,10 @@ import com.arindam.camerax.domain.usecase.TapToFocus
 import com.arindam.camerax.domain.usecase.UnbindCamera
 
 /**
- * Composition root (DI). Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
- * the UI may call. Do not construct CameraX types from Fragments or Compose.
+ * DI: composition root. Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
+ * the UI may call. Do not construct or call [CameraSession] from Fragments, Compose, or ViewModels —
+ * go through [CameraInteractors] / use cases only. [com.arindam.camerax.data.camera.PreviewViewHost]
+ * may be built in the ViewModel to adapt `PreviewView` into domain [com.arindam.camerax.domain.model.CameraHost].
  */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
@@ -70,7 +72,8 @@ class AppContainer(context: Context) {
 }
 
 /**
- * Use cases the camera UI may call. Built once in [AppContainer].
+ * DI: use cases the camera UI may call. Built once in [AppContainer].
+ * Sole entry surface for presentation — never expose [CameraSession] to UI.
  */
 data class CameraInteractors(
     val bindCamera: BindCamera,

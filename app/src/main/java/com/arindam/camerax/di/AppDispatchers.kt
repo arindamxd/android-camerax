@@ -4,10 +4,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
 /**
- * Injectable coroutine dispatchers. Tests pass [kotlinx.coroutines.test.TestDispatcher] instances.
+ * DI: injectable coroutine dispatchers. Tests pass [kotlinx.coroutines.test.TestDispatcher] instances.
  *
  * Use [io] for disk and MediaStore, [default] for CPU-bound work (bitmap decode, device probes),
- * and [main] for UI state updates only.
+ * and [main] for UI state updates only. Repositories and ViewModels must not hardcode
+ * [Dispatchers.IO] — take these from [AppContainer].
  */
 data class AppDispatchers(
     /** Main thread (immediate in tests). */

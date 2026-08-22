@@ -18,9 +18,8 @@ import com.arindam.camerax.util.permission.MicrophonePermission
 import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 
 /**
- * AppCompat host so [com.arindam.camerax.util.theme.NightMode] / `AppCompatDelegate`
- * restyles Light/Dark/System.
- * Preference rows live in [SettingsCatalog].
+ * Presentation: AppCompat host so [com.arindam.camerax.util.theme.NightMode] /
+ * `AppCompatDelegate` restyles Light/Dark/System. Preference rows live in [SettingsCatalog].
  */
 class SettingsActivity : AppCompatActivity() {
 

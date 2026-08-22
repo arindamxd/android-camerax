@@ -6,7 +6,7 @@ import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 
 /**
- * Created by Arindam Karmakar on 17/04/20.
+ * Util: short Toast / Snackbar helpers for permission and error feedback from Activities.
  */
 
 object Toaster {

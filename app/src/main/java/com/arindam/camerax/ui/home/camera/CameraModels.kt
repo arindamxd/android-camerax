@@ -254,6 +254,10 @@ data class CameraUiState(
         get() = profile.bindSlowMotion
 }
 
+/**
+ * Presentation: optional Retake/Done review payload after a still or clip.
+ * Built by [CameraViewModel]; rendered by [CaptureConfirmOverlay].
+ */
 data class CaptureReview(
     val file: File,
     val isVideo: Boolean,
@@ -270,6 +274,7 @@ data class CaptureReview(
     }
 }
 
+/** Presentation: system intent that launched the camera (IMAGE_CAPTURE, VIDEO_CAPTURE, …). */
 enum class ExternalCaptureKind {
     NONE,
     IMAGE_CAPTURE,
@@ -279,6 +284,10 @@ enum class ExternalCaptureKind {
     OPEN_VIDEO
 }
 
+/**
+ * Presentation: parsed capture intent + optional `EXTRA_OUTPUT` Uri.
+ * [CameraFragment] / [CameraViewModel] deliver results for [returnsResult] kinds.
+ */
 data class ExternalCaptureRequest(
     val kind: ExternalCaptureKind = ExternalCaptureKind.NONE,
     val outputUri: Uri? = null

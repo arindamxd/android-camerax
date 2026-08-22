@@ -14,8 +14,9 @@ import androidx.core.content.ContextCompat
 import com.arindam.camerax.R
 
 /**
- * While-in-use camera (and microphone, when [Manifest.permission.RECORD_AUDIO] is granted)
+ * Data: while-in-use camera (and microphone, when [Manifest.permission.RECORD_AUDIO] is granted)
  * foreground service so recording stays legal if the activity is paused on Android 14+.
+ * Started/stopped by [CameraSession] around video capture — not from Compose click handlers.
  */
 class RecordingForegroundService : Service() {
 

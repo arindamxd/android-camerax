@@ -9,7 +9,8 @@ import android.os.Build
 import com.arindam.camerax.domain.model.EffectMode
 
 /**
- * Color matrices from the CameraX effects sample (grayscale / invert / sepia / cool / warm / vivid).
+ * Data: color matrices from the CameraX effects sample (grayscale / invert / sepia / cool / warm / vivid).
+ * Used by Effects-mode [ImageAnalysis] and still capture inside [CameraSession].
  *
  * [ImageProxy.toBitmap] often returns a HARDWARE bitmap. [ColorMatrixColorFilter] is skipped on
  * those buffers, which is why Sepia / Invert can look like the unfiltered camera. Copy to

@@ -19,8 +19,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Horizontal sweep stitcher for CameraX stills. Aligns neighboring frames by
- * minimizing overlap error, then cross-fades the seam.
+ * Data: horizontal sweep stitcher for CameraX stills. Aligns neighboring frames by
+ * minimizing overlap error, then cross-fades the seam. Call via
+ * [com.arindam.camerax.domain.usecase.StitchPanorama] / [com.arindam.camerax.domain.repository.MediaRepository]
+ * — keep off the main thread.
  */
 object PanoramaStitcher {
 

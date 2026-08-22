@@ -9,7 +9,8 @@ import com.arindam.camerax.util.log.Logger
 import java.io.File
 
 /**
- * Copies captures into DCIM/CameraX so they appear in the system gallery.
+ * Data: copies captures into DCIM/CameraX so they appear in the system gallery.
+ * Call via [com.arindam.camerax.domain.usecase.PublishMedia] — MediaStore I/O stays off the main thread.
  */
 object MediaStorePublisher {
 

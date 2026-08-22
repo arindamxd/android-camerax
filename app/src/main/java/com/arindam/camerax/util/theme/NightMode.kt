@@ -9,7 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
 
 /**
- * Light / Dark / System. Values match Settings `pref_key_theme` (`off` / `on` / `system`).
+ * Util: Light / Dark / System. Values match Settings `pref_key_theme` (`off` / `on` / `system`).
  * Call [applyPref] from [com.arindam.camerax.CameraX] and from Settings; AppCompat recreates.
  */
 enum class NightMode(val value: Int) {

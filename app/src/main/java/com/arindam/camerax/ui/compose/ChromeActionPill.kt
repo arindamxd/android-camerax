@@ -27,7 +27,10 @@ import com.arindam.camerax.ui.theme.CameraAccent
 import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 
-/** Full-width glass or accent pill; height matches [ChromeControlSize] (back / motion chip). */
+/**
+ * Presentation: full-width glass or accent pill; height matches [ChromeControlSize]
+ * (back / motion chip). Use for Retake/Done and permission actions.
+ */
 @Composable
 fun ChromeActionPill(
     icon: ImageVector?,

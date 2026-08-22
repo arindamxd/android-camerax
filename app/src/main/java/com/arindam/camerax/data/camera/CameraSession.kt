@@ -101,9 +101,10 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * CameraX implementation of [com.arindam.camerax.domain.repository.CameraRepository].
+ * Data: CameraX implementation of [com.arindam.camerax.domain.repository.CameraRepository].
  * Bind, capture, record, zoom, AE, extensions, Dual, and slo-mo live here. UI must not
- * call this class; go through use cases from [com.arindam.camerax.di.AppContainer].
+ * call this class; go through use cases / [com.arindam.camerax.di.CameraInteractors] from
+ * [com.arindam.camerax.di.AppContainer].
  */
 class CameraSession(private val context: Context) : CameraRepository {
 

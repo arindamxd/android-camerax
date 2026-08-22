@@ -23,14 +23,14 @@ import com.arindam.camerax.ui.theme.CameraGlassStrong
 import com.arindam.camerax.ui.theme.CameraOnGlass
 
 /**
- * Shared chrome control size: back button, Play motion photo chip, Retake/Done pills,
- * gallery share/delete, and other glass actions. Keep all of those at this height.
+ * Presentation: shared chrome control size (back, Play motion photo, Retake/Done,
+ * gallery share/delete, and other glass actions). Keep all of those at this height.
  */
 val ChromeControlSize = 44.dp
 
 /**
- * Circular glass control used by the live-feed settings button. Reuse for back and other
- * header actions so size, stroke, and icon scale stay identical.
+ * Presentation: circular glass control (live-feed settings, back, and other header actions).
+ * Reuse so size, stroke, and icon scale stay identical. Prefer this over one-off diameters.
  */
 @Composable
 fun CameraGlassButton(

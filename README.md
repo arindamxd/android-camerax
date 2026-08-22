@@ -62,7 +62,7 @@ flowchart LR
 | Presentation | `ui/` | Compose chrome, `CameraViewModel` (UI state, countdown, mode) |
 | Domain | `domain/` | Models, `CameraRepository`, use cases (`CapturePhoto`, `StartRecording`, `BindCamera`, …) |
 | Data | `data/camera/` | `CameraSession` — CameraX implementation of `CameraRepository` |
-| Data | `data/media/` | `FileMediaRepository` — disk + MediaStore on `Dispatchers.IO` |
+| Data | `data/media/` | `FileMediaRepository` — disk + MediaStore on `AppDispatchers.io` |
 | Composition root | `di/AppContainer` | Manual DI + `AppDispatchers`; UI never constructs `CameraSession` |
 
 `CameraFragment` is only a Compose host. Preview is wrapped as `PreviewViewHost` (`CameraHost`) so domain code does not import `PreviewView`.
@@ -145,7 +145,7 @@ Quick paths:
 
 ## Threading
 
-Repositories run disk and MediaStore work on `Dispatchers.IO`. ViewModels use `withContext` for metadata, review, and gallery probes. Debug builds enable StrictMode (log-only) to catch main-thread disk access. See [AGENTS.md](AGENTS.md).
+Repositories run disk and MediaStore work on `AppDispatchers.io`. ViewModels use `withContext` for metadata, review, and gallery probes. Debug builds enable StrictMode (log-only) to catch main-thread disk access. See [AGENTS.md](AGENTS.md).
 
 ## Stretch (not in this app yet)
 
