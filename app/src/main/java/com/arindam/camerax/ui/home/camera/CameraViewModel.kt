@@ -114,7 +114,8 @@ class CameraViewModel(
                 state.copy(
                     slowMotionSupported = features.slowMotion.available,
                     concurrentSupported = dualSupported,
-                    mode = resolvedMode
+                    mode = resolvedMode,
+                    deviceFeatures = features
                 )
             }
             persistChrome()
@@ -573,6 +574,7 @@ class CameraViewModel(
     fun onShutter(previewView: PreviewView) {
         val state = _uiState.value
         if (state.review != null) return
+        if (state.showsTools) return
         if (state.motionCapturing) return
         when (state.captureAction) {
             CaptureAction.VIDEO -> {

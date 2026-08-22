@@ -12,7 +12,8 @@ enum class CameraMode {
     SLOW_MOTION,
     EFFECTS,
     PANORAMA,
-    DUAL
+    DUAL,
+    OTHERS
 }
 
 enum class CameraLens {
@@ -263,7 +264,15 @@ data class DeviceCaptureFeatures(
     val rawCapture: Boolean = false,
     val fullSensorRaw: Boolean = false,
     val lowLightBoost: Boolean = false,
-    val videoFps60: Boolean = false
+    val videoFps60: Boolean = false,
+    val cameras: List<InstalledCamera> = emptyList(),
+    val extensions: Set<CameraExtension> = emptySet()
+)
+
+/** One physical camera listed by CameraX for diagnostics. */
+data class InstalledCamera(
+    val id: String,
+    val lens: CameraLens
 )
 
 /** Opaque preview/lifecycle handle. Data layer provides the CameraX implementation. */

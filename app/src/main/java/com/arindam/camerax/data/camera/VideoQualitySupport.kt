@@ -7,10 +7,14 @@ package com.arindam.camerax.data.camera
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Range
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.Preview
+import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.HighSpeedVideoSessionConfig
 import androidx.camera.video.Quality
@@ -18,7 +22,10 @@ import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
+import com.arindam.camerax.domain.model.CameraExtension
+import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
+import com.arindam.camerax.domain.model.InstalledCamera
 import com.arindam.camerax.domain.model.SlowMotionOptions
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
@@ -60,6 +67,8 @@ suspend fun probeDeviceFeatures(context: Context): DeviceCaptureFeatures {
     val orderedHdr = VideoHdrRange.entries.filter { it in hdr }.let { ordered ->
         if (VideoHdrRange.SDR in ordered) ordered else listOf(VideoHdrRange.SDR) + ordered
     }
+    val cameras = infos.mapNotNull { info -> info.toInstalledCamera() }
+    val extensions = probeAvailableExtensions(context, provider)
     return DeviceCaptureFeatures(
         slowMotion = back?.highSpeedSlowMotionOptions() ?: SlowMotionOptions(),
         concurrent = isDualCameraSupported(context, provider),
@@ -72,8 +81,47 @@ suspend fun probeDeviceFeatures(context: Context): DeviceCaptureFeatures {
         rawCapture = infos.any { it.supportsRawJpeg() },
         fullSensorRaw = infos.any { it.supportsFullSensorRaw(context) },
         lowLightBoost = infos.any { it.isLowLightBoostSupported },
-        videoFps60 = back?.supportsVideoFps60() == true
+        videoFps60 = back?.supportsVideoFps60() == true,
+        cameras = cameras,
+        extensions = extensions
     )
+}
+
+@OptIn(ExperimentalCamera2Interop::class)
+private fun CameraInfo.toInstalledCamera(): InstalledCamera? {
+    val id = runCatching { Camera2CameraInfo.from(this).cameraId }.getOrNull() ?: return null
+    val lens = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
+        CameraLens.FRONT
+    } else {
+        CameraLens.BACK
+    }
+    return InstalledCamera(id = id, lens = lens)
+}
+
+private suspend fun probeAvailableExtensions(
+    context: Context,
+    provider: ProcessCameraProvider
+): Set<CameraExtension> {
+    val manager = awaitExtensionsManager(context, provider) ?: return emptySet()
+    val selectors = listOf(CameraSelector.DEFAULT_BACK_CAMERA, CameraSelector.DEFAULT_FRONT_CAMERA)
+    return CameraExtension.entries.filter { extension ->
+        extension != CameraExtension.NONE &&
+            selectors.any { selector ->
+                runCatching {
+                    manager.isExtensionAvailable(selector, extension.toExtensionMode())
+                }.getOrDefault(false)
+            }
+    }.toSet()
+}
+
+private suspend fun awaitExtensionsManager(
+    context: Context,
+    provider: ProcessCameraProvider
+): ExtensionsManager? = suspendCoroutine { continuation ->
+    val future = ExtensionsManager.getInstanceAsync(context, provider)
+    future.addListener({
+        continuation.resume(runCatching { future.get() }.getOrNull())
+    }, ContextCompat.getMainExecutor(context))
 }
 
 /** Dual mode: system concurrent-camera feature plus a listed front+back pair. */

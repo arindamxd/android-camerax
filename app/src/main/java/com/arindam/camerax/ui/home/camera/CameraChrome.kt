@@ -627,9 +627,9 @@ fun EffectsFilmstrip(
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
         ) {
-            val startInset = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
+            val edgeInset = ((maxWidth - itemWidth) / 2).coerceAtLeast(0.dp)
             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                Spacer(Modifier.width(startInset))
+                Spacer(Modifier.width(edgeInset))
                 EffectMode.entries.forEachIndexed { index, effect ->
                     if (index > 0) Spacer(Modifier.width(8.dp))
                     EffectThumb(
@@ -639,6 +639,7 @@ fun EffectsFilmstrip(
                         modifier = Modifier.width(itemWidth)
                     )
                 }
+                Spacer(Modifier.width(edgeInset))
             }
         }
     }
@@ -692,7 +693,7 @@ fun CameraFooter(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (compact) 32.dp else 40.dp),
-                    itemWidth = 88.dp,
+                    itemWidth = 96.dp,
                     itemSpacing = 0.dp,
                     overshootFraction = 0.55f,
                     initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
@@ -721,47 +722,49 @@ fun CameraFooter(
             }
             Spacer(Modifier.height(if (compact) 8.dp else 10.dp))
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(
-                    WindowInsets.safeDrawing
-                        .union(WindowInsets.systemGestures)
-                        .only(WindowInsetsSides.Horizontal)
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val sideSize = if (compact) 44.dp else 48.dp
-            Spacer(Modifier.weight(1f))
-            if (state.lockCaptureMode) {
-                Spacer(Modifier.size(sideSize))
-            } else {
-                GalleryThumb(
-                    file = state.thumbnail,
-                    size = sideSize,
-                    onClick = onGalleryClicked
+        if (state.showsCaptureControls) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing
+                            .union(WindowInsets.systemGestures)
+                            .only(WindowInsetsSides.Horizontal)
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val sideSize = if (compact) 44.dp else 48.dp
+                Spacer(Modifier.weight(1f))
+                if (state.lockCaptureMode) {
+                    Spacer(Modifier.size(sideSize))
+                } else {
+                    GalleryThumb(
+                        file = state.thumbnail,
+                        size = sideSize,
+                        onClick = onGalleryClicked
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                ShutterButton(
+                    recordsVideo = state.recordsVideo,
+                    isRecording = state.isRecording,
+                    panoramaActive = state.panoramaActive,
+                    compact = compact,
+                    onClick = onShutterClicked
                 )
+                Spacer(Modifier.weight(1f))
+                if (state.showsFlipControl) {
+                    GlassIconButton(
+                        icon = Icons.Filled.Cameraswitch,
+                        contentDescription = stringResource(R.string.switch_camera_button_alt),
+                        diameter = sideSize,
+                        onClick = onFlipClicked
+                    )
+                } else {
+                    Spacer(Modifier.size(sideSize))
+                }
+                Spacer(Modifier.weight(1f))
             }
-            Spacer(Modifier.weight(1f))
-            ShutterButton(
-                recordsVideo = state.recordsVideo,
-                isRecording = state.isRecording,
-                panoramaActive = state.panoramaActive,
-                compact = compact,
-                onClick = onShutterClicked
-            )
-            Spacer(Modifier.weight(1f))
-            if (state.showsFlipControl) {
-                GlassIconButton(
-                    icon = Icons.Filled.Cameraswitch,
-                    contentDescription = stringResource(R.string.switch_camera_button_alt),
-                    diameter = sideSize,
-                    onClick = onFlipClicked
-                )
-            } else {
-                Spacer(Modifier.size(sideSize))
-            }
-            Spacer(Modifier.weight(1f))
         }
     }
 }

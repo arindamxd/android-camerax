@@ -22,6 +22,8 @@ data class CameraModeProfile(
     val showsPip: Boolean = false,
     val showsNightHint: Boolean = false,
     val showsLowLightBoost: Boolean = false,
+    val showsTools: Boolean = false,
+    val showsCaptureControls: Boolean = true,
     val allowsAudioMute: Boolean = true,
     val allowsNightAuto: Boolean = false,
     val allowsExtensions: Boolean = true,
@@ -134,6 +136,20 @@ object CameraModeCatalog {
             bindConcurrent = true,
             rebindOnEnter = true,
             clearsSessionExtras = true
+        ),
+        CameraModeProfile(
+            mode = CameraMode.OTHERS,
+            showsFlash = false,
+            showsGrid = false,
+            showsZoom = false,
+            showsExposure = false,
+            showsFlip = false,
+            showsTools = true,
+            showsCaptureControls = false,
+            allowsNightAuto = false,
+            allowsExtensions = false,
+            allowsEffect = false,
+            allowsMotionPhoto = false
         )
     ).associateBy { it.mode }
 

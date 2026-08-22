@@ -14,6 +14,7 @@ import com.arindam.camerax.domain.model.CameraMode
 import com.arindam.camerax.domain.model.CameraModeCatalog
 import com.arindam.camerax.domain.model.CaptureAction
 import com.arindam.camerax.domain.model.CaptureAspect
+import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
@@ -36,6 +37,7 @@ val CameraMode.labelRes: Int
         CameraMode.EFFECTS -> R.string.mode_effects
         CameraMode.PANORAMA -> R.string.mode_panorama
         CameraMode.DUAL -> R.string.mode_dual
+        CameraMode.OTHERS -> R.string.mode_others
     }
 
 val FlashMode.labelRes: Int
@@ -146,6 +148,7 @@ data class CameraUiState(
     val videoFps60: Boolean = false,
     val videoFps60Supported: Boolean = false,
     val videoFps60Active: Boolean = false,
+    val deviceFeatures: DeviceCaptureFeatures = DeviceCaptureFeatures(),
     val message: String? = null
 ) {
     val zoomChips: List<Float>
@@ -214,6 +217,12 @@ data class CameraUiState(
 
     val showsPip: Boolean
         get() = profile.showsPip
+
+    val showsTools: Boolean
+        get() = profile.showsTools
+
+    val showsCaptureControls: Boolean
+        get() = profile.showsCaptureControls
 
     val showsNightHint: Boolean
         get() = profile.showsNightHint

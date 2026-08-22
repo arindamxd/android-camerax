@@ -210,59 +210,72 @@ fun CameraScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(0f)
-                    .pointerInput(previewView, state.showsZoomChips) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown()
-                            val start = down.position
-                            val slop = viewConfiguration.touchSlop
-                            var dragged = false
-                            var pinch = false
-                            var cumulativeZoom = 1f
-                            if (state.showsZoomChips) {
-                                viewModel.beginZoomGesture()
-                            }
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val pressed = event.changes.filter { it.pressed }
-                                if (pressed.isEmpty()) break
-                                if (state.showsZoomChips && pressed.size >= 2) {
-                                    pinch = true
-                                    dragged = true
-                                    cumulativeZoom *= event.calculateZoom()
-                                    viewModel.zoomByPinch(cumulativeZoom)
-                                    pressed.forEach { change ->
-                                        if (change.positionChanged()) change.consume()
+                    .then(
+                        if (state.showsTools) {
+                            Modifier
+                        } else {
+                            Modifier.pointerInput(previewView, state.showsZoomChips) {
+                                awaitEachGesture {
+                                    val down = awaitFirstDown()
+                                    val start = down.position
+                                    val slop = viewConfiguration.touchSlop
+                                    var dragged = false
+                                    var pinch = false
+                                    var cumulativeZoom = 1f
+                                    if (state.showsZoomChips) {
+                                        viewModel.beginZoomGesture()
                                     }
-                                } else if (state.showsZoomChips && !pinch) {
-                                    val pointer = pressed.first()
-                                    val dx = pointer.position.x - start.x
-                                    val dy = pointer.position.y - start.y
-                                    if (abs(dx) > slop || abs(dy) > slop) {
-                                        if (abs(dy) >= abs(dx)) {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val pressed = event.changes.filter { it.pressed }
+                                        if (pressed.isEmpty()) break
+                                        if (state.showsZoomChips && pressed.size >= 2) {
+                                            pinch = true
                                             dragged = true
-                                            viewModel.zoomByDrag(dy, size.height.toFloat())
-                                            if (pointer.positionChanged()) pointer.consume()
+                                            cumulativeZoom *= event.calculateZoom()
+                                            viewModel.zoomByPinch(cumulativeZoom)
+                                            pressed.forEach { change ->
+                                                if (change.positionChanged()) change.consume()
+                                            }
+                                        } else if (state.showsZoomChips && !pinch) {
+                                            val pointer = pressed.first()
+                                            val dx = pointer.position.x - start.x
+                                            val dy = pointer.position.y - start.y
+                                            if (abs(dx) > slop || abs(dy) > slop) {
+                                                if (abs(dy) >= abs(dx)) {
+                                                    dragged = true
+                                                    viewModel.zoomByDrag(dy, size.height.toFloat())
+                                                    if (pointer.positionChanged()) pointer.consume()
+                                                } else {
+                                                    break
+                                                }
+                                            }
                                         } else {
-                                            break
+                                            val pointer = pressed.first()
+                                            val dx = pointer.position.x - start.x
+                                            val dy = pointer.position.y - start.y
+                                            if (abs(dx) > slop || abs(dy) > slop) dragged = true
                                         }
                                     }
-                                } else {
-                                    val pointer = pressed.first()
-                                    val dx = pointer.position.x - start.x
-                                    val dy = pointer.position.y - start.y
-                                    if (abs(dx) > slop || abs(dy) > slop) dragged = true
+                                    if (!dragged) {
+                                        viewModel.tapToFocus(previewView, start)
+                                    }
                                 }
                             }
-                            if (!dragged) {
-                                viewModel.tapToFocus(previewView, start)
-                            }
                         }
-                    }
+                    )
             )
             if (state.gridEnabled) {
                 RuleOfThirdsGrid()
             }
             FocusRing(state.focusPoint)
+            if (state.showsTools) {
+                OthersWorkspace(
+                    state = state,
+                    compact = compact,
+                    modifier = Modifier.zIndex(0.7f)
+                )
+            }
             Column(
                 Modifier
                     .fillMaxWidth()

@@ -131,4 +131,13 @@ class CameraViewModelTest {
         assertEquals(false, vm.uiState.value.concurrentSupported)
         assertEquals(false, vm.uiState.value.visibleModes.contains(CameraMode.DUAL))
     }
+
+    @Test
+    fun setMode_othersOpensToolsHub() {
+        val vm = viewModel()
+        vm.setMode(CameraMode.OTHERS)
+        assertEquals(CameraMode.OTHERS, vm.uiState.value.mode)
+        assertEquals(true, vm.uiState.value.showsTools)
+        assertEquals(false, vm.uiState.value.showsCaptureControls)
+    }
 }
