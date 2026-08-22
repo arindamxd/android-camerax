@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.arindam.camerax.di.AppContainer
 
+/**
+ * Presentation: builds [SettingsViewModel] with [com.arindam.camerax.di.CameraInteractors]
+ * from [AppContainer].
+ */
 class SettingsViewModelFactory(
     private val container: AppContainer,
     private val versionLabel: String

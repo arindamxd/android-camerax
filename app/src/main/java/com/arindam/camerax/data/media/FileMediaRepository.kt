@@ -5,50 +5,65 @@ import android.os.Environment
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.PanoramaStitcher
 import com.arindam.camerax.domain.repository.MediaRepository
-import com.arindam.camerax.util.commons.Constants
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Locale
 
 /**
- * Files in the app pictures directory: latest thumbnail, gallery list, panorama stitch,
- * MediaStore publish.
+ * Data: files in the app pictures directory — latest thumbnail, gallery list, panorama stitch,
+ * MediaStore publish. Disk work runs on [io].
  */
-class FileMediaRepository(private val context: Context) : MediaRepository {
+class FileMediaRepository(
+    private val context: Context,
+    private val io: CoroutineDispatcher = Dispatchers.IO
+) : MediaRepository {
+
+    @Volatile
+    private var cachedPictures: File? = null
 
     override fun picturesDirectory(): File {
-        val mediaDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.let {
-            File(it, context.getString(R.string.app_name)).apply { mkdirs() }
+        cachedPictures?.let { return it }
+        synchronized(this) {
+            cachedPictures?.let { return it }
+            val mediaDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.let { root ->
+                File(root, context.getString(R.string.app_name)).apply { mkdirs() }
+            }
+            val directory = if (mediaDir != null && mediaDir.exists()) mediaDir else context.filesDir
+            cachedPictures = directory
+            return directory
         }
-        return if (mediaDir != null && mediaDir.exists()) mediaDir else context.filesDir
     }
 
-    override fun latest(directory: File): File? {
-        val files = list(directory)
-        val newest = files.firstOrNull() ?: return null
-        if (!newest.extension.equals("dng", ignoreCase = true)) return newest
-        return files.firstOrNull { file ->
+    override suspend fun latest(directory: File): File? = withContext(io) {
+        val files = listedCaptures(directory)
+        val newest = files.firstOrNull() ?: return@withContext null
+        if (!newest.extension.equals("dng", ignoreCase = true)) return@withContext newest
+        files.firstOrNull { file ->
             file.nameWithoutExtension == newest.nameWithoutExtension &&
                 (file.extension.equals("jpg", ignoreCase = true) ||
                     file.extension.equals("jpeg", ignoreCase = true))
         } ?: newest
     }
 
-    override fun list(directory: File): List<File> {
-        val files = directory.listFiles { file ->
-            Constants.FILE.EXTENSION_WHITELIST.contains(file.extension.lowercase(Locale.US))
-        } ?: return emptyList()
-        return files.sortedByDescending { it.lastModified() }
+    override suspend fun list(directory: File): List<File> = withContext(io) {
+        listedCaptures(directory)
     }
 
-    override fun delete(file: File): Boolean = file.exists() && file.delete()
+    override suspend fun delete(file: File): Boolean = withContext(io) {
+        file.exists() && file.delete()
+    }
 
-    override fun stitchPanorama(frames: List<File>, outputDirectory: File): Result<File> =
-        runCatching { PanoramaStitcher.stitch(frames, outputDirectory) }
+    override suspend fun stitchPanorama(frames: List<File>, outputDirectory: File): Result<File> =
+        withContext(io) {
+            runCatching { PanoramaStitcher.stitch(frames, outputDirectory) }
+        }
 
-    override fun publish(file: File): Result<Unit> =
+    override suspend fun publish(file: File): Result<Unit> = withContext(io) {
         if (MediaStorePublisher.publish(context, file)) {
             Result.success(Unit)
         } else {
             Result.failure(IllegalStateException("Unable to save to gallery"))
         }
+    }
 }

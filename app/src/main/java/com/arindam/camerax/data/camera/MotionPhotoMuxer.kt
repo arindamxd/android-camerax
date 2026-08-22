@@ -25,6 +25,7 @@ object MotionPhotoMuxer {
             !file.extension.equals("jpeg", ignoreCase = true)
         ) return false
         val headerSize = minOf(file.length(), 64_000L).toInt()
+        if (headerSize <= 0) return false
         val header = ByteArray(headerSize)
         file.inputStream().use { input ->
             var read = 0
@@ -34,7 +35,9 @@ object MotionPhotoMuxer {
                 read += count
             }
         }
-        if (String(header, Charsets.ISO_8859_1).contains("Camera:MotionPhoto")) return true
+        // Require Motion Photo XMP. Trailing bytes after EOI alone are not enough —
+        // JPEG Ultra HDR stores a gain map after the primary image and would false-positive.
+        if (!String(header, Charsets.ISO_8859_1).contains("Camera:MotionPhoto")) return false
         val video = videoOffset(file) ?: return false
         return video < file.length()
     }
@@ -48,43 +51,62 @@ object MotionPhotoMuxer {
         return output.takeIf { it.length() > 0 }
     }
 
-    private fun videoOffset(file: File): Long? {
-        val bytes = file.readBytes()
-        val eoi = findJpegEnd(bytes) ?: return null
-        if (eoi + 8 >= bytes.size) return null
-        return eoi.toLong()
+    /**
+     * Offset of the MP4 appended after the JPEG EOI. Streams the file so a large motion photo
+     * cannot OOM the process.
+     */
+    internal fun videoOffset(file: File): Long? {
+        val eoi = jpegEndOffset(file) ?: return null
+        if (file.length() - eoi < 8) return null
+        return eoi
     }
 
-    private fun findJpegEnd(jpeg: ByteArray): Int? {
-        if (jpeg.size < 4 || jpeg[0] != 0xFF.toByte() || jpeg[1] != 0xD8.toByte()) return null
-        var index = 2
-        while (index + 1 < jpeg.size) {
-            if (jpeg[index] != 0xFF.toByte()) {
-                index++
-                continue
-            }
-            val marker = jpeg[index + 1].toInt() and 0xFF
-            if (marker == 0xD9) return index + 2
-            if (marker == 0xDA) {
-                var scan = index + 2
-                while (scan + 1 < jpeg.size) {
-                    if (jpeg[scan] == 0xFF.toByte() && jpeg[scan + 1] == 0xD9.toByte()) {
-                        return scan + 2
+    private fun jpegEndOffset(file: File): Long? {
+        file.inputStream().buffered(64 * 1024).use { input ->
+            if (input.read() != 0xFF || input.read() != 0xD8) return null
+            var offset = 2L
+            while (true) {
+                var value = input.read()
+                if (value < 0) return null
+                offset++
+                if (value != 0xFF) continue
+                do {
+                    value = input.read()
+                    if (value < 0) return null
+                    offset++
+                } while (value == 0xFF)
+                when (value) {
+                    0xD9 -> return offset
+                    0xDA -> {
+                        var previous = -1
+                        while (true) {
+                            val current = input.read()
+                            if (current < 0) return null
+                            offset++
+                            if (previous == 0xFF && current == 0xD9) return offset
+                            previous = current
+                        }
                     }
-                    scan++
+                    0x00, 0x01 -> continue
+                    in 0xD0..0xD7 -> continue
+                    else -> {
+                        val lengthHi = input.read()
+                        val lengthLo = input.read()
+                        if (lengthHi < 0 || lengthLo < 0) return null
+                        offset += 2
+                        val payload = ((lengthHi shl 8) or lengthLo) - 2
+                        if (payload < 0) return null
+                        var remaining = payload.toLong()
+                        while (remaining > 0) {
+                            val skipped = input.skip(remaining)
+                            if (skipped <= 0) return null
+                            remaining -= skipped
+                            offset += skipped
+                        }
+                    }
                 }
-                return null
             }
-            if (marker == 0x00 || marker == 0x01 || marker in 0xD0..0xD7) {
-                index += 2
-                continue
-            }
-            if (index + 3 >= jpeg.size) return null
-            val length =
-                ((jpeg[index + 2].toInt() and 0xFF) shl 8) or (jpeg[index + 3].toInt() and 0xFF)
-            index += 2 + length
         }
-        return null
     }
 
     private fun insertXmp(jpeg: ByteArray, xmpXml: String): ByteArray {

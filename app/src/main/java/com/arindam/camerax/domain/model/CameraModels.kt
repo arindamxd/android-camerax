@@ -20,9 +20,11 @@ enum class CameraLens {
     BACK,
     FRONT;
 
+    /** Switches between front and back. */
     fun toggle(): CameraLens = if (this == BACK) FRONT else BACK
 }
 
+/** Flash for stills; [TORCH] keeps the LED on during preview. */
 enum class FlashMode {
     OFF,
     ON,
@@ -37,6 +39,7 @@ enum class FlashMode {
     }
 }
 
+/** Self-timer delay before still capture. */
 enum class TimerMode(val seconds: Int) {
     OFF(0),
     THREE(3),
@@ -49,6 +52,7 @@ enum class TimerMode(val seconds: Int) {
     }
 }
 
+/** OEM CameraX extension (HDR, Night, Portrait, Beauty). */
 enum class CameraExtension {
     NONE,
     HDR,
@@ -57,6 +61,7 @@ enum class CameraExtension {
     BEAUTY
 }
 
+/** Live and still ColorMatrix effect (Effects mode). */
 enum class EffectMode {
     NONE,
     GRAYSCALE,
@@ -67,18 +72,21 @@ enum class EffectMode {
     VIVID
 }
 
+/** Night-scene recommendation from the camera (API 36+). */
 enum class NightScene {
     UNKNOWN,
     NOT_RECOMMENDED,
     RECOMMENDED
 }
 
+/** Hybrid AE priority mode (API 36+). */
 enum class ExposurePriority {
     AUTO,
     ISO,
     SHUTTER
 }
 
+/** Still output format selected in Settings. */
 enum class StillFormat {
     JPEG,
     JPEG_ULTRA_HDR,

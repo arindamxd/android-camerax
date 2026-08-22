@@ -1,5 +1,7 @@
 package com.arindam.camerax.ui.settings
 
+import com.arindam.camerax.util.permission.MicrophonePermission
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.arindam.camerax.di.AppDispatchers
@@ -12,14 +14,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Presentation: Settings screen state (device capabilities plus the version row). */
 data class SettingsUiState(
     val features: DeviceCaptureFeatures = DeviceCaptureFeatures(),
-    val versionLabel: String = ""
+    val versionLabel: String = "",
+    val microphonePermissionGranted: Boolean = true
 )
 
 /**
- * Settings capabilities. Preference rows still persist via SharedPreferences in the screen;
- * camera bind flags are read through [LoadCaptureSettings][com.arindam.camerax.domain.usecase.LoadCaptureSettings].
+ * Presentation: Settings capabilities. Preference rows still persist via SharedPreferences in
+ * the screen; camera bind flags are read through
+ * [LoadCaptureSettings][com.arindam.camerax.domain.usecase.LoadCaptureSettings].
  */
 class SettingsViewModel(
     private val interactors: CameraInteractors,
@@ -37,5 +42,10 @@ class SettingsViewModel(
             }
             _uiState.update { it.copy(features = features) }
         }
+    }
+
+    fun refreshMicrophonePermission(context: Context) {
+        val granted = MicrophonePermission.isGranted(context)
+        _uiState.update { it.copy(microphonePermissionGranted = granted) }
     }
 }

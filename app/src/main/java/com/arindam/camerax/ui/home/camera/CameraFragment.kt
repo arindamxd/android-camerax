@@ -8,13 +8,16 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.FileProvider
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.CameraX
 import com.arindam.camerax.R
@@ -22,18 +25,35 @@ import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.ui.theme.AppTheme
+import com.arindam.camerax.util.commons.Constants.PERMISSIONS.MICROPHONE_PERMISSION
+import com.arindam.camerax.util.permission.MicrophonePermission
 import com.arindam.camerax.util.theme.applyEdgeToEdgeBars
 import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 import java.io.File
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * Hosts the camera viewfinder. Presentation only; camera work goes through use cases.
+ * Presentation: hosts the camera viewfinder. Camera work goes through use cases only.
  */
 class CameraFragment : BaseFragmentCompose() {
 
     private val viewModel: CameraViewModel by viewModels {
         val app = requireActivity().application as CameraX
         CameraViewModelFactory(app.container)
+    }
+
+    private val micPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.onMicrophonePermissionResult(granted)
+        if (granted) return@registerForActivityResult
+        if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), MICROPHONE_PERMISSION)) {
+            showToast(R.string.permission_mic_denied)
+        } else {
+            showToast(R.string.permission_mic_settings)
+            MicrophonePermission.openAppSettings(requireContext())
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +77,7 @@ class CameraFragment : BaseFragmentCompose() {
         ) {
             CameraScreen(
                 viewModel = viewModel,
+                onRequestMicrophonePermission = ::requestMicrophonePermission,
                 onGalleryClicked = {
                     if (viewModel.hasGalleryItems()) {
                         navigate(
@@ -81,46 +102,63 @@ class CameraFragment : BaseFragmentCompose() {
         } else {
             requireActivity().applyEdgeToEdgeBars(lightIcons = true)
         }
+        viewModel.updateMicrophonePermission(MicrophonePermission.isGranted(requireContext()))
         viewModel.syncHost()
         if (!hasPermissions()) {
             navigate(CameraFragmentDirections.actionCameraToPermissions())
         }
     }
 
+    private fun requestMicrophonePermission() {
+        if (MicrophonePermission.isGranted(requireContext())) {
+            viewModel.onMicrophonePermissionResult(true)
+            return
+        }
+        micPermissionLauncher.launch(MICROPHONE_PERMISSION)
+    }
+
     private fun deliverExternalCapture(file: File) {
         val activity = requireActivity()
         val request = ExternalCaptureRequest.from(activity.intent)
-        val result = Intent()
-        try {
-            val outputUri = request.outputUri
-            if (outputUri != null) {
-                activity.contentResolver.openOutputStream(outputUri)?.use { output ->
-                    file.inputStream().use { input -> input.copyTo(output) }
-                } ?: error("Unable to write capture output")
-                grantResultUri(result, outputUri)
-            } else if (
-                (file.extension.equals("jpg", ignoreCase = true) ||
-                    file.extension.equals("jpeg", ignoreCase = true)) &&
-                !MotionPhotoMuxer.isMotionPhoto(file)
-            ) {
-                result.putExtra("data", thumbnailBitmap(file))
-            } else {
-                val uri = FileProvider.getUriForFile(
+        val io = (activity.application as CameraX).container.dispatchers.io
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = withContext(io) { buildCaptureResult(file, request) }
+                activity.setResult(Activity.RESULT_OK, result)
+                activity.finish()
+            } catch (error: Exception) {
+                Toast.makeText(
                     requireContext(),
-                    BuildConfig.APPLICATION_ID + ".provider",
-                    file
-                )
-                grantResultUri(result, uri)
+                    error.message ?: "Unable to return capture",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            activity.setResult(Activity.RESULT_OK, result)
-            activity.finish()
-        } catch (error: Exception) {
-            Toast.makeText(
-                requireContext(),
-                error.message ?: "Unable to return capture",
-                Toast.LENGTH_SHORT
-            ).show()
         }
+    }
+
+    private fun buildCaptureResult(file: File, request: ExternalCaptureRequest): Intent {
+        val result = Intent()
+        val outputUri = request.outputUri
+        if (outputUri != null) {
+            requireActivity().contentResolver.openOutputStream(outputUri)?.use { output ->
+                file.inputStream().use { input -> input.copyTo(output) }
+            } ?: error("Unable to write capture output")
+            grantResultUri(result, outputUri)
+        } else if (
+            (file.extension.equals("jpg", ignoreCase = true) ||
+                file.extension.equals("jpeg", ignoreCase = true)) &&
+            !MotionPhotoMuxer.isMotionPhoto(file)
+        ) {
+            result.putExtra("data", thumbnailBitmap(file))
+        } else {
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                BuildConfig.APPLICATION_ID + ".provider",
+                file
+            )
+            grantResultUri(result, uri)
+        }
+        return result
     }
 
     private fun grantResultUri(intent: Intent, uri: Uri) {

@@ -41,8 +41,8 @@ internal class ColorEffectAnalyzer(
             if (upright !== source) upright.recycle()
             source.recycle()
             onFrame(output)
-        } catch (error: Exception) {
-            Logger.error(TAG, "Effect processing failed: ${error.message}")
+        } catch (error: Throwable) {
+            Logger.error(TAG, "Effect processing failed: ${error.message}", error)
         } finally {
             imageProxy.close()
             processing = false

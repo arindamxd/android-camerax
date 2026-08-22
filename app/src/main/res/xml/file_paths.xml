@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-media-path name="media" path="." android:path="@{string/app_name}/" />
+    <!-- getExternalFilesDir(DIRECTORY_PICTURES)/{app_name} -->
+    <external-files-path name="pictures" path="Pictures/" />
     <files-path name="files" path="." />
+    <cache-path name="cache" path="." />
 </paths>

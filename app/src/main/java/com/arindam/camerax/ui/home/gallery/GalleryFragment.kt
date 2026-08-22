@@ -3,6 +3,7 @@ package com.arindam.camerax.ui.home.gallery
 import android.content.ClipData
 import android.content.Intent
 import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,15 +21,20 @@ import com.arindam.camerax.util.theme.applyEdgeToEdgeBarsForNightMode
 import java.io.File
 
 /**
- * In-app viewer for files in the app pictures directory. Share is hosted here (FileProvider);
- * delete goes through [GalleryViewModel] / [com.arindam.camerax.domain.usecase.DeleteMedia].
+ * Presentation: in-app viewer for files in the app pictures directory. Share is hosted here
+ * (FileProvider); delete goes through [GalleryViewModel] /
+ * [com.arindam.camerax.domain.usecase.DeleteMedia].
  */
 class GalleryFragment : BaseFragmentCompose() {
 
     private val args: GalleryFragmentArgs by navArgs()
     private val viewModel: GalleryViewModel by viewModels {
         val app = requireActivity().application as CameraX
-        GalleryViewModelFactory(app.container.cameraInteractors, File(args.rootDirectory))
+        GalleryViewModelFactory(
+            app.container.cameraInteractors,
+            File(args.rootDirectory),
+            app.container.dispatchers
+        )
     }
 
     override fun onResume() {
@@ -40,8 +46,8 @@ class GalleryFragment : BaseFragmentCompose() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun setComposeView(view: ComposeView) = view.setContent {
         val state by viewModel.uiState.collectAsStateWithLifecycle()
-        LaunchedEffect(state.items) {
-            if (state.items.isEmpty()) navigateBack()
+        LaunchedEffect(state.loading, state.items) {
+            if (!state.loading && state.items.isEmpty()) navigateBack()
         }
         AppTheme {
             GalleryScreen(
@@ -49,25 +55,33 @@ class GalleryFragment : BaseFragmentCompose() {
                 videoAutoplay = state.videoAutoplay,
                 navigateBack = { navigateBack() },
                 onShareClicked = { currentItem ->
-                    state.items.getOrNull(currentItem)?.let { mediaFile ->
-                        val intent = Intent().apply {
-                            val mediaType = MimeTypeMap.getSingleton()
-                                .getMimeTypeFromExtension(mediaFile.extension)
-                            val uri = FileProvider.getUriForFile(
+                    state.items.getOrNull(currentItem)?.file?.let { mediaFile ->
+                        try {
+                            val intent = Intent().apply {
+                                val mediaType = MimeTypeMap.getSingleton()
+                                    .getMimeTypeFromExtension(mediaFile.extension)
+                                val uri = FileProvider.getUriForFile(
+                                    requireContext(),
+                                    BuildConfig.APPLICATION_ID + ".provider",
+                                    mediaFile
+                                )
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                clipData = ClipData.newRawUri("", uri)
+                                type = mediaType
+                                action = Intent.ACTION_SEND
+                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            }
+                            startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
+                        } catch (error: Exception) {
+                            Toast.makeText(
                                 requireContext(),
-                                BuildConfig.APPLICATION_ID + ".provider",
-                                mediaFile
-                            )
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            clipData = ClipData.newRawUri("", uri)
-                            type = mediaType
-                            action = Intent.ACTION_SEND
-                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                error.message ?: getString(R.string.share_hint),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                        startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
                     }
                 },
-                onDelete = viewModel::delete
+                onDelete = { item -> viewModel.delete(item.file) }
             )
         }
     }

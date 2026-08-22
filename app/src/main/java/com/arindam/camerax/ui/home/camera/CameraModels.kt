@@ -101,6 +101,7 @@ data class CameraUiState(
     val isRecording: Boolean = false,
     val isPaused: Boolean = false,
     val isMuted: Boolean = false,
+    val microphonePermissionGranted: Boolean = true,
     val recordingNanos: Long = 0L,
     val thumbnail: File? = null,
     val extension: CameraExtension = CameraExtension.NONE,
@@ -151,7 +152,8 @@ data class CameraUiState(
     val videoFps60Active: Boolean = false,
     val deviceFeatures: DeviceCaptureFeatures = DeviceCaptureFeatures(),
     val lastSession: LastCameraSession? = null,
-    val message: String? = null
+    val message: String? = null,
+    val messageRes: Int? = null
 ) {
     val zoomChips: List<Float>
         get() {
@@ -232,8 +234,11 @@ data class CameraUiState(
     val showsLowLightBoost: Boolean
         get() = profile.showsLowLightBoost
 
-    val allowsAudioMute: Boolean
+    val showsAudioMuteControl: Boolean
         get() = profile.allowsAudioMute
+
+    val allowsAudioMute: Boolean
+        get() = profile.allowsAudioMute && microphonePermissionGranted
 
     val captureAction: CaptureAction
         get() = profile.captureAction

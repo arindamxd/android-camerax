@@ -40,17 +40,27 @@ import com.arindam.camerax.domain.usecase.TapToFocus
 import com.arindam.camerax.domain.usecase.UnbindCamera
 
 /**
- * Composition root. Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
+ * Composition root (DI). Owns [CameraSession] / [FileMediaRepository] and the [CameraInteractors]
  * the UI may call. Do not construct CameraX types from Fragments or Compose.
  */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
+
+    /** Coroutine dispatchers for repositories and ViewModels. */
     val dispatchers = AppDispatchers()
+
+    /** CameraX session implementation of [CameraRepository]. */
     val cameraRepository: CameraRepository = CameraSession(appContext)
-    val mediaRepository: MediaRepository = FileMediaRepository(appContext)
+
+    /** Disk + MediaStore access; I/O runs on [dispatchers.io]. */
+    val mediaRepository: MediaRepository = FileMediaRepository(appContext, dispatchers.io)
+
     val settingsRepository: SettingsRepository = PreferenceSettingsRepository(appContext)
+
     val deviceFeaturesRepository: DeviceFeaturesRepository =
         CameraDeviceFeaturesRepository(appContext)
+
+    /** Use cases wired for the camera UI. */
     val cameraInteractors = cameraInteractors(
         cameraRepository,
         mediaRepository,
@@ -94,6 +104,7 @@ data class CameraInteractors(
     val probeDeviceFeatures: ProbeDeviceFeatures
 )
 
+/** Builds [CameraInteractors] from repository implementations (used in tests). */
 fun cameraInteractors(
     cameraRepository: CameraRepository,
     mediaRepository: MediaRepository,

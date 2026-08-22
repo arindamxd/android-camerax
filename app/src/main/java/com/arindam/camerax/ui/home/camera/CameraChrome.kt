@@ -85,7 +85,10 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -362,13 +365,18 @@ fun RecordingHud(
                     tooltip = true,
                     onClick = onPauseClicked
                 )
-                if (state.allowsAudioMute) {
+                if (state.showsAudioMuteControl) {
+                    val micMuted = state.isMuted || !state.microphonePermissionGranted
                     GlassIconButton(
-                        icon = if (state.isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
+                        icon = if (micMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
                         contentDescription = stringResource(
-                            if (state.isMuted) R.string.unmute_audio else R.string.mute_audio
+                            when {
+                                !state.microphonePermissionGranted -> R.string.permission_mic_enable
+                                micMuted -> R.string.unmute_audio
+                                else -> R.string.mute_audio
+                            }
                         ),
-                        selected = state.isMuted,
+                        selected = micMuted,
                         compact = compact,
                         embedded = true,
                         tooltip = true,
@@ -944,7 +952,12 @@ private fun GalleryThumb(
     size: Dp,
     onClick: () -> Unit
 ) {
-    val model = remember(file) { file?.let { mediaThumbnail(it) } }
+    var model by remember(file) { mutableStateOf<Any?>(null) }
+    LaunchedEffect(file) {
+        model = withContext(Dispatchers.IO) {
+            file?.let { mediaThumbnail(it) }
+        }
+    }
     Box(
         modifier = Modifier
             .size(size)

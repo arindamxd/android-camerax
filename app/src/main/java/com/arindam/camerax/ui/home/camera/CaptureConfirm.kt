@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -36,6 +37,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -58,11 +59,13 @@ import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.ui.compose.ChromeActionPill
 import com.arindam.camerax.ui.theme.CameraAccent
-import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Optional Retake / Done overlay after a still or clip. Off by default in Settings. */
 @Composable
@@ -165,10 +168,16 @@ fun CaptureConfirmOverlay(
             }
         }
 
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets.systemGestures))
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing
+                        .union(WindowInsets.systemGestures)
+                        .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = review.metadataLabel(
@@ -178,27 +187,25 @@ fun CaptureConfirmOverlay(
                 fontFamily = CameraMono,
                 fontSize = 10.sp,
                 letterSpacing = 0.06.em,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 20.dp, bottom = 92.dp)
+                modifier = Modifier.padding(
+                    bottom = if (review.isVideo) 12.dp else 8.dp
+                )
             )
-
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                    .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ReviewActionPill(
+                ChromeActionPill(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Filled.Refresh,
                     label = stringResource(R.string.capture_review_retake),
                     filled = false,
                     onClick = onRetake
                 )
-                ReviewActionPill(
+                ChromeActionPill(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Filled.Check,
                     label = stringResource(R.string.capture_review_keep),
@@ -211,54 +218,23 @@ fun CaptureConfirmOverlay(
 }
 
 @Composable
-private fun ReviewActionPill(
-    icon: ImageVector,
-    label: String,
-    filled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val chrome = themedOverlayChrome()
-    val shape = RoundedCornerShape(26.dp)
-    val contentColor = if (filled) Color.Black else chrome.onGlass
-    val base = modifier
-        .height(52.dp)
-        .clip(shape)
-    val styled = if (filled) {
-        base.background(CameraAccent)
-    } else {
-        base
-            .background(chrome.glass)
-            .border(1.dp, chrome.stroke, shape)
-    }
-    Row(
-        modifier = styled.clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            color = contentColor,
-            fontFamily = CameraFontFamily,
-            fontSize = 14.sp,
-            fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium
-        )
-    }
-}
-
-@Composable
 private fun ReviewMotionStill(file: File) {
     val context = LocalContext.current
     var playing by remember(file) { mutableStateOf(false) }
     val clip = remember(file) {
         File(context.cacheDir, "review_motion_${file.nameWithoutExtension}.mp4")
+    }
+    var extracted by remember(file) { mutableStateOf<File?>(null) }
+    LaunchedEffect(file, playing) {
+        if (!playing) {
+            extracted = null
+            return@LaunchedEffect
+        }
+        val result = withContext(Dispatchers.IO) {
+            runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
+        }
+        extracted = result
+        if (result == null) playing = false
     }
     Box(
         modifier = Modifier
@@ -268,15 +244,8 @@ private fun ReviewMotionStill(file: File) {
                 indication = null
             ) { playing = !playing }
     ) {
-        if (playing) {
-            val extracted = remember(file) {
-                runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
-            }
-            if (extracted != null) {
-                ReviewVideo(file = extracted)
-            } else {
-                playing = false
-            }
+        if (playing && extracted != null) {
+            ReviewVideo(file = extracted!!)
         } else {
             Image(
                 painter = rememberAsyncImagePainter(model = file),

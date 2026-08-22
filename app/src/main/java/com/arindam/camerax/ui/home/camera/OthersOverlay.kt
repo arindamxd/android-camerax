@@ -88,6 +88,7 @@ private enum class OthersRoute {
 fun OthersWorkspace(
     state: CameraUiState,
     compact: Boolean,
+    onExit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var route by rememberSaveable { mutableStateOf(OthersRoute.HUB) }
@@ -99,8 +100,12 @@ fun OthersWorkspace(
     val context = LocalContext.current
     val report = deviceReportText(state)
     val shareTitle = stringResource(R.string.app_name)
-    BackHandler(enabled = route != OthersRoute.HUB) {
-        route = OthersRoute.HUB
+    BackHandler {
+        if (route != OthersRoute.HUB) {
+            route = OthersRoute.HUB
+        } else {
+            onExit()
+        }
     }
     Box(
         modifier = modifier

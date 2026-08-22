@@ -32,12 +32,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +63,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.arindam.camerax.ui.compose.CameraAlertDialog
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.theme.AppTheme
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +79,7 @@ fun CameraScreen(
     onGalleryClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
     onExternalCaptureReady: (File) -> Unit,
+    onRequestMicrophonePermission: () -> Unit,
     viewModel: CameraViewModel
 ) {
     val context = LocalContext.current
@@ -102,6 +106,14 @@ fun CameraScreen(
     }
 
     var keepPreview by remember { mutableStateOf(true) }
+    var showActiveCaptureExitDialog by rememberSaveable { mutableStateOf(false) }
+    val activeCaptureInProgress = state.isRecording || state.panoramaActive
+    BackHandler(enabled = activeCaptureInProgress) {
+        showActiveCaptureExitDialog = true
+    }
+    LaunchedEffect(activeCaptureInProgress) {
+        if (!activeCaptureInProgress) showActiveCaptureExitDialog = false
+    }
     LaunchedEffect(
         state.bindRevision,
         state.lens,
@@ -130,9 +142,11 @@ fun CameraScreen(
             previewView.display?.rotation?.let(viewModel::updateTargetRotation)
         }
     }
-    LaunchedEffect(state.message) {
-        val message = state.message ?: return@LaunchedEffect
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    LaunchedEffect(state.message, state.messageRes) {
+        val text = state.message
+            ?: state.messageRes?.let { context.getString(it) }
+            ?: return@LaunchedEffect
+        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
         viewModel.consumeMessage()
     }
     LaunchedEffect(viewModel) {
@@ -314,6 +328,7 @@ fun CameraScreen(
                 OthersWorkspace(
                     state = state,
                     compact = compact,
+                    onExit = viewModel::exitTools,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -342,7 +357,9 @@ fun CameraScreen(
                             state = state,
                             compact = compact,
                             onPauseClicked = viewModel::pauseOrResume,
-                            onMuteClicked = viewModel::toggleMute
+                            onMuteClicked = {
+                                viewModel.onMicControlClicked(onRequestMicrophonePermission)
+                            }
                         )
                     }
                 }
@@ -374,6 +391,16 @@ fun CameraScreen(
                     )
                 }
             }
+            CameraAlertDialog(
+                show = showActiveCaptureExitDialog,
+                title = stringResource(R.string.active_capture_exit_title),
+                text = stringResource(R.string.active_capture_exit_body),
+                confirmLabel = stringResource(R.string.active_capture_save),
+                dismissLabel = stringResource(R.string.active_capture_discard),
+                onDismiss = { showActiveCaptureExitDialog = false },
+                onDismissLabel = viewModel::discardActiveCapture,
+                onConfirm = viewModel::saveActiveCapture
+            )
         }
     }
 }

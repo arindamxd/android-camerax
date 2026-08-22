@@ -7,7 +7,8 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.arindam.camerax.di.AppContainer
 
 /**
- * Builds [CameraViewModel] with [com.arindam.camerax.di.CameraInteractors] from [AppContainer].
+ * Presentation: builds [CameraViewModel] with [com.arindam.camerax.di.CameraInteractors]
+ * from [AppContainer].
  */
 class CameraViewModelFactory(
     private val container: AppContainer

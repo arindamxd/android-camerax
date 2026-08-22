@@ -17,16 +17,16 @@ class FakeMediaRepository : MediaRepository {
 
     override fun picturesDirectory(): File = File("pictures")
 
-    override fun latest(directory: File): File? = list(directory).firstOrNull()
+    override suspend fun latest(directory: File): File? = list(directory).firstOrNull()
 
-    override fun list(directory: File): List<File> = files.toList()
+    override suspend fun list(directory: File): List<File> = files.toList()
 
-    override fun delete(file: File): Boolean = files.remove(file)
+    override suspend fun delete(file: File): Boolean = files.remove(file)
 
-    override fun stitchPanorama(frames: List<File>, outputDirectory: File): Result<File> =
+    override suspend fun stitchPanorama(frames: List<File>, outputDirectory: File): Result<File> =
         stitchResult ?: Result.success(frames.first())
 
-    override fun publish(file: File): Result<Unit> {
+    override suspend fun publish(file: File): Result<Unit> {
         published += file
         return publishResult
     }

@@ -52,9 +52,6 @@ android {
         versionCode = rootProject.extra["versionCodeBase"] as Int
         versionName = rootProject.extra["versionNameBase"] as String
         vectorDrawables.useSupportLibrary = true
-        if (hasReleaseSigning) {
-            signingConfig = signingConfigs.getByName("release")
-        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") )
     }
@@ -63,7 +60,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".debug"
             resValue("string", "app_version", "${defaultConfig.versionName} (build ${defaultConfig.versionCode}$applicationIdSuffix)")
-            resValue("string", "app_name", "CameraX [D]")
+            resValue("string", "app_name", "CameraX-Dev")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -74,6 +71,9 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             ndk.debugSymbolLevel = "SYMBOL_TABLE"
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -89,9 +89,25 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = true
+        warningsAsErrors = false
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+            excludes += "/META-INF/*.kotlin_module"
         }
         jniLibs {
             useLegacyPackaging = false
@@ -137,49 +153,27 @@ dependencies {
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.crashlytics)
 
-    // [CONFLICT FIX] Guava
-    api(libs.guava)
+    // [CONFLICT FIX] Guava ListenableFuture vs CameraX
+    implementation(libs.guava)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
-
-    // [VERIFY]
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-
-    // Compose Material Design 3
     implementation(libs.compose.material3)
-
-    // Android Studio Preview support
     implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-
-    // UI Tests
-    androidTestImplementation(libs.compose.ui.test.junit4)
-    debugImplementation(libs.compose.ui.test.manifest)
-
-    // Optional - Included automatically by material, only add when you need
-    // the icons but not the material library (e.g. when using Material3 or a
-    // custom design system based on Foundation)
     implementation(libs.compose.material.icons.core)
-    // Optional - Add full set of material icons
     implementation(libs.compose.material.icons.extended)
-    // Optional - Add window size utils
-    //implementation(libs.compose.material3.window.size)
-
-    // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
+    debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
+    androidTestImplementation(libs.compose.ui.test.junit4)
 
     // Unit testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.androidx.junit)
-    testImplementation(libs.androidx.rules)
-    testImplementation(libs.androidx.runner)
-    testImplementation(libs.androidx.espresso.core)
     testImplementation(libs.robolectric)
 
     // Instrumented testing
@@ -190,6 +184,7 @@ dependencies {
 }
 
 kotlin {
+    jvmToolchain(17)
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }

@@ -71,11 +71,13 @@ import java.util.Locale
 fun SettingsScreen(
     onBack: () -> Unit,
     features: DeviceCaptureFeatures = DeviceCaptureFeatures(),
-    versionLabel: String = ""
+    versionLabel: String = "",
+    microphonePermissionGranted: Boolean = true,
+    onRequestMicrophonePermission: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
-    val sections = remember(features, versionLabel) {
+    val sections = remember(features, versionLabel, microphonePermissionGranted) {
         settingsSections(
             versionLabel = versionLabel.ifEmpty { context.getString(R.string.app_version) },
             videoQualities = features.videoQualities,
@@ -86,7 +88,8 @@ fun SettingsScreen(
             rawCaptureAvailable = features.rawCapture,
             fullSensorRawAvailable = features.fullSensorRaw,
             lowLightBoostAvailable = features.lowLightBoost,
-            videoFps60Available = features.videoFps60
+            videoFps60Available = features.videoFps60,
+            microphonePermissionGranted = microphonePermissionGranted
         )
     }
     val scheme = MaterialTheme.colorScheme
@@ -143,7 +146,9 @@ fun SettingsScreen(
                         SettingsRowView(
                             row = row,
                             prefs = prefs,
-                            showDivider = index < section.items.lastIndex
+                            showDivider = index < section.items.lastIndex,
+                            microphonePermissionGranted = microphonePermissionGranted,
+                            onRequestMicrophonePermission = onRequestMicrophonePermission
                         )
                     }
                 }
@@ -172,7 +177,9 @@ private fun SettingsGroupCard(content: @Composable () -> Unit) {
 private fun SettingsRowView(
     row: SettingsRow,
     prefs: android.content.SharedPreferences,
-    showDivider: Boolean
+    showDivider: Boolean,
+    microphonePermissionGranted: Boolean,
+    onRequestMicrophonePermission: () -> Unit
 ) {
     val context = LocalContext.current
     when (row) {
@@ -181,21 +188,32 @@ private fun SettingsRowView(
             var on by remember(key) {
                 mutableStateOf(prefs.getBoolean(key, row.defaultOn))
             }
+            val needsMicrophone = row.requestsMicrophoneWhenUnavailable && !microphonePermissionGranted
             SettingsBaseRow(
                 icon = row.icon,
                 title = stringResource(row.titleRes),
                 subtitle = stringResource(row.subtitleRes),
                 enabled = row.enabled,
                 onClick = {
+                    if (needsMicrophone) {
+                        onRequestMicrophonePermission()
+                        return@SettingsBaseRow
+                    }
+                    if (!row.enabled) return@SettingsBaseRow
                     val next = !on
                     on = next
                     prefs.edit().putBoolean(key, next).apply()
                 },
                 trailing = {
                     Switch(
-                        checked = on && row.enabled,
-                        enabled = row.enabled,
+                        checked = on && row.enabled && !needsMicrophone,
+                        enabled = row.enabled && !needsMicrophone,
                         onCheckedChange = { checked ->
+                            if (needsMicrophone) {
+                                onRequestMicrophonePermission()
+                                return@Switch
+                            }
+                            if (!row.enabled) return@Switch
                             on = checked
                             prefs.edit().putBoolean(key, checked).apply()
                         },

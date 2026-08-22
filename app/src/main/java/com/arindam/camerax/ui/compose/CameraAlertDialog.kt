@@ -46,6 +46,8 @@ fun CameraAlertDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit = {},
     dismissLabel: String? = null,
+    /** Secondary button action; defaults to close-only via [onDismiss]. */
+    onDismissLabel: (() -> Unit)? = null,
     destructiveConfirm: Boolean = false
 ) {
     if (!show) return
@@ -90,7 +92,10 @@ fun CameraAlertDialog(
                         fontSize = AlertActionSize,
                         modifier = Modifier
                             .clip(AlertActionShape)
-                            .clickable(onClick = onDismiss)
+                            .clickable {
+                                onDismiss()
+                                onDismissLabel?.invoke()
+                            }
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     )
                 }

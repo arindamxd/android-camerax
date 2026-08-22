@@ -41,6 +41,7 @@ import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_FAST_MILLIS
 import com.arindam.camerax.util.commons.Constants.UI.ANIMATION_SLOW_MILLIS
 import com.arindam.camerax.util.coroutines.ShareWhileSubscribed
 import com.arindam.camerax.util.log.Logger
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -52,6 +53,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
@@ -63,11 +65,11 @@ import java.io.File
 import kotlin.math.exp
 import kotlin.math.ln
 
-@OptIn(FlowPreview::class)
 /**
- * Live-feed UI state. Calls [CameraInteractors] only — never [CameraSession].
+ * Presentation: live-feed UI state. Calls [CameraInteractors] only — never [CameraSession].
  * Increment [CameraUiState.bindRevision] when a Settings or mode change must rebind.
  */
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class CameraViewModel(
     private val interactors: CameraInteractors,
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -87,6 +89,7 @@ class CameraViewModel(
     private var zoomAnimator: ValueAnimator? = null
     private var zoomGestureAnchor = 1f
     private var pendingVideoFile: File? = null
+    private var discardPendingVideo = false
     private var launchIntentApplied = false
     private var externalCapture = ExternalCaptureRequest()
     private var manualExtension = false
@@ -97,12 +100,15 @@ class CameraViewModel(
     private val panoramaFrames = mutableListOf<File>()
     private var lastPanoramaYaw: Float? = null
     private var panoramaCaptureBusy = false
+    private var modeBeforeTools: CameraMode = CameraMode.PHOTO
 
     init {
         restoreChrome()
-        setOutputDirectory(interactors.picturesDirectory())
         applyCaptureSettings(interactors.loadCaptureSettings())
         persistChrome()
+        viewModelScope.launch(dispatchers.io) {
+            setOutputDirectory(interactors.picturesDirectory())
+        }
         viewModelScope.launch {
             val features = withContext(dispatchers.default) {
                 interactors.probeDeviceFeatures()
@@ -141,15 +147,20 @@ class CameraViewModel(
             .onEach { event -> handleRecordEvent(event) }
             .launchIn(viewModelScope)
         interactors.observeEffectFrame()
-            .onEach { bitmap ->
-                _uiState.update { it.copy(effectFrame = bitmap?.asImageBitmap()) }
+            .mapLatest { bitmap ->
+                withContext(dispatchers.default) {
+                    bitmap?.asImageBitmap()
+                }
+            }
+            .onEach { imageBitmap ->
+                _uiState.update { it.copy(effectFrame = imageBitmap) }
             }
             .launchIn(viewModelScope)
     }
 
     fun setOutputDirectory(directory: File) {
         outputDirectory = directory
-        _uiState.update { it.copy(thumbnail = interactors.getLatestMedia(directory)) }
+        viewModelScope.launch { refreshThumbnail() }
     }
 
     fun syncHost() {
@@ -157,9 +168,23 @@ class CameraViewModel(
         applyCaptureSettings(interactors.loadCaptureSettings())
     }
 
+    fun updateMicrophonePermission(granted: Boolean) {
+        _uiState.update { state ->
+            val resolvedMuted = when {
+                !granted -> true
+                state.isRecording -> state.isMuted
+                else -> recordMutedByDefault
+            }
+            state.copy(
+                microphonePermissionGranted = granted,
+                isMuted = resolvedMuted
+            )
+        }
+    }
+
     fun picturesDirectory(): File = outputDirectory ?: interactors.picturesDirectory()
 
-    fun hasGalleryItems(): Boolean = interactors.listMedia(picturesDirectory()).isNotEmpty()
+    fun hasGalleryItems(): Boolean = _uiState.value.thumbnail != null
 
     fun bind(
         lifecycleOwner: LifecycleOwner,
@@ -347,10 +372,13 @@ class CameraViewModel(
             }
 
             ExternalCaptureKind.MOTION_PHOTO -> _uiState.update {
+                val dropUltraHdr = it.ultraHdr
                 it.copy(
                     mode = CameraMode.PHOTO,
                     motionPhotoEnabled = true,
-                    lockCaptureMode = true
+                    ultraHdr = false,
+                    lockCaptureMode = true,
+                    bindRevision = if (dropUltraHdr) it.bindRevision + 1 else it.bindRevision
                 )
             }
 
@@ -368,9 +396,41 @@ class CameraViewModel(
         if (_uiState.value.panoramaActive) finishPanorama()
     }
 
+    /** Finalize in-progress video or panorama (system-back Save). */
+    fun saveActiveCapture() {
+        val state = _uiState.value
+        when {
+            state.isRecording || state.motionCapturing -> {
+                discardPendingVideo = false
+                stopRecording()
+            }
+            state.panoramaActive -> finishPanorama()
+        }
+    }
+
+    /** Drop in-progress video or panorama without publishing (system-back Discard). */
+    fun discardActiveCapture() {
+        val state = _uiState.value
+        when {
+            state.isRecording || state.motionCapturing -> {
+                discardPendingVideo = true
+                stopRecording()
+            }
+            state.panoramaActive -> cancelPanorama()
+        }
+    }
+
+    fun exitTools() {
+        if (!_uiState.value.showsTools) return
+        setMode(modeBeforeTools)
+    }
+
     fun setMode(mode: CameraMode) {
         if (_uiState.value.isRecording || _uiState.value.motionCapturing || _uiState.value.lockCaptureMode) return
         val state = _uiState.value
+        if (mode == CameraMode.OTHERS && state.mode != CameraMode.OTHERS) {
+            modeBeforeTools = state.mode
+        }
         val profile = mode.profile()
         if (!profile.isAvailable(state.slowMotionSupported, state.concurrentSupported)) return
         if (state.panoramaActive) finishPanorama()
@@ -543,6 +603,12 @@ class CameraViewModel(
             !state.mode.profile().allowsMotionPhoto
         ) return
         val enabled = !_uiState.value.motionPhotoEnabled
+        if (enabled && state.ultraHdr) {
+            _uiState.update {
+                it.copy(message = null, messageRes = R.string.motion_photo_disable_ultra_hdr)
+            }
+            return
+        }
         val dropExtension = enabled && _uiState.value.extension != CameraExtension.NONE
         if (dropExtension) manualExtension = false
         _uiState.update {
@@ -599,7 +665,7 @@ class CameraViewModel(
         when (state.captureAction) {
             CaptureAction.VIDEO -> {
                 if (state.showsSlowMotionFps && !state.slowMotionSupported) return
-                if (state.isRecording) stopRecording() else startRecording()
+                if (state.isRecording) stopRecording() else viewModelScope.launch { startRecording() }
             }
             CaptureAction.PANORAMA -> {
                 if (state.panoramaActive) finishPanorama() else startPanorama(previewView)
@@ -628,14 +694,38 @@ class CameraViewModel(
     }
 
     fun toggleMute() {
-        if (!_uiState.value.allowsAudioMute) return
+        if (!_uiState.value.microphonePermissionGranted) return
+        if (!_uiState.value.showsAudioMuteControl) return
         val muted = !_uiState.value.isMuted
         _uiState.update { it.copy(isMuted = muted) }
         if (_uiState.value.isRecording) interactors.muteRecording(muted)
     }
 
+    /** Mic chip when permission is missing — caller should launch [android.Manifest.permission.RECORD_AUDIO]. */
+    fun onMicControlClicked(requestPermission: () -> Unit) {
+        if (!_uiState.value.isRecording) return
+        if (!_uiState.value.showsAudioMuteControl) return
+        if (!_uiState.value.microphonePermissionGranted) {
+            requestPermission()
+            return
+        }
+        toggleMute()
+    }
+
+    fun onMicrophonePermissionResult(granted: Boolean) {
+        updateMicrophonePermission(granted)
+        if (!granted) return
+        if (_uiState.value.isRecording) {
+            if (_uiState.value.isMuted) {
+                toggleMute()
+            }
+        } else if (!recordMutedByDefault) {
+            _uiState.update { it.copy(isMuted = false) }
+        }
+    }
+
     fun consumeMessage() {
-        _uiState.update { it.copy(message = null) }
+        _uiState.update { it.copy(message = null, messageRes = null) }
     }
 
     fun keepCapture() {
@@ -647,8 +737,12 @@ class CameraViewModel(
 
     fun retakeCapture() {
         val review = _uiState.value.review ?: return
-        review.file.delete()
-        review.companions.forEach { it.delete() }
+        viewModelScope.launch {
+            withContext(dispatchers.io) {
+                review.file.delete()
+                review.companions.forEach { it.delete() }
+            }
+        }
         _uiState.update { it.copy(review = null) }
     }
 
@@ -657,13 +751,18 @@ class CameraViewModel(
         flipWhileRecordingEnabled = settings.flipWhileRecording
         recordMutedByDefault = settings.recordMuted
         val state = _uiState.value
+        val resolvedMuted = when {
+            state.isRecording -> state.isMuted
+            !state.microphonePermissionGranted -> true
+            else -> settings.recordMuted
+        }
         if (state.flipWhileRecording != settings.flipWhileRecording ||
-            (!state.isRecording && state.isMuted != settings.recordMuted)
+            (!state.isRecording && state.isMuted != resolvedMuted)
         ) {
             _uiState.update {
                 it.copy(
                     flipWhileRecording = settings.flipWhileRecording,
-                    isMuted = if (it.isRecording) it.isMuted else settings.recordMuted
+                    isMuted = if (it.isRecording) it.isMuted else resolvedMuted
                 )
             }
         }
@@ -685,6 +784,7 @@ class CameraViewModel(
         ) return
         val dropExtension = settings.rawCapture && state.extension != CameraExtension.NONE
         if (dropExtension) manualExtension = false
+        val forceMotion = externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO
         _uiState.update {
             it.copy(
                 captureAspect = settings.aspect,
@@ -693,13 +793,17 @@ class CameraViewModel(
                 videoStabilization = settings.videoStabilization,
                 slowMotionQuality = settings.slowMotionQuality,
                 slowMotionRate = settings.slowMotionRate,
-                ultraHdr = settings.ultraHdr,
-                rawCapture = settings.rawCapture,
+                ultraHdr = if (forceMotion) false else settings.ultraHdr,
+                rawCapture = if (forceMotion) false else settings.rawCapture,
                 rawFullSensor = settings.rawFullSensor,
                 lowLightBoost = settings.lowLightBoost,
                 videoFps60 = settings.videoFps60,
                 frontMirror = settings.frontMirror,
-                motionPhotoEnabled = if (settings.rawCapture) false else it.motionPhotoEnabled,
+                motionPhotoEnabled = when {
+                    forceMotion -> true
+                    settings.rawCapture || settings.ultraHdr -> false
+                    else -> it.motionPhotoEnabled
+                },
                 extension = if (dropExtension) CameraExtension.NONE else it.extension,
                 autoNightActive = if (dropExtension) false else it.autoNightActive,
                 bindRevision = it.bindRevision + 1
@@ -730,7 +834,11 @@ class CameraViewModel(
     private fun takePhoto(previewView: PreviewView) {
         val directory = outputDirectory ?: return
         val motion = !_uiState.value.rawCapture &&
+            (!_uiState.value.ultraHdr ||
+                externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO) &&
             _uiState.value.stillFormat != StillFormat.RAW_JPEG &&
+            _uiState.value.stillFormat != StillFormat.JPEG_ULTRA_HDR &&
+            _uiState.value.stillFormat != StillFormat.HEIC_ULTRA_HDR &&
             (_uiState.value.motionPhotoEnabled ||
                 externalCapture.kind == ExternalCaptureKind.MOTION_PHOTO)
         if (motion) _uiState.update { it.copy(motionCapturing = true) }
@@ -808,7 +916,22 @@ class CameraViewModel(
             is RecordingEvent.Finalized -> {
                 val file = pendingVideoFile
                 pendingVideoFile = null
-                if (event.success && file != null) {
+                val discard = discardPendingVideo
+                discardPendingVideo = false
+                if (discard) {
+                    viewModelScope.launch {
+                        withContext(dispatchers.io) { file?.delete() }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isRecording = false,
+                            isPaused = false,
+                            recordingNanos = 0L,
+                            isMuted = recordMutedByDefault,
+                            message = null
+                        )
+                    }
+                } else if (event.success && file != null) {
                     completeCapture(file, video = true) {
                         copy(
                             isRecording = false,
@@ -943,13 +1066,13 @@ class CameraViewModel(
         _uiState.update { it.copy(panoramaActive = false, panoramaFrames = 0) }
         if (directory == null || frames.isEmpty()) return
         viewModelScope.launch {
-            val result = withContext(dispatchers.default) {
-                interactors.stitchPanorama(frames, directory)
-            }
+            val result = interactors.stitchPanorama(frames, directory)
             result.fold(
                 onSuccess = { file ->
-                    frames.forEach { frame ->
-                        if (frame != file) frame.delete()
+                    withContext(dispatchers.io) {
+                        frames.forEach { frame ->
+                            if (frame != file) frame.delete()
+                        }
                     }
                     completeCapture(file, video = false)
                 },
@@ -960,6 +1083,20 @@ class CameraViewModel(
                     }
                 }
             )
+        }
+    }
+
+    private fun cancelPanorama() {
+        val frames = panoramaFrames.toList()
+        panoramaFrames.clear()
+        lastPanoramaYaw = null
+        panoramaCaptureBusy = false
+        _uiState.update { it.copy(panoramaActive = false, panoramaFrames = 0) }
+        if (frames.isEmpty()) return
+        viewModelScope.launch {
+            withContext(dispatchers.io) {
+                frames.forEach { it.delete() }
+            }
         }
     }
 
@@ -976,12 +1113,18 @@ class CameraViewModel(
         extra: CameraUiState.() -> CameraUiState = { this }
     ) {
         if (captureConfirmEnabled) {
-            _uiState.update { extra(it).copy(review = captureReview(file, video)) }
+            viewModelScope.launch {
+                val review = withContext(dispatchers.io) { captureReview(file, video) }
+                _uiState.update { extra(it).copy(review = review) }
+            }
             return
         }
-        publishAndFinish(file, video)
-        companionStill(file, video).forEach { publishQuietly(it) }
-        _uiState.update { extra(it).copy(thumbnail = file, review = null) }
+        viewModelScope.launch {
+            val companions = withContext(dispatchers.io) { companionStill(file, video) }
+            publishAndFinish(file, video)
+            companions.forEach { publishQuietly(it) }
+            _uiState.update { extra(it).copy(thumbnail = file, review = null) }
+        }
     }
 
     private fun publishAndFinish(file: File, video: Boolean) {
@@ -995,10 +1138,12 @@ class CameraViewModel(
     }
 
     private fun publishQuietly(file: File) {
-        interactors.publishMedia(file).onFailure { error ->
-            Logger.error(TAG, "Publish failed: ${error.message}")
-            _uiState.update {
-                it.copy(message = error.message ?: "Unable to save to gallery")
+        viewModelScope.launch {
+            interactors.publishMedia(file).onFailure { error ->
+                Logger.error(TAG, "Publish failed: ${error.message}", error)
+                _uiState.update {
+                    it.copy(message = error.message ?: "Unable to save to gallery")
+                }
             }
         }
     }
@@ -1068,5 +1213,11 @@ class CameraViewModel(
         savedState[STATE_MODE] = state.mode.name
         savedState[STATE_LENS] = state.lens.name
         savedState[STATE_FLASH] = state.flash.name
+    }
+
+    private suspend fun refreshThumbnail() {
+        val directory = outputDirectory ?: return
+        val latest = withContext(dispatchers.io) { interactors.getLatestMedia(directory) }
+        _uiState.update { it.copy(thumbnail = latest) }
     }
 }

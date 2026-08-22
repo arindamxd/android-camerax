@@ -34,6 +34,11 @@ class FakeCameraRepository : CameraRepository {
     var lastBindConfig: CameraBindConfig? = null
     var captureResult: Result<File> = Result.failure(IllegalStateException("No capture"))
     var recordingResult: Result<File> = Result.failure(IllegalStateException("No recording"))
+    var lastRecordingMuted: Boolean? = null
+    var lastRecordingPersistent: Boolean? = null
+    var lastMuteRecording: Boolean? = null
+    var muteRecordingCalls = 0
+    var stopRecordingCalls = 0
     var released = false
     var unbound = false
 
@@ -60,12 +65,21 @@ class FakeCameraRepository : CameraRepository {
         outputDirectory: File,
         muted: Boolean,
         persistent: Boolean
-    ): Result<File> = recordingResult
+    ): Result<File> {
+        lastRecordingMuted = muted
+        lastRecordingPersistent = persistent
+        return recordingResult
+    }
 
     override fun pauseRecording() = Unit
     override fun resumeRecording() = Unit
-    override fun stopRecording() = Unit
-    override fun muteRecording(muted: Boolean) = Unit
+    override fun stopRecording() {
+        stopRecordingCalls++
+    }
+    override fun muteRecording(muted: Boolean) {
+        lastMuteRecording = muted
+        muteRecordingCalls++
+    }
     override fun setFlash(mode: FlashMode) {
         lastFlash = mode
     }

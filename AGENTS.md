@@ -13,6 +13,8 @@ ui (presentation) → domain ← data
 
 Do not construct `CameraSession` from the UI. Keep use cases; do not collapse to ViewModel → CameraSession. Do not split Gradle modules unless asked.
 
+Disk and MediaStore work (`list` / `delete` / `publish` / `stitch` / motion mux / still effects) must stay off the main thread: repositories use `AppDispatchers.io`, ViewModels `withContext`. Do not call `listFiles`, `BitmapFactory.decodeFile`, or `MediaMetadataRetriever` from Compose or click handlers.
+
 ### File map (where to change what)
 
 | Goal | Start here |
@@ -60,6 +62,7 @@ Immersive dark preview, glass chrome, accent `#f9aa33` (`CameraAccent` / `orange
 - Share / capture results: `ClipData` + `FLAG_GRANT_READ_URI_PERMISSION`. IMAGE_CAPTURE writes `EXTRA_OUTPUT` or returns a thumbnail / FileProvider URI (FileProvider for motion photos and HEIC).
 - Background recording: start `RecordingForegroundService`; stop recording on `ON_STOP`.
 - `android.hardware.microphone` is optional.
+- Release: R8 minify + resource shrink, native `SYMBOL_TABLE` for Play Console, Crashlytics mapping when `app/google-services.json` is present. Backup is off (`allowBackup=false` + data-extraction rules). Debug builds enable StrictMode (log only). See [RELEASE.md](RELEASE.md) for the Play Store checklist.
 
 ## Do not
 

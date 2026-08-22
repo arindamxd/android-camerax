@@ -140,37 +140,37 @@ class ReleaseCamera(private val repository: CameraRepository) {
     operator fun invoke() = repository.release()
 }
 
-/** Latest file in the app pictures directory (gallery thumb). */
+/** Latest file in the app pictures directory (gallery thumb). Runs off the main thread. */
 class GetLatestMedia(private val repository: MediaRepository) {
-    operator fun invoke(directory: File = repository.picturesDirectory()): File? =
+    suspend operator fun invoke(directory: File = repository.picturesDirectory()): File? =
         repository.latest(directory)
 }
 
-/** App pictures directory (DCIM is publish-only). */
+/** App pictures directory (DCIM is publish-only). Cached after the first call. */
 class PicturesDirectory(private val repository: MediaRepository) {
     operator fun invoke(): File = repository.picturesDirectory()
 }
 
-/** Files in the app pictures directory, newest first. */
+/** Files in the app pictures directory, newest first. Runs off the main thread. */
 class ListMedia(private val repository: MediaRepository) {
-    operator fun invoke(directory: File = repository.picturesDirectory()): List<File> =
+    suspend operator fun invoke(directory: File = repository.picturesDirectory()): List<File> =
         repository.list(directory)
 }
 
-/** Delete a capture from the app pictures directory. */
+/** Delete a capture from the app pictures directory. Runs off the main thread. */
 class DeleteMedia(private val repository: MediaRepository) {
-    operator fun invoke(file: File): Boolean = repository.delete(file)
+    suspend operator fun invoke(file: File): Boolean = repository.delete(file)
 }
 
 /** Horizontal sweep stitch for [com.arindam.camerax.domain.model.CameraMode.PANORAMA]. */
 class StitchPanorama(private val repository: MediaRepository) {
-    operator fun invoke(frames: List<File>, outputDirectory: File): Result<File> =
+    suspend operator fun invoke(frames: List<File>, outputDirectory: File): Result<File> =
         repository.stitchPanorama(frames, outputDirectory)
 }
 
-/** Copy into DCIM/CameraX so the system gallery lists the capture. */
+/** Copy into DCIM/CameraX so the system gallery lists the capture. Runs off the main thread. */
 class PublishMedia(private val repository: MediaRepository) {
-    operator fun invoke(file: File): Result<Unit> = repository.publish(file)
+    suspend operator fun invoke(file: File): Result<Unit> = repository.publish(file)
 }
 
 /** Bind flags from Settings. */

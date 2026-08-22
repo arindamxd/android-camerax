@@ -27,6 +27,33 @@ class CameraUseCasesTest {
     }
 
     @Test
+    fun startRecording_forwardsMutedFlagToRepository() {
+        val camera = FakeCameraRepository()
+        camera.recordingResult = Result.success(File("clip.mp4"))
+        val result = StartRecording(camera)(File("out"), muted = true, persistent = false)
+        assertTrue(result.isSuccess)
+        assertEquals(true, camera.lastRecordingMuted)
+        assertEquals(false, camera.lastRecordingPersistent)
+    }
+
+    @Test
+    fun startRecording_forwardsPersistentFlagToRepository() {
+        val camera = FakeCameraRepository()
+        camera.recordingResult = Result.success(File("clip.mp4"))
+        StartRecording(camera)(File("out"), muted = false, persistent = true)
+        assertEquals(false, camera.lastRecordingMuted)
+        assertEquals(true, camera.lastRecordingPersistent)
+    }
+
+    @Test
+    fun muteRecording_forwardsToRepository() {
+        val camera = FakeCameraRepository()
+        MuteRecording(camera)(muted = true)
+        assertEquals(true, camera.lastMuteRecording)
+        assertEquals(1, camera.muteRecordingCalls)
+    }
+
+    @Test
     fun startRecording_returnsFailureFromRepository() {
         val camera = FakeCameraRepository()
         val result = StartRecording(camera)(File("out"), muted = false)
@@ -34,7 +61,7 @@ class CameraUseCasesTest {
     }
 
     @Test
-    fun publishMedia_recordsFile() {
+    fun publishMedia_recordsFile() = runTest {
         val media = FakeMediaRepository()
         val file = File("shot.jpg")
         val result = PublishMedia(media)(file)
@@ -43,7 +70,7 @@ class CameraUseCasesTest {
     }
 
     @Test
-    fun listAndDeleteMedia() {
+    fun listAndDeleteMedia() = runTest {
         val media = FakeMediaRepository()
         val first = File("a.jpg")
         val second = File("b.jpg")
@@ -52,5 +79,23 @@ class CameraUseCasesTest {
         assertEquals(listOf(first, second), ListMedia(media)(File("dir")))
         assertTrue(DeleteMedia(media)(first))
         assertEquals(listOf(second), ListMedia(media)(File("dir")))
+    }
+
+    @Test
+    fun getLatestMedia_returnsFirstListedFile() = runTest {
+        val media = FakeMediaRepository()
+        val first = File("a.jpg")
+        media.add(first)
+        media.add(File("b.jpg"))
+        assertEquals(first, GetLatestMedia(media)(File("dir")))
+    }
+
+    @Test
+    fun stitchPanorama_usesRepositoryResult() = runTest {
+        val media = FakeMediaRepository()
+        val stitched = File("pano.jpg")
+        media.stitchResult = Result.success(stitched)
+        val result = StitchPanorama(media)(listOf(File("a.jpg")), File("out"))
+        assertEquals(stitched, result.getOrNull())
     }
 }

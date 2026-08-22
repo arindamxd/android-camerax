@@ -45,7 +45,8 @@ fun settingsSections(
     rawCaptureAvailable: Boolean = false,
     fullSensorRawAvailable: Boolean = false,
     lowLightBoostAvailable: Boolean = false,
-    videoFps60Available: Boolean = false
+    videoFps60Available: Boolean = false,
+    microphonePermissionGranted: Boolean = true
 ): List<SettingsSection> = listOf(
     SettingsSection(
         titleRes = R.string.pref_title_theme,
@@ -210,9 +211,15 @@ fun settingsSections(
             SettingsRow.Toggle(
                 keyRes = R.string.pref_key_record_muted,
                 titleRes = R.string.pref_title_record_muted,
-                subtitleRes = R.string.pref_subtitle_record_muted,
+                subtitleRes = if (microphonePermissionGranted) {
+                    R.string.pref_subtitle_record_muted
+                } else {
+                    R.string.pref_subtitle_record_muted_unavailable
+                },
                 icon = Icons.Outlined.MicOff,
-                defaultOn = false
+                defaultOn = false,
+                enabled = true,
+                requestsMicrophoneWhenUnavailable = true
             ),
             SettingsRow.Toggle(
                 keyRes = R.string.pref_key_video_fps_60,
@@ -335,7 +342,8 @@ sealed interface SettingsRow {
         @StringRes val subtitleRes: Int,
         override val icon: ImageVector,
         val defaultOn: Boolean,
-        val enabled: Boolean = true
+        val enabled: Boolean = true,
+        val requestsMicrophoneWhenUnavailable: Boolean = false
     ) : SettingsRow
 
     data class Choice(

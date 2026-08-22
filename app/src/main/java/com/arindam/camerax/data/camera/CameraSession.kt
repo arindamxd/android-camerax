@@ -355,7 +355,11 @@ class CameraSession(private val context: Context) : CameraRepository {
                 continuation.resume(Result.failure(IllegalStateException(message)))
             }
         }
-        if (motionPhoto && stillFormat != StillFormat.RAW_JPEG && videoCapture != null) {
+        if (motionPhoto && stillFormat != StillFormat.RAW_JPEG &&
+            stillFormat != StillFormat.JPEG_ULTRA_HDR &&
+            stillFormat != StillFormat.HEIC_ULTRA_HDR &&
+            videoCapture != null
+        ) {
             captureMotionPhoto(outputDirectory, lens, effect, onSaved, onError)
         } else {
             takeStill(outputDirectory, lens, effect, onSaved, onError)
@@ -389,11 +393,13 @@ class CameraSession(private val context: Context) : CameraRepository {
             capture.output.prepareRecording(context, output),
             persist = persistent
         )
-        val withAudio = !highSpeedSession &&
-            PermissionChecker.checkSelfPermission(
+        val withAudio = shouldEnableRecordingAudio(
+            highSpeedSession = highSpeedSession,
+            recordAudioGranted = PermissionChecker.checkSelfPermission(
                 context,
                 Manifest.permission.RECORD_AUDIO
             ) == PermissionChecker.PERMISSION_GRANTED
+        )
         val active = if (withAudio) pending.withAudioEnabled() else pending
         startRecordingService()
         recording = active.start(ContextCompat.getMainExecutor(context)) { event ->
@@ -547,8 +553,7 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     override fun release() {
         unbind()
-        cameraExecutor.shutdown()
-        analysisExecutor.shutdown()
+        // Keep capture/analysis executors alive: AppContainer owns this session for the process.
     }
 
     @OptIn(ExperimentalCamera2Interop::class)
@@ -655,7 +660,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             .build()
         capture.takePicture(
             options,
-            ContextCompat.getMainExecutor(context),
+            cameraExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val file = output.savedUri?.toFile() ?: photoFile
@@ -701,7 +706,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         capture.takePicture(
             dngOptions,
             jpegOptions,
-            ContextCompat.getMainExecutor(context),
+            cameraExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val file = output.savedUri?.toFile()
@@ -772,19 +777,23 @@ class CameraSession(private val context: Context) : CameraRepository {
         val video = motionVideo
         val onSaved = motionOnSaved ?: return
         clearMotionCapture()
-        if (video != null && video.exists() && video.length() > 0L) {
-            try {
-                val muxed = File(still.parentFile, still.nameWithoutExtension + "_motion.jpg")
-                MotionPhotoMuxer.mux(still, video, muxed)
-                still.delete()
-                video.delete()
-                onSaved(muxed)
-                return
-            } catch (error: Exception) {
-                Logger.error(TAG, "Motion mux failed: ${error.message}")
+        cameraExecutor.execute {
+            val saved = if (video != null && video.exists() && video.length() > 0L) {
+                runCatching {
+                    val muxed = File(still.parentFile, still.nameWithoutExtension + "_motion.jpg")
+                    MotionPhotoMuxer.mux(still, video, muxed)
+                    still.delete()
+                    video.delete()
+                    muxed
+                }.getOrElse { error ->
+                    Logger.error(TAG, "Motion mux failed: ${error.message}")
+                    still
+                }
+            } else {
+                still
             }
+            mainHandler.post { onSaved(saved) }
         }
-        onSaved(still)
     }
 
     private fun clearMotionCapture() {
@@ -1353,7 +1362,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             runCatching { future.get() }.onFailure { error ->
                 Logger.warning(TAG, "Low light boost failed: ${error.message}")
             }
-        }, ContextCompat.getMainExecutor(context))
+        }, cameraExecutor)
     }
 
     private data class HighSpeedBind(val camera: Camera, val fps: Int)
@@ -1371,8 +1380,8 @@ class CameraSession(private val context: Context) : CameraRepository {
             if (flipped !== original) flipped.recycle()
             original.recycle()
             file
-        } catch (error: Exception) {
-            Logger.error(TAG, "Still effect failed: ${error.message}")
+        } catch (error: Throwable) {
+            Logger.error(TAG, "Still effect failed: ${error.message}", error)
             file
         }
     }
@@ -1396,7 +1405,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             } catch (error: Exception) {
                 continuation.resumeWithException(error)
             }
-        }, ContextCompat.getMainExecutor(context))
+        }, cameraExecutor)
     }
 
     private suspend fun awaitExtensions(provider: ProcessCameraProvider): ExtensionsManager =
@@ -1408,7 +1417,7 @@ class CameraSession(private val context: Context) : CameraRepository {
                 } catch (error: Exception) {
                     continuation.resumeWithException(error)
                 }
-            }, ContextCompat.getMainExecutor(context))
+            }, cameraExecutor)
         }
 
     companion object {

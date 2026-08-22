@@ -10,7 +10,7 @@ import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.domain.repository.SettingsRepository
 
-/** SharedPreferences implementation of [SettingsRepository]. */
+/** Data: SharedPreferences implementation of [SettingsRepository]. */
 class PreferenceSettingsRepository(context: Context) : SettingsRepository {
 
     private val appContext = context.applicationContext

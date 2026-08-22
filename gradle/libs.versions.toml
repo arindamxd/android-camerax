@@ -8,23 +8,18 @@ coreKtx = "1.19.0"
 coreSplashscreen = "1.2.0"
 appcompat = "1.8.0"
 fragmentKtx = "1.9.0"
-constraintlayout = "2.2.2"
-localbroadcastmanager = "1.1.0"
 preferenceKtx = "1.2.1"
 lifecycleRuntimeKtx = "2.11.0"
 navigationFragmentKtx = "2.9.8"
 navigationUiKtx = "2.9.8"
 camerax = "1.6.1"
-exifInterface = "1.4.2"
 coilCompose = "2.7.0"
 material = "1.14.0"
-lottie = "6.7.1"
 firebaseAnalyticsKtx = "22.5.0"
 firebaseCrashlytics = "20.1.0"
 guava = "33.6.0-android"
 composeBom = "2026.08.00"
 activityCompose = "1.13.0"
-pagingCompose = "3.5.1"
 
 junitVersion = "1.3.0"
 rules = "1.7.0"
@@ -48,8 +43,6 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
-androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
-androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version.ref = "localbroadcastmanager" }
 androidx-preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "preferenceKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
@@ -65,10 +58,8 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-camera-extensions = { module = "androidx.camera:camera-extensions", version.ref = "camerax" }
 androidx-camera-featurecombinationquery = { module = "androidx.camera.featurecombinationquery:featurecombinationquery", version.ref = "camerax" }
 androidx-camera-featurecombinationquery-play-services = { module = "androidx.camera.featurecombinationquery:featurecombinationquery-play-services", version.ref = "camerax" }
-androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifInterface" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
-lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
@@ -81,7 +72,6 @@ compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-rules = { module = "androidx.test:rules", version.ref = "rules" }
@@ -92,11 +82,6 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
-androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }

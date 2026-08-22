@@ -16,6 +16,16 @@
     <!-- Permissions -->
     <string name="permission_request_denied">Camera permission denied</string>
     <string name="permission_request_granted">Camera permission granted</string>
+    <string name="permission_screen_title">Camera access needed</string>
+    <string name="permission_screen_body">CameraX needs camera access to show the viewfinder and take photos and videos. You can allow microphone access too for video with sound.</string>
+    <string name="permission_screen_settings_body">Camera access was turned off. Open Settings, tap Permissions, and allow Camera (and Microphone for video with sound).</string>
+    <string name="permission_screen_mic_denied">Microphone denied — videos will record without sound.</string>
+    <string name="permission_allow">Allow access</string>
+    <string name="permission_try_again">Try again</string>
+    <string name="permission_open_settings">Open Settings</string>
+    <string name="permission_mic_enable">Allow microphone access</string>
+    <string name="permission_mic_denied">Microphone permission denied</string>
+    <string name="permission_mic_settings">Enable microphone in Settings to record video with sound</string>
 
     <!-- Live camera: mode pager -->
     <string name="mode_photo">Photo</string>
@@ -41,6 +51,7 @@
     <string name="grid_off">Grid off</string>
     <string name="motion_photo_on">Motion photo on</string>
     <string name="motion_photo_off">Motion photo off</string>
+    <string name="motion_photo_disable_ultra_hdr">Turn off Ultra HDR in Settings to use motion photos</string>
     <string name="zoom_chip">Zoom %1$s</string>
     <string name="night_mode_recommended">Night recommended</string>
     <string name="night_mode_active">Night mode</string>
@@ -69,6 +80,10 @@
     <string name="recording_notification_channel">Recording</string>
     <string name="recording_notification_title">Recording video</string>
     <string name="recording_notification_text">CameraX is capturing video</string>
+    <string name="active_capture_exit_title">Capture in progress</string>
+    <string name="active_capture_exit_body">Save this capture or discard it?</string>
+    <string name="active_capture_save">Save</string>
+    <string name="active_capture_discard">Discard</string>
 
     <!-- Live camera: exposure -->
     <string name="exposure_button">Exposure</string>
@@ -320,6 +335,7 @@
     <string name="pref_subtitle_flip_while_recording">Switch cameras without stopping the clip</string>
     <string name="pref_title_record_muted">Record muted</string>
     <string name="pref_subtitle_record_muted">Start each video with the microphone off</string>
+    <string name="pref_subtitle_record_muted_unavailable">Tap to allow microphone access for video with sound</string>
     <string name="pref_title_video_fps_60">60 fps video</string>
     <string name="pref_subtitle_video_fps_60">Bind CameraX FPS_60 when this combination is supported</string>
     <string name="pref_subtitle_video_fps_60_unsupported">This device doesn\'t list 60 fps with the current session</string>

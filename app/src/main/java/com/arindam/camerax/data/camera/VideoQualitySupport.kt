@@ -22,7 +22,6 @@ import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
-import androidx.core.content.ContextCompat
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
@@ -31,6 +30,7 @@ import com.arindam.camerax.domain.model.SlowMotionOptions
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
@@ -57,7 +57,7 @@ private suspend fun awaitCameraProvider(context: Context): ProcessCameraProvider
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
             continuation.resume(runCatching { future.get() }.getOrNull())
-        }, ContextCompat.getMainExecutor(context))
+        }, Dispatchers.Default.asExecutor())
     }
 
 /** One CameraX provider fetch for Settings and the mode pager. Runs off the main thread. */
@@ -169,7 +169,7 @@ private suspend fun awaitExtensionsManager(
     val future = ExtensionsManager.getInstanceAsync(context, provider)
     future.addListener({
         continuation.resume(runCatching { future.get() }.getOrNull())
-    }, ContextCompat.getMainExecutor(context))
+    }, Dispatchers.Default.asExecutor())
 }
 
 /** Dual mode: system concurrent-camera feature plus a listed front+back pair. */

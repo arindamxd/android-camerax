@@ -7,7 +7,11 @@ import android.os.Build
 object Constants {
 
     object PERMISSIONS {
-        internal val REQUIRED_PERMISSIONS = mutableListOf(
+        /** Must be granted before opening the camera. */
+        internal val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+
+        /** Requested together on first launch; microphone may stay denied (muted video). */
+        internal val RUNTIME_PERMISSIONS = mutableListOf(
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO
         ).apply {
@@ -15,6 +19,8 @@ object Constants {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
         }.toTypedArray()
+
+        internal val MICROPHONE_PERMISSION = Manifest.permission.RECORD_AUDIO
     }
 
     object FILE {

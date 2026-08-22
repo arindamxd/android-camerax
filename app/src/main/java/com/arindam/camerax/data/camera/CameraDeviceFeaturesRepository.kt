@@ -6,6 +6,9 @@ import com.arindam.camerax.domain.repository.DeviceFeaturesRepository
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/**
+ * Data: one CameraX provider fetch, cached for the process. Used by Settings and the mode pager.
+ */
 class CameraDeviceFeaturesRepository(
     context: Context
 ) : DeviceFeaturesRepository {

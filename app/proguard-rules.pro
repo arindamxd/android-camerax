@@ -1,23 +1,14 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.kts.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# CameraX consumer rules already keep the public API. Keep line numbers for Crashlytics
+# deobfuscation on Play Console.
+-keepattributes SourceFile,LineNumberTable,InnerClasses,Signature,*Annotation*
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
+# CameraX / Camera2 interop (reflection + extension modes).
 -keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# FileProvider paths and Compose previews must survive shrinking.
+-keep class androidx.core.content.FileProvider { *; }
+
+# Crashlytics
+-keep public class * extends java.lang.Exception

@@ -1,18 +1,21 @@
 package com.arindam.camerax.data.camera
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.arindam.camerax.R
 
 /**
- * While-in-use camera/microphone foreground service so recording audio stays
- * legal if the activity is paused on Android 17+.
+ * While-in-use camera (and microphone, when [Manifest.permission.RECORD_AUDIO] is granted)
+ * foreground service so recording stays legal if the activity is paused on Android 14+.
  */
 class RecordingForegroundService : Service() {
 
@@ -30,12 +33,13 @@ class RecordingForegroundService : Service() {
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
+            val withMicrophone = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            val serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                if (withMicrophone) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+            startForeground(NOTIFICATION_ID, notification, serviceType)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }

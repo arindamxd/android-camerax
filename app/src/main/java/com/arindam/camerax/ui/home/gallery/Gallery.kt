@@ -71,7 +71,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
-import com.arindam.camerax.data.media.mediaFileInfo
 import com.arindam.camerax.ui.compose.CameraAlertDialog
 import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.compose.DarkLightPreviews
@@ -85,14 +84,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-/** Full-screen pager over captured files (photos, video, motion, DNG). */
+/** Presentation: full-screen pager over captured files (photos, video, motion, DNG). */
 @Composable
 fun GalleryScreen(
-    items: List<File> = emptyList(),
+    items: List<GalleryItem> = emptyList(),
     videoAutoplay: Boolean = false,
     navigateBack: () -> Unit,
     onShareClicked: (Int) -> Unit,
-    onDelete: (File) -> Unit
+    onDelete: (GalleryItem) -> Unit
 ) {
     val chrome = themedOverlayChrome()
     val pagerState = rememberPagerState(pageCount = { items.size })
@@ -105,9 +104,9 @@ fun GalleryScreen(
     var playbackPositionMs by remember { mutableIntStateOf(0) }
     var playbackDurationMs by remember { mutableIntStateOf(0) }
     val current = items.getOrNull(pagerState.currentPage)
-    val isMotion = current != null && MotionPhotoMuxer.isMotionPhoto(current)
-    val isVideo = current?.extension?.equals("mp4", ignoreCase = true) == true
-    val formatText = if (current?.extension?.equals("dng", ignoreCase = true) == true) {
+    val isMotion = current?.isMotionPhoto == true
+    val isVideo = current?.isVideo == true
+    val formatText = if (current?.isRaw == true) {
         stringResource(R.string.raw_dng)
     } else {
         null
@@ -293,11 +292,11 @@ private fun GalleryHeader(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(
-                WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-                )
+                WindowInsets.safeDrawing
+                    .union(WindowInsets.systemGestures)
+                    .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             )
-            .padding(start = 20.dp, end = 20.dp, top = 8.dp)
+            .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
     ) {
         CameraGlassButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
@@ -335,10 +334,10 @@ private fun GalleryHeader(
 
 @Composable
 private fun GalleryFooter(
-    items: List<File>,
+    items: List<GalleryItem>,
     pagerState: PagerState,
     onShareClicked: (Int) -> Unit,
-    onDelete: (File) -> Unit
+    onDelete: (GalleryItem) -> Unit
 ) {
     val showDialog = remember { mutableStateOf(false) }
     CameraAlertDialog(
@@ -407,7 +406,7 @@ private fun GalleryActionButton(
 
 @Composable
 private fun GalleryPager(
-    items: List<File>,
+    items: List<GalleryItem>,
     pagerState: PagerState,
     playbackSpeed: Float = 1f,
     motionPlaying: Boolean = false,
@@ -424,10 +423,10 @@ private fun GalleryPager(
         beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize()
     ) { page ->
-        items.getOrNull(page)?.let { file ->
-            if (file.extension.lowercase() == "mp4") {
+        items.getOrNull(page)?.let { item ->
+            if (item.isVideo) {
                 GalleryVideo(
-                    file = file,
+                    file = item.file,
                     isActive = pagerState.currentPage == page,
                     playing = videoPlaying && pagerState.currentPage == page,
                     playbackSpeed = playbackSpeed,
@@ -438,19 +437,18 @@ private fun GalleryPager(
                     onPlaybackPosition = onPlaybackPosition
                 )
             } else {
-                val motion = MotionPhotoMuxer.isMotionPhoto(file)
-                val playMotion = motion && motionPlaying && pagerState.currentPage == page
+                val playMotion = item.isMotionPhoto && motionPlaying && pagerState.currentPage == page
                 Box(Modifier.fillMaxSize()) {
                     if (!playMotion) {
                         Image(
-                            painter = rememberAsyncImagePainter(model = file),
+                            painter = rememberAsyncImagePainter(model = item.file),
                             contentScale = ContentScale.Fit,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
                     if (playMotion) {
-                        GalleryMotionOverlay(file = file, onPlaybackError = onPlaybackError)
+                        GalleryMotionOverlay(file = item.file, onPlaybackError = onPlaybackError)
                     }
                 }
             }
@@ -640,12 +638,11 @@ private fun GalleryVideo(
 }
 
 private fun galleryMetadataLabel(
-    file: File,
+    item: GalleryItem,
     formatText: String?,
     remainingNanos: Long? = null
 ): String {
-    val info = mediaFileInfo(file)
-    val size = if (info.width > 0 && info.height > 0) "${info.width} × ${info.height}" else null
-    val duration = (remainingNanos ?: info.durationNanos)?.let { formatRecordingTime(it) }
+    val size = if (item.width > 0 && item.height > 0) "${item.width} × ${item.height}" else null
+    val duration = (remainingNanos ?: item.durationNanos)?.let { formatRecordingTime(it) }
     return listOfNotNull(duration, size, formatText).joinToString(" · ")
 }

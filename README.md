@@ -62,7 +62,8 @@ flowchart LR
 | Presentation | `ui/` | Compose chrome, `CameraViewModel` (UI state, countdown, mode) |
 | Domain | `domain/` | Models, `CameraRepository`, use cases (`CapturePhoto`, `StartRecording`, `BindCamera`, …) |
 | Data | `data/camera/` | `CameraSession` — CameraX implementation of `CameraRepository` |
-| Composition root | `di/AppContainer` | Manual DI; UI never constructs `CameraSession` |
+| Data | `data/media/` | `FileMediaRepository` — disk + MediaStore on `Dispatchers.IO` |
+| Composition root | `di/AppContainer` | Manual DI + `AppDispatchers`; UI never constructs `CameraSession` |
 
 `CameraFragment` is only a Compose host. Preview is wrapped as `PreviewViewHost` (`CameraHost`) so domain code does not import `PreviewView`.
 
@@ -100,27 +101,48 @@ Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java
 
 ## Stack
 
-- Kotlin 2.2, Jetpack Compose, CameraX **1.6.1**
+- Kotlin **2.4**, Jetpack Compose, CameraX **1.6.1**
 - minSdk **23**, target/compileSdk **37**
 - Navigation, ViewModel, Coil
 - Optional Firebase Analytics / Crashlytics when `app/google-services.json` is present
+- Release: R8 + resource shrinking, native debug symbols (`SYMBOL_TABLE`) for Play Console
 
 ## Build
 
 ```sh
 ./gradlew assembleDebug
+./gradlew bundleRelease    # Play Store App Bundle (needs signing in local.properties)
 ```
+
+Signing for `bundleRelease` is read from `local.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). Release signing applies to the `release` build type only. Do not commit the keystore.
 
 Open the project in Android Studio and run the `app` configuration on a device or emulator with a camera. Microphone is optional hardware (`android.hardware.microphone` is not required).
 
 ## Test
 
 ```sh
-./gradlew test                  # JVM (Robolectric)
-./gradlew connectedAndroidTest  # device / emulator via ADB
+./gradlew testDebugUnitTest     # JVM (Robolectric + fakes)
+./gradlew lintDebug             # Android lint (CI runs this)
+./gradlew connectedDebugAndroidTest  # device / emulator via ADB
 ```
 
 In Android Studio: **Run → Edit Configurations → Add** → `Android JUnit` (Robolectric) or `Android Instrumented Tests`, module `app`, class `com.arindam.camerax.MainInstrumentedTest`.
+
+## Play Store release
+
+See **[RELEASE.md](RELEASE.md)** for the full checklist (version bump, signing, artifacts, upload).
+
+Quick paths:
+
+| Artifact | Command / path |
+| --- | --- |
+| AAB | `./gradlew bundleRelease` → `app/build/outputs/bundle/release/` |
+| R8 mapping | `app/build/outputs/mapping/release/mapping.txt` |
+| Native symbols | `./gradlew printNativeDebugSymbols` |
+
+## Threading
+
+Repositories run disk and MediaStore work on `Dispatchers.IO`. ViewModels use `withContext` for metadata, review, and gallery probes. Debug builds enable StrictMode (log-only) to catch main-thread disk access. See [AGENTS.md](AGENTS.md).
 
 ## Stretch (not in this app yet)
 
