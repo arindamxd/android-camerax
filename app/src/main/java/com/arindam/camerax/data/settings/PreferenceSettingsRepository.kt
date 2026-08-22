@@ -31,7 +31,8 @@ class PreferenceSettingsRepository(context: Context) : SettingsRepository {
         recordMuted = prefs.getBoolean(key(R.string.pref_key_record_muted), false),
         lowLightBoost = prefs.getBoolean(key(R.string.pref_key_low_light_boost), true),
         videoFps60 = prefs.getBoolean(key(R.string.pref_key_video_fps_60), false),
-        frontMirror = prefs.getBoolean(key(R.string.pref_key_front_mirror), true)
+        frontMirror = prefs.getBoolean(key(R.string.pref_key_front_mirror), true),
+        galleryVideoAutoplay = prefs.getBoolean(key(R.string.pref_key_gallery_video_autoplay), false)
     )
 
     private fun key(id: Int): String = appContext.getString(id)

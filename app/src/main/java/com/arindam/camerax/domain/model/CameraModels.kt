@@ -281,7 +281,8 @@ data class CaptureSettings(
     val recordMuted: Boolean = false,
     val lowLightBoost: Boolean = true,
     val videoFps60: Boolean = false,
-    val frontMirror: Boolean = true
+    val frontMirror: Boolean = true,
+    val galleryVideoAutoplay: Boolean = false
 )
 
 /** Device CameraX capabilities. Probed once per Settings open / camera start. */

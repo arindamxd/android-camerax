@@ -89,6 +89,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun GalleryScreen(
     items: List<File> = emptyList(),
+    videoAutoplay: Boolean = false,
     navigateBack: () -> Unit,
     onShareClicked: (Int) -> Unit,
     onDelete: (File) -> Unit
@@ -101,6 +102,8 @@ fun GalleryScreen(
     var videoControlsVisible by remember { mutableStateOf(true) }
     var videoControlsTick by remember { mutableIntStateOf(0) }
     var showPlayError by remember { mutableStateOf(false) }
+    var playbackPositionMs by remember { mutableIntStateOf(0) }
+    var playbackDurationMs by remember { mutableIntStateOf(0) }
     val current = items.getOrNull(pagerState.currentPage)
     val isMotion = current != null && MotionPhotoMuxer.isMotionPhoto(current)
     val isVideo = current?.extension?.equals("mp4", ignoreCase = true) == true
@@ -109,19 +112,26 @@ fun GalleryScreen(
     } else {
         null
     }
-    val metadataLabel = remember(current, formatText) {
-        current?.let { galleryMetadataLabel(it, formatText) }.orEmpty()
+    val remainingNanos = if (isVideo && playbackDurationMs > 0) {
+        (playbackDurationMs - playbackPositionMs).coerceAtLeast(0) * 1_000_000L
+    } else {
+        null
+    }
+    val metadataLabel = remember(current, formatText, remainingNanos) {
+        current?.let { galleryMetadataLabel(it, formatText, remainingNanos) }.orEmpty()
     }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, videoAutoplay, isVideo) {
         playbackSpeed = 1f
         motionPlaying = false
-        videoPlaying = false
+        videoPlaying = videoAutoplay && isVideo
         videoControlsVisible = true
         showPlayError = false
+        playbackPositionMs = 0
+        playbackDurationMs = 0
     }
-    LaunchedEffect(videoPlaying, videoControlsTick) {
-        if (!isVideo) return@LaunchedEffect
+    LaunchedEffect(videoPlaying, videoControlsTick, videoAutoplay) {
+        if (!isVideo || videoAutoplay) return@LaunchedEffect
         if (!videoPlaying) {
             videoControlsVisible = true
             return@LaunchedEffect
@@ -142,17 +152,24 @@ fun GalleryScreen(
             playbackSpeed = playbackSpeed,
             motionPlaying = motionPlaying,
             videoPlaying = videoPlaying,
+            videoAutoplay = videoAutoplay,
             onPlaybackError = {
                 motionPlaying = false
                 videoPlaying = false
                 showPlayError = true
             },
             onPlaybackEnded = {
-                videoPlaying = false
-                videoControlsVisible = true
+                if (!videoAutoplay) {
+                    videoPlaying = false
+                    videoControlsVisible = true
+                }
             },
             onVideoTapped = {
-                if (videoPlaying) videoControlsTick++
+                if (!videoAutoplay && videoPlaying) videoControlsTick++
+            },
+            onPlaybackPosition = { positionMs, durationMs ->
+                playbackPositionMs = positionMs
+                if (durationMs > 0) playbackDurationMs = durationMs
             }
         )
         Box(
@@ -217,7 +234,7 @@ fun GalleryScreen(
                 onDelete = onDelete
             )
         }
-        if (isVideo) {
+        if (isVideo && !videoAutoplay) {
             AnimatedVisibility(
                 visible = !videoPlaying || videoControlsVisible,
                 enter = fadeIn(animationSpec = tween(180)),
@@ -395,9 +412,11 @@ private fun GalleryPager(
     playbackSpeed: Float = 1f,
     motionPlaying: Boolean = false,
     videoPlaying: Boolean = false,
+    videoAutoplay: Boolean = false,
     onPlaybackError: () -> Unit = {},
     onPlaybackEnded: () -> Unit = {},
     onVideoTapped: () -> Unit = {},
+    onPlaybackPosition: (positionMs: Int, durationMs: Int) -> Unit = { _, _ -> },
 ) {
     HorizontalPager(
         state = pagerState,
@@ -412,10 +431,11 @@ private fun GalleryPager(
                     isActive = pagerState.currentPage == page,
                     playing = videoPlaying && pagerState.currentPage == page,
                     playbackSpeed = playbackSpeed,
-                    loop = false,
+                    loop = videoAutoplay,
                     onPlaybackError = onPlaybackError,
                     onPlaybackEnded = onPlaybackEnded,
-                    onSurfaceTapped = onVideoTapped
+                    onSurfaceTapped = onVideoTapped.takeUnless { videoAutoplay },
+                    onPlaybackPosition = onPlaybackPosition
                 )
             } else {
                 val motion = MotionPhotoMuxer.isMotionPhoto(file)
@@ -534,12 +554,14 @@ private fun GalleryVideo(
     loop: Boolean = false,
     onPlaybackError: () -> Unit = {},
     onPlaybackEnded: () -> Unit = {},
-    onSurfaceTapped: (() -> Unit)? = null
+    onSurfaceTapped: (() -> Unit)? = null,
+    onPlaybackPosition: (positionMs: Int, durationMs: Int) -> Unit = { _, _ -> }
 ) {
     val videoView = remember(file) { mutableStateOf<VideoView?>(null) }
     val playerRef = remember(file) { mutableStateOf<android.media.MediaPlayer?>(null) }
     val reportError by rememberUpdatedState(onPlaybackError)
     val reportEnded by rememberUpdatedState(onPlaybackEnded)
+    val reportPosition by rememberUpdatedState(onPlaybackPosition)
     val shouldPlay by rememberUpdatedState(isActive && playing)
     Box(Modifier.fillMaxSize()) {
         AndroidView(
@@ -603,11 +625,27 @@ private fun GalleryVideo(
             playerRef.value = null
         }
     }
+    LaunchedEffect(file, isActive, playing) {
+        if (!isActive) return@LaunchedEffect
+        while (true) {
+            val view = videoView.value
+            if (view != null) {
+                val duration = view.duration.coerceAtLeast(0)
+                val position = view.currentPosition.coerceAtLeast(0)
+                reportPosition(position, duration)
+            }
+            delay(if (playing) 200L else 400L)
+        }
+    }
 }
 
-private fun galleryMetadataLabel(file: File, formatText: String?): String {
+private fun galleryMetadataLabel(
+    file: File,
+    formatText: String?,
+    remainingNanos: Long? = null
+): String {
     val info = mediaFileInfo(file)
     val size = if (info.width > 0 && info.height > 0) "${info.width} × ${info.height}" else null
-    val duration = info.durationNanos?.let { formatRecordingTime(it) }
+    val duration = (remainingNanos ?: info.durationNanos)?.let { formatRecordingTime(it) }
     return listOfNotNull(duration, size, formatText).joinToString(" · ")
 }

@@ -10,7 +10,8 @@ import java.io.File
 
 /** Presentation state for the in-app gallery pager. */
 data class GalleryUiState(
-    val items: List<File> = emptyList()
+    val items: List<File> = emptyList(),
+    val videoAutoplay: Boolean = false
 )
 
 /**
@@ -26,11 +27,16 @@ class GalleryViewModel(
     val uiState: StateFlow<GalleryUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.value = GalleryUiState(interactors.listMedia(directory))
+        refresh()
     }
 
     fun refresh() {
-        _uiState.update { it.copy(items = interactors.listMedia(directory)) }
+        _uiState.update {
+            it.copy(
+                items = interactors.listMedia(directory),
+                videoAutoplay = interactors.loadCaptureSettings().galleryVideoAutoplay
+            )
+        }
     }
 
     fun delete(file: File) {

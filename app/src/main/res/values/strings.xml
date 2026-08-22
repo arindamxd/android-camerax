@@ -256,6 +256,7 @@
     <string name="pref_key_video_fps_60" translatable="false">key_video_fps_60</string>
     <string name="pref_key_record_muted" translatable="false">key_record_muted</string>
     <string name="pref_key_front_mirror" translatable="false">key_front_mirror</string>
+    <string name="pref_key_gallery_video_autoplay" translatable="false">key_gallery_video_autoplay</string>
 
     <!-- Settings: section titles -->
     <string name="pref_title_theme">Theme</string>
@@ -276,6 +277,8 @@
     <!-- Settings: General -->
     <string name="pref_title_capture_confirm">Capture confirmation</string>
     <string name="pref_subtitle_capture_confirm">Review each photo or video before saving</string>
+    <string name="pref_title_gallery_video_autoplay">Video autoplay</string>
+    <string name="pref_subtitle_gallery_video_autoplay">Play gallery clips in a loop without play controls</string>
     <string name="pref_title_front_mirror">Front camera mirror</string>
     <string name="pref_subtitle_front_mirror">Flip selfie preview and saved photos or videos</string>
 

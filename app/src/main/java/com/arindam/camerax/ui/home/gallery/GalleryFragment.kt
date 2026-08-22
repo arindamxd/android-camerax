@@ -46,6 +46,7 @@ class GalleryFragment : BaseFragmentCompose() {
         AppTheme {
             GalleryScreen(
                 items = state.items,
+                videoAutoplay = state.videoAutoplay,
                 navigateBack = { navigateBack() },
                 onShareClicked = { currentItem ->
                     state.items.getOrNull(currentItem)?.let { mediaFile ->

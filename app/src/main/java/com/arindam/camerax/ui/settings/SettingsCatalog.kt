@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.NightsStay
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.RawOn
 import androidx.compose.material.icons.outlined.Shop
@@ -72,6 +73,13 @@ fun settingsSections(
                 titleRes = R.string.pref_title_capture_confirm,
                 subtitleRes = R.string.pref_subtitle_capture_confirm,
                 icon = Icons.Outlined.PhotoCamera,
+                defaultOn = false
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_gallery_video_autoplay,
+                titleRes = R.string.pref_title_gallery_video_autoplay,
+                subtitleRes = R.string.pref_subtitle_gallery_video_autoplay,
+                icon = Icons.Outlined.PlayCircle,
                 defaultOn = false
             ),
             SettingsRow.Toggle(
