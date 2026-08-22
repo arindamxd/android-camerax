@@ -119,6 +119,7 @@
     <string name="pref_key_low_light_boost" translatable="false">key_low_light_boost</string>
     <string name="pref_key_video_fps_60" translatable="false">key_video_fps_60</string>
     <string name="pref_key_record_muted" translatable="false">key_record_muted</string>
+    <string name="pref_key_front_mirror" translatable="false">key_front_mirror</string>
 
     <!-- Preferences -->
     <string name="pref_title_theme">Theme</string>
@@ -136,6 +137,8 @@
     <string name="pref_theme_system">System</string>
     <string name="pref_title_capture_confirm">Capture confirmation</string>
     <string name="pref_subtitle_capture_confirm">Review each photo or video before saving</string>
+    <string name="pref_title_front_mirror">Front camera mirror</string>
+    <string name="pref_subtitle_front_mirror">Flip selfie preview and saved photos or videos</string>
     <string name="pref_title_ultra_hdr">Ultra HDR</string>
     <string name="pref_subtitle_ultra_hdr">Gain-map HDR stills (JPEG / HEIC)</string>
     <string name="pref_subtitle_ultra_hdr_unsupported">This device doesn\'t support Ultra HDR stills</string>

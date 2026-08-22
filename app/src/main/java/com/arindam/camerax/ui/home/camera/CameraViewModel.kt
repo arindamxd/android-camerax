@@ -199,7 +199,8 @@ class CameraViewModel(
                                 !state.motionCapturing &&
                                 profile.allowsPersistentRecording,
                             concurrent = profile.bindConcurrent,
-                            videoFps60 = state.videoFps60 && profile.allowsFps60
+                            videoFps60 = state.videoFps60 && profile.allowsFps60,
+                            frontMirror = state.frontMirror
                         )
                     )
                     _uiState.update {
@@ -657,7 +658,8 @@ class CameraViewModel(
             state.ultraHdr == settings.ultraHdr &&
             state.rawCapture == settings.rawCapture &&
             state.rawFullSensor == settings.rawFullSensor &&
-            state.videoFps60 == settings.videoFps60
+            state.videoFps60 == settings.videoFps60 &&
+            state.frontMirror == settings.frontMirror
         ) return
         val dropExtension = settings.rawCapture && state.extension != CameraExtension.NONE
         if (dropExtension) manualExtension = false
@@ -674,6 +676,7 @@ class CameraViewModel(
                 rawFullSensor = settings.rawFullSensor,
                 lowLightBoost = settings.lowLightBoost,
                 videoFps60 = settings.videoFps60,
+                frontMirror = settings.frontMirror,
                 motionPhotoEnabled = if (settings.rawCapture) false else it.motionPhotoEnabled,
                 extension = if (dropExtension) CameraExtension.NONE else it.extension,
                 autoNightActive = if (dropExtension) false else it.autoNightActive,

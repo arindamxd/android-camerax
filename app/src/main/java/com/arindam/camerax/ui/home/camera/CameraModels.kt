@@ -140,6 +140,7 @@ data class CameraUiState(
     val lowLightBoostSupported: Boolean = false,
     val lowLightBoostActive: Boolean = false,
     val flipWhileRecording: Boolean = false,
+    val frontMirror: Boolean = true,
     val review: CaptureReview? = null,
     val concurrentSupported: Boolean = false,
     val videoFps60: Boolean = false,

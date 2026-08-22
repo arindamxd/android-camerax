@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.arindam.camerax.R
+import com.arindam.camerax.domain.model.CameraLens
 import kotlin.math.abs
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
@@ -173,7 +175,15 @@ fun CameraScreen(
                     Image(
                         bitmap = effectFrame,
                         contentDescription = stringResource(R.string.effect_frame_description),
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = if (state.lens == CameraLens.FRONT && state.frontMirror) {
+                                    -1f
+                                } else {
+                                    1f
+                                }
+                            },
                         contentScale = ContentScale.Crop
                     )
                 }

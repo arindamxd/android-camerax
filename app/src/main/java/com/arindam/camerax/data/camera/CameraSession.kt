@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.util.Size
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -34,6 +35,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.LowLightBoostState
+import androidx.camera.core.MirrorMode
 import androidx.camera.core.Preview
 import androidx.camera.core.SessionConfig
 import androidx.camera.core.UseCase
@@ -120,6 +122,8 @@ class CameraSession(private val context: Context) : CameraRepository {
     private val _effectFrame = MutableStateFlow<Bitmap?>(null)
     override val effectFrame: StateFlow<Bitmap?> = _effectFrame.asStateFlow()
     private var boundPreviewView: PreviewView? = null
+    private var boundPipPreviewView: PreviewView? = null
+    private var frontMirrorEnabled = true
     private var pipPreview: Preview? = null
     private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
     override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
@@ -169,6 +173,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val lifecycleOwner = previewHost.lifecycleOwner
         val previewView = previewHost.previewView
         boundPreviewView = previewView
+        boundPipPreviewView = previewHost.pipPreviewView
         initialize()
         val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
         if (config.retainRecording && canRetainRecording()) {
@@ -188,7 +193,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         } else {
             PreviewView.ScaleType.FIT_CENTER
         }
-        previewView.scaleX = 1f
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
         if (config.concurrent) {
@@ -292,7 +296,7 @@ class CameraSession(private val context: Context) : CameraRepository {
             .setQualitySelector(config.videoQuality.toQualitySelector())
             .build()
         val videoRange = resolveVideoHdrRange(cameraInfo, config)
-        val video = buildVideoCapture(recorder, videoStab, videoRange)
+        val video = buildVideoCapture(recorder, videoStab, videoRange, config.frontMirror)
         videoCapture = video
 
         val includeVideo = !useExtension && !liveEffects
@@ -442,8 +446,13 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     override fun tapToFocus(x: Float, y: Float) {
         val previewView = boundPreviewView ?: return
+        val mappedX = if (previewView.scaleX < 0f) {
+            previewView.width - x
+        } else {
+            x
+        }
         val factory = previewView.meteringPointFactory
-        val point = factory.createPoint(x, y)
+        val point = factory.createPoint(mappedX, y)
         val action = FocusMeteringAction.Builder(
             point,
             FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
@@ -612,8 +621,9 @@ class CameraSession(private val context: Context) : CameraRepository {
             Constants.FILE.PHOTO_EXTENSION
         }
         val photoFile = createFile(outputDirectory, extension)
+        val mirrorOutput = shouldMirrorFrontOutput(lens)
         val metadata = ImageCapture.Metadata().apply {
-            isReversedHorizontal = lens == CameraLens.FRONT
+            isReversedHorizontal = mirrorOutput && stillFormat != StillFormat.JPEG
         }
         val options = ImageCapture.OutputFileOptions.Builder(photoFile)
             .setMetadata(metadata)
@@ -625,7 +635,11 @@ class CameraSession(private val context: Context) : CameraRepository {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val file = output.savedUri?.toFile() ?: photoFile
                     val preserveHdr = stillFormat != StillFormat.JPEG
-                    val processed = if (preserveHdr) file else applyStillEffect(file, effect)
+                    val processed = if (preserveHdr) {
+                        file
+                    } else {
+                        applyStillOutput(file, effect, mirrorOutput)
+                    }
                     onSaved(processed)
                 }
 
@@ -649,7 +663,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val jpegFile = File(outputDirectory, stamp + Constants.FILE.PHOTO_EXTENSION)
         val dngFile = File(outputDirectory, stamp + Constants.FILE.DNG_EXTENSION)
         val metadata = ImageCapture.Metadata().apply {
-            isReversedHorizontal = lens == CameraLens.FRONT
+            isReversedHorizontal = shouldMirrorFrontOutput(lens)
         }
         val jpegOptions = ImageCapture.OutputFileOptions.Builder(jpegFile)
             .setMetadata(metadata)
@@ -889,6 +903,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val lifecycleOwner = host.lifecycleOwner
         val previewView = host.previewView
         boundPreviewView = previewView
+        boundPipPreviewView = host.pipPreviewView
         val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
         val previewUseCase = preview ?: throw IllegalStateException("Preview missing")
         val video = videoCapture ?: throw IllegalStateException("Video capture missing")
@@ -1089,7 +1104,9 @@ class CameraSession(private val context: Context) : CameraRepository {
         val recorder = Recorder.Builder()
             .setQualitySelector(QualitySelector.from(quality))
             .build()
-        val video = VideoCapture.withOutput(recorder)
+        val video = VideoCapture.Builder(recorder)
+            .setMirrorMode(videoMirrorMode(config.frontMirror))
+            .build()
         val probe = HighSpeedVideoSessionConfig(video, previewUseCase)
         val ranges = cameraInfo.getSupportedFrameRateRanges(probe).highSpeedFrameRateRanges()
         if (ranges.isEmpty()) return null
@@ -1150,11 +1167,44 @@ class CameraSession(private val context: Context) : CameraRepository {
     private fun buildVideoCapture(
         recorder: Recorder,
         stabilize: Boolean,
-        range: DynamicRange = DynamicRange.SDR
+        range: DynamicRange = DynamicRange.SDR,
+        frontMirror: Boolean
     ): VideoCapture<Recorder> = VideoCapture.Builder(recorder)
         .setVideoStabilizationEnabled(stabilize)
         .setDynamicRange(range)
+        .setMirrorMode(videoMirrorMode(frontMirror))
         .build()
+
+    private fun videoMirrorMode(frontMirror: Boolean): Int =
+        if (frontMirror) MirrorMode.MIRROR_MODE_ON_FRONT_ONLY else MirrorMode.MIRROR_MODE_OFF
+
+    private fun shouldMirrorFrontOutput(lens: CameraLens): Boolean =
+        frontMirrorEnabled && lens == CameraLens.FRONT
+
+    private fun applyViewfinderMirror(config: CameraBindConfig) {
+        applyViewfinderMirror(
+            boundPreviewView,
+            frontCamera = config.lens == CameraLens.FRONT && !config.concurrent,
+            frontMirror = config.frontMirror
+        )
+        if (config.concurrent) {
+            applyViewfinderMirror(
+                boundPipPreviewView,
+                frontCamera = true,
+                frontMirror = config.frontMirror
+            )
+        } else {
+            boundPipPreviewView?.scaleX = 1f
+        }
+    }
+
+    private fun applyViewfinderMirror(
+        previewView: PreviewView?,
+        frontCamera: Boolean,
+        frontMirror: Boolean
+    ) {
+        previewView?.scaleX = if (frontCamera && !frontMirror) -1f else 1f
+    }
 
     private fun toBindResult(
         config: CameraBindConfig,
@@ -1205,7 +1255,9 @@ class CameraSession(private val context: Context) : CameraRepository {
         slowMotionFps: Int
     ): CameraBindResult {
         flashMode = config.flash
+        frontMirrorEnabled = config.frontMirror
         lowLightBoostRequested = config.lowLightBoost
+        applyViewfinderMirror(config)
         applyTorch(config.flash)
         watchLowLightBoost()
         applyLowLightBoost()
@@ -1253,21 +1305,28 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     private data class HighSpeedBind(val camera: Camera, val fps: Int)
 
-    private fun applyStillEffect(file: File, type: EffectMode): File {
-        if (type == EffectMode.NONE) return file
+    private fun applyStillOutput(file: File, type: EffectMode, mirror: Boolean): File {
+        if (type == EffectMode.NONE && !mirror) return file
         return try {
             val original = BitmapFactory.decodeFile(file.absolutePath) ?: return file
-            val processed = ColorEffects.applyToBitmap(original, type)
+            val flipped = if (mirror) original.flippedHorizontally() else original
+            val processed = ColorEffects.applyToBitmap(flipped, type)
             FileOutputStream(file).use { stream ->
                 processed.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
             }
-            if (processed !== original) processed.recycle()
+            if (processed !== flipped) processed.recycle()
+            if (flipped !== original) flipped.recycle()
             original.recycle()
             file
         } catch (error: Exception) {
             Logger.error(TAG, "Still effect failed: ${error.message}")
             file
         }
+    }
+
+    private fun Bitmap.flippedHorizontally(): Bitmap {
+        val matrix = Matrix().apply { preScale(-1f, 1f) }
+        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 
     private fun createFile(baseFolder: File, extension: String): File {

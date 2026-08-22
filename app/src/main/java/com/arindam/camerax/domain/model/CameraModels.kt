@@ -177,7 +177,8 @@ data class CameraBindConfig(
     val lowLightBoost: Boolean = true,
     val retainRecording: Boolean = false,
     val concurrent: Boolean = false,
-    val videoFps60: Boolean = false
+    val videoFps60: Boolean = false,
+    val frontMirror: Boolean = true
 )
 
 /** What the session actually bound (HUD chips, zoom range, capabilities). */
@@ -247,7 +248,8 @@ data class CaptureSettings(
     val flipWhileRecording: Boolean = false,
     val recordMuted: Boolean = false,
     val lowLightBoost: Boolean = true,
-    val videoFps60: Boolean = false
+    val videoFps60: Boolean = false,
+    val frontMirror: Boolean = true
 )
 
 /** Device CameraX capabilities. Probed once per Settings open / camera start. */

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.CropFree
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Flip
 import androidx.compose.material.icons.outlined.HdrAuto
 import androidx.compose.material.icons.outlined.HdrOn
 import androidx.compose.material.icons.outlined.MicOff
@@ -72,6 +73,13 @@ fun settingsSections(
                 subtitleRes = R.string.pref_subtitle_capture_confirm,
                 icon = Icons.Outlined.PhotoCamera,
                 defaultOn = false
+            ),
+            SettingsRow.Toggle(
+                keyRes = R.string.pref_key_front_mirror,
+                titleRes = R.string.pref_title_front_mirror,
+                subtitleRes = R.string.pref_subtitle_front_mirror,
+                icon = Icons.Outlined.Flip,
+                defaultOn = true
             ),
             SettingsRow.Toggle(
                 keyRes = R.string.pref_key_low_light_boost,
