@@ -1,46 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="colorPrimary">#00695C</color>
-    <color name="colorPrimaryVariant">#004D40</color>
-    <color name="colorSecondary">#1DE9B6</color>
-    <color name="colorSecondaryVariant">#00BFA5</color>
+    <!-- Brand (launcher deep teal / mint) -->
+    <color name="colorPrimary">#237378</color>
+    <color name="colorPrimaryVariant">#1A5C56</color>
+    <color name="colorSecondary">#51BBA8</color>
+    <color name="colorSecondaryVariant">#3DA89A</color>
+    <color name="colorAccent">#51BBA8</color>
 
-    <color name="colorAccent">#FF4081</color>
+    <!-- Icon state -->
     <color name="icActive">#FFFFFFFF</color>
     <color name="icFocused">#DDFFFFFF</color>
     <color name="icPressed">#AAFFFFFF</color>
 
+    <!-- Neutrals -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-
-    <!--Color palette-->
     <color name="white_50">#ffffff</color>
+    <color name="black_800">#11191B</color>
+    <color name="black_900">#0B1214</color>
 
-    <color name="black_800">#121212</color>
-    <color name="black_900">#000000</color>
+    <!-- Cool slate (surfaces / chrome) -->
+    <color name="blue_50">#eef4f4</color>
+    <color name="blue_100">#d5e4e1</color>
+    <color name="blue_200">#b4c5cc</color>
+    <color name="blue_300">#899397</color>
+    <color name="blue_600">#4a5f68</color>
+    <color name="blue_700">#2b414d</color>
+    <color name="blue_800">#1a2a32</color>
 
-    <color name="blue_50">#eef0f2</color>
-    <color name="blue_100">#d2dbe0</color>
-    <color name="blue_200">#adbbc4</color>
-    <color name="blue_300">#8ca2ae</color>
-    <color name="blue_600">#4a6572</color>
-    <color name="blue_700">#344955</color>
-    <color name="blue_800">#232f34</color>
+    <!-- Teal accent scale -->
+    <color name="teal_300">#9fe8dc</color>
+    <color name="teal_400">#6fd4c4</color>
+    <color name="teal_500">#51bba8</color>
 
-    <color name="orange_300">#fbd790</color>
-    <color name="orange_400">#f9be64</color>
-    <color name="orange_500">#f9aa33</color>
+    <!-- Legacy aliases → teal -->
+    <color name="orange_300">@color/teal_300</color>
+    <color name="orange_400">@color/teal_400</color>
+    <color name="orange_500">@color/teal_500</color>
 
+    <!-- Danger / error -->
     <color name="red_200">#cf7779</color>
     <color name="red_400">#ff4c5d</color>
 
+    <!-- Alpha overlays -->
     <color name="white_50_alpha_060">#99ffffff</color>
-
-    <color name="blue_50_alpha_060">#99eef0f2</color>
-
+    <color name="blue_50_alpha_060">#99eef4f4</color>
     <color name="black_900_alpha_020">#33000000</color>
-    <color name="black_900_alpha_087">#de000000</color>
     <color name="black_900_alpha_060">#99000000</color>
+    <color name="black_900_alpha_087">#de000000</color>
 
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Margins -->
     <dimen name="margin_xsmall">16dp</dimen>
     <dimen name="margin_small_x">26dp</dimen>
     <dimen name="margin_small">32dp</dimen>
@@ -8,52 +9,56 @@
     <dimen name="margin_large">64dp</dimen>
     <dimen name="margin_xlarge">92dp</dimen>
 
+    <!-- Spacing -->
     <dimen name="spacing_small">4dp</dimen>
     <dimen name="spacing_medium">8dp</dimen>
     <dimen name="spacing_large">16dp</dimen>
 
+    <!-- Strokes -->
     <dimen name="stroke_small">4dp</dimen>
     <dimen name="stroke_medium">8dp</dimen>
     <dimen name="stroke_large">12dp</dimen>
 
+    <!-- Round buttons -->
     <dimen name="round_button_small">32dp</dimen>
     <dimen name="round_button_small_x">48dp</dimen>
     <dimen name="round_button_medium">64dp</dimen>
     <dimen name="round_button_medium_x">74dp</dimen>
     <dimen name="round_button_large">92dp</dimen>
 
+    <!-- Rect / shutter -->
     <dimen name="rect_button_margin">12dp</dimen>
     <dimen name="rect_button_width">80dp</dimen>
     <dimen name="rect_button_height">24dp</dimen>
     <dimen name="shutter_button_margin">80dp</dimen>
 
-    <!-- BottomAppBar -->
+    <!-- Bottom app bar -->
     <dimen name="bottom_app_bar_height">56dp</dimen>
     <dimen name="bottom_app_bar_fab_cradle_corner_radius">32dp</dimen>
     <dimen name="bottom_app_bar_fab_cradle_margin">8dp</dimen>
     <dimen name="bottom_app_bar_logo_size">32dp</dimen>
 
-    <!-- BottomNavigationDrawer -->
+    <!-- Navigation drawer -->
     <dimen name="navigation_drawer_profile_image_size">48dp</dimen>
     <dimen name="navigation_drawer_profile_image_size_padded">32dp</dimen>
     <dimen name="navigation_drawer_menu_item_height">56dp</dimen>
 
-    <!-- Preference -->
+    <!-- Preference rows -->
     <dimen name="pref_height">80dp</dimen>
     <dimen name="pref_height_half">40dp</dimen>
     <dimen name="pref_image_width">60dp</dimen>
     <dimen name="pref_image_margin">10dp</dimen>
     <dimen name="pref_image_padding">18dp</dimen>
 
-    <!-- 2dp sub grid -->
+    <!-- Grid: 2dp -->
     <dimen name="grid_0_25">2dp</dimen>
     <dimen name="grid_0_5">4dp</dimen>
 
-    <!-- 5dp grid -->
+    <!-- Grid: 5dp -->
     <dimen name="grid_1_5">5dp</dimen>
     <dimen name="grid_2_10">10dp</dimen>
 
-    <!-- 8dp grid -->
+    <!-- Grid: 8dp -->
     <dimen name="grid_1">8dp</dimen>
     <dimen name="grid_2">16dp</dimen>
     <dimen name="grid_3">24dp</dimen>

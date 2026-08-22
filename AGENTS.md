@@ -54,7 +54,7 @@ Disk and MediaStore work (`list` / `delete` / `publish` / `stitch` / motion mux 
 
 ## UI
 
-Immersive dark preview, glass chrome, accent `#f9aa33` (`CameraAccent` / `orange_500`). Type: Space Grotesk (UI) and Space Mono (HUD / chips / metadata). Modes: Photo / Video / Slo-mo / Effects / Pano / Dual. If the device cannot do high-speed, hide Slo-mo from the pager and disable slo-mo Settings. Hide Dual if concurrent cameras are unavailable. Gallery videos expose 0.5x–2x playback speed. Edge-to-edge (camera + gallery insets). Settings is Compose (`SettingsScreen`); add rows in `settingsSections()` in `SettingsCatalog.kt`. Themed launcher icon includes `<monochrome>`. Large-screen rotation: `setTargetRotation` only, chrome stacks (no hardcoded 210/300 dp).
+Immersive dark preview, glass chrome, accent `#51bba8` (`CameraAccent` / `teal_500`, from the launcher mint). Type: Space Grotesk (UI) and Space Mono (HUD / chips / metadata). Modes: Photo / Video / Slo-mo / Effects / Pano / Dual. If the device cannot do high-speed, hide Slo-mo from the pager and disable slo-mo Settings. Hide Dual if concurrent cameras are unavailable. Gallery videos expose 0.5x–2x playback speed. Edge-to-edge (camera + gallery insets). Settings is Compose (`SettingsScreen`); add rows in `settingsSections()` in `SettingsCatalog.kt`. Themed launcher icon includes `<monochrome>`. Large-screen rotation: `setTargetRotation` only, chrome stacks (no hardcoded 210/300 dp).
 
 ### Chrome control size
 

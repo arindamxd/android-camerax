@@ -96,7 +96,8 @@ private val darkColors = darkColorScheme(
 @Composable
 fun AppTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
-    isDynamicColor: Boolean = true,
+    // Brand teal from the launcher icon — keep static so wallpaper dynamic color does not override it.
+    isDynamicColor: Boolean = false,
     applySystemBars: Boolean = true,
     content: @Composable () -> Unit
 ) {
