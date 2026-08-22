@@ -265,16 +265,22 @@ fun CameraHeader(
                 } else {
                     Spacer(Modifier.size(1.dp))
                 }
-                GlassIconButton(
-                    icon = Icons.Filled.Settings,
-                    contentDescription = stringResource(R.string.settings),
-                    compact = compact,
-                    tooltip = true,
-                    onGlass = chrome?.onGlass,
-                    glass = chrome?.glass,
-                    stroke = chrome?.stroke,
-                    onClick = onSettingsClicked
-                )
+                AnimatedVisibility(
+                    visible = !state.isRecording && !state.panoramaActive,
+                    enter = fadeIn(tween(280)),
+                    exit = fadeOut(tween(220))
+                ) {
+                    GlassIconButton(
+                        icon = Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.settings),
+                        compact = compact,
+                        tooltip = true,
+                        onGlass = chrome?.onGlass,
+                        glass = chrome?.glass,
+                        stroke = chrome?.stroke,
+                        onClick = onSettingsClicked
+                    )
+                }
             }
         if (exposureOpen && state.showsExposureControls) {
             ExposureControls(
@@ -715,41 +721,49 @@ fun CameraFooter(
                 state = state,
                 onEffectSelected = onEffectSelected
             )
-            val modes = state.visibleModes
-            key(state.slowMotionSupported, state.concurrentSupported) {
-                DiscretePager(
-                    items = modes,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(modePagerHeight(compact)),
-                    itemWidth = 96.dp,
-                    itemSpacing = 0.dp,
-                    overshootFraction = 0.55f,
-                    initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
-                    onItemSelected = onModeSelected
-                ) { item, selected ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(item.labelRes).uppercase(),
-                            color = if (selected) CameraAccent else idleModeColor,
-                            fontFamily = CameraFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = if (compact) 12.sp else 13.sp,
-                            letterSpacing = 0.6.sp,
-                            maxLines = 1
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Box(
+            AnimatedVisibility(
+                visible = !state.isRecording && !state.panoramaActive,
+                enter = fadeIn(tween(280)) + expandVertically(tween(320)),
+                exit = fadeOut(tween(220)) + shrinkVertically(tween(280))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val modes = state.visibleModes
+                    key(state.slowMotionSupported, state.concurrentSupported) {
+                        DiscretePager(
+                            items = modes,
                             modifier = Modifier
-                                .width(18.dp)
-                                .height(2.dp)
-                                .clip(RoundedCornerShape(1.dp))
-                                .background(if (selected) CameraAccent else Color.Transparent)
-                        )
+                                .fillMaxWidth()
+                                .height(modePagerHeight(compact)),
+                            itemWidth = 96.dp,
+                            itemSpacing = 0.dp,
+                            overshootFraction = 0.55f,
+                            initialIndex = modes.indexOf(state.mode).coerceAtLeast(0),
+                            onItemSelected = onModeSelected
+                        ) { item, selected ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(item.labelRes).uppercase(),
+                                    color = if (selected) CameraAccent else idleModeColor,
+                                    fontFamily = CameraFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = if (compact) 12.sp else 13.sp,
+                                    letterSpacing = 0.6.sp,
+                                    maxLines = 1
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .width(18.dp)
+                                        .height(2.dp)
+                                        .clip(RoundedCornerShape(1.dp))
+                                        .background(if (selected) CameraAccent else Color.Transparent)
+                                )
+                            }
+                        }
                     }
+                    Spacer(Modifier.height(modePagerAfterGap(compact)))
                 }
             }
-            Spacer(Modifier.height(modePagerAfterGap(compact)))
         }
         AnimatedVisibility(
             visible = state.showsCaptureControls,
@@ -768,14 +782,23 @@ fun CameraFooter(
             ) {
                 val sideSize = if (compact) 44.dp else 48.dp
                 Spacer(Modifier.weight(1f))
-                if (state.lockCaptureMode) {
-                    Spacer(Modifier.size(sideSize))
-                } else {
-                    GalleryThumb(
-                        file = state.thumbnail,
-                        size = sideSize,
-                        onClick = onGalleryClicked
-                    )
+                Box(
+                    modifier = Modifier.size(sideSize),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !state.lockCaptureMode &&
+                            !state.isRecording &&
+                            !state.panoramaActive,
+                        enter = fadeIn(tween(280)),
+                        exit = fadeOut(tween(220))
+                    ) {
+                        GalleryThumb(
+                            file = state.thumbnail,
+                            size = sideSize,
+                            onClick = onGalleryClicked
+                        )
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 ShutterButton(

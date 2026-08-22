@@ -1,5 +1,6 @@
 package com.arindam.camerax.ui.home.camera
 
+import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -31,8 +32,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -54,9 +59,14 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arindam.camerax.R
+import com.arindam.camerax.domain.model.BoundSession
+import com.arindam.camerax.domain.model.BoundSessionKind
 import com.arindam.camerax.domain.model.CameraExtension
 import com.arindam.camerax.domain.model.CameraLens
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
+import com.arindam.camerax.domain.model.InstalledCamera
+import com.arindam.camerax.domain.model.LastCameraSession
+import com.arindam.camerax.domain.model.StillFormat
 import com.arindam.camerax.domain.model.VideoHdrRange
 import com.arindam.camerax.domain.model.VideoQuality
 import com.arindam.camerax.ui.compose.CameraGlassButton
@@ -69,7 +79,9 @@ import com.arindam.camerax.ui.theme.themedOverlayChrome
 private enum class OthersRoute {
     HUB,
     EXPERIMENTAL,
-    ENGINE
+    ENGINE,
+    SESSION,
+    INTENTS
 }
 
 @Composable
@@ -84,6 +96,9 @@ fun OthersWorkspace(
     }
     if (!state.showsTools) return
     val chrome = themedOverlayChrome()
+    val context = LocalContext.current
+    val report = deviceReportText(state)
+    val shareTitle = stringResource(R.string.app_name)
     BackHandler(enabled = route != OthersRoute.HUB) {
         route = OthersRoute.HUB
     }
@@ -112,7 +127,22 @@ fun OthersWorkspace(
             OthersRoute.HUB -> OthersHub(
                 chrome = chrome,
                 onExperimental = { route = OthersRoute.EXPERIMENTAL },
-                onEngine = { route = OthersRoute.ENGINE }
+                onEngine = { route = OthersRoute.ENGINE },
+                onSession = { route = OthersRoute.SESSION },
+                onIntents = { route = OthersRoute.INTENTS },
+                onShare = {
+                    context.startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, report)
+                                putExtra(Intent.EXTRA_SUBJECT, shareTitle)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            },
+                            shareTitle
+                        )
+                    )
+                }
             )
             OthersRoute.EXPERIMENTAL -> ExperimentalFeaturesScreen(
                 chrome = chrome,
@@ -126,6 +156,17 @@ fun OthersWorkspace(
                 features = state.deviceFeatures,
                 onBack = { route = OthersRoute.HUB }
             )
+            OthersRoute.SESSION -> LastSessionScreen(
+                chrome = chrome,
+                compact = compact,
+                session = state.lastSession,
+                onBack = { route = OthersRoute.HUB }
+            )
+            OthersRoute.INTENTS -> CaptureIntentsScreen(
+                chrome = chrome,
+                compact = compact,
+                onBack = { route = OthersRoute.HUB }
+            )
         }
     }
 }
@@ -134,7 +175,10 @@ fun OthersWorkspace(
 private fun OthersHub(
     chrome: ThemedOverlayChrome,
     onExperimental: () -> Unit,
-    onEngine: () -> Unit
+    onEngine: () -> Unit,
+    onSession: () -> Unit,
+    onIntents: () -> Unit,
+    onShare: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -183,6 +227,30 @@ private fun OthersHub(
             title = stringResource(R.string.others_engine_title),
             subtitle = stringResource(R.string.others_engine_subtitle),
             onClick = onEngine
+        )
+        Spacer(Modifier.height(10.dp))
+        ToolCard(
+            chrome = chrome,
+            icon = Icons.Outlined.History,
+            title = stringResource(R.string.others_session_title),
+            subtitle = stringResource(R.string.others_session_subtitle),
+            onClick = onSession
+        )
+        Spacer(Modifier.height(10.dp))
+        ToolCard(
+            chrome = chrome,
+            icon = Icons.Outlined.Link,
+            title = stringResource(R.string.others_intents_title),
+            subtitle = stringResource(R.string.others_intents_subtitle),
+            onClick = onIntents
+        )
+        Spacer(Modifier.height(10.dp))
+        ToolCard(
+            chrome = chrome,
+            icon = Icons.Outlined.Share,
+            title = stringResource(R.string.others_share_report),
+            subtitle = stringResource(R.string.others_share_report_subtitle),
+            onClick = onShare
         )
     }
 }
@@ -288,14 +356,34 @@ private fun ExperimentalFeaturesScreen(
             ready = features.videoFps60
         ),
         LabItem(
-            title = stringResource(R.string.lab_ultra_hdr_title),
-            body = stringResource(R.string.lab_ultra_hdr_body),
-            ready = features.ultraHdr
+            title = stringResource(R.string.lab_jpeg_uhdr_title),
+            body = stringResource(R.string.lab_jpeg_uhdr_body),
+            ready = features.jpegUltraHdr
+        ),
+        LabItem(
+            title = stringResource(R.string.lab_heic_uhdr_title),
+            body = stringResource(R.string.lab_heic_uhdr_body),
+            ready = features.heicUltraHdr
         ),
         LabItem(
             title = stringResource(R.string.lab_raw_title),
             body = stringResource(R.string.lab_raw_body),
             ready = features.rawCapture
+        ),
+        LabItem(
+            title = stringResource(R.string.lab_full_raw_title),
+            body = stringResource(R.string.lab_full_raw_body),
+            ready = features.fullSensorRaw
+        ),
+        LabItem(
+            title = stringResource(R.string.lab_motion_title),
+            body = stringResource(R.string.lab_motion_body),
+            ready = features.videoQualities.isNotEmpty()
+        ),
+        LabItem(
+            title = stringResource(R.string.lab_persistent_title),
+            body = stringResource(R.string.lab_persistent_body),
+            ready = features.videoQualities.isNotEmpty()
         ),
         LabItem(
             title = stringResource(R.string.lab_video_hdr_title),
@@ -363,13 +451,7 @@ private fun CameraEngineScreen(
             features.cameras.forEach { camera ->
                 StatusRow(
                     chrome = chrome,
-                    label = stringResource(
-                        if (camera.lens == CameraLens.FRONT) {
-                            R.string.engine_lens_front
-                        } else {
-                            R.string.engine_lens_back
-                        }
-                    ),
+                    label = installedCameraLabel(camera),
                     value = camera.id,
                     ready = true
                 )
@@ -621,6 +703,304 @@ private fun ToolScreen(
         Spacer(Modifier.height(16.dp))
         content()
     }
+}
+
+@Composable
+private fun LastSessionScreen(
+    chrome: ThemedOverlayChrome,
+    compact: Boolean,
+    session: LastCameraSession?,
+    onBack: () -> Unit
+) {
+    val none = stringResource(R.string.engine_value_none)
+    val ready = stringResource(R.string.others_ready)
+    val unavailable = stringResource(R.string.others_unavailable)
+    ToolScreen(
+        chrome = chrome,
+        compact = compact,
+        kicker = stringResource(R.string.others_session_kicker),
+        title = stringResource(R.string.others_session_title),
+        onBack = onBack
+    ) {
+        if (session == null) {
+            Text(
+                text = stringResource(R.string.others_session_empty),
+                color = chrome.muted,
+                fontFamily = CameraFontFamily,
+                fontSize = 13.sp,
+                lineHeight = 18.sp
+            )
+            return@ToolScreen
+        }
+        val bound = session.bound
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_mode),
+            value = stringResource(session.mode.labelRes),
+            ready = true
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.others_session_kicker),
+            value = stringResource(boundSessionKindRes(bound.kind)),
+            ready = true
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_usecases),
+            value = boundUseCaseLabel(bound),
+            ready = bound.preview
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_fallback),
+            value = if (bound.stillsOnlyFallback) ready else unavailable,
+            ready = bound.stillsOnlyFallback
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_camera),
+            value = bound.cameraId ?: none,
+            ready = bound.cameraId != null
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_lens),
+            value = stringResource(
+                if (bound.lens == CameraLens.FRONT) {
+                    R.string.engine_lens_front
+                } else {
+                    R.string.engine_lens_back
+                }
+            ),
+            ready = true
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_extension),
+            value = stringResource(bound.extension.labelRes),
+            ready = bound.extension != CameraExtension.NONE
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_still),
+            value = stringResource(stillFormatRes(bound.stillFormat)),
+            ready = bound.stills
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_hdr),
+            value = if (bound.videoHdr == VideoHdrRange.SDR) {
+                stringResource(R.string.engine_value_sdr)
+            } else {
+                stringResource(hdrRangeRes(bound.videoHdr))
+            },
+            ready = bound.videoHdr != VideoHdrRange.SDR
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_fps60),
+            value = if (bound.videoFps60) ready else unavailable,
+            ready = bound.videoFps60
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_stab),
+            value = if (bound.videoStabilization) ready else unavailable,
+            ready = bound.videoStabilization
+        )
+        Spacer(Modifier.height(6.dp))
+        StatusRow(
+            chrome = chrome,
+            label = stringResource(R.string.session_row_full_raw),
+            value = if (bound.rawFullSensor) ready else unavailable,
+            ready = bound.rawFullSensor
+        )
+    }
+}
+
+@Composable
+private fun CaptureIntentsScreen(
+    chrome: ThemedOverlayChrome,
+    compact: Boolean,
+    onBack: () -> Unit
+) {
+    ToolScreen(
+        chrome = chrome,
+        compact = compact,
+        kicker = stringResource(R.string.others_intents_kicker),
+        title = stringResource(R.string.others_intents_title),
+        onBack = onBack
+    ) {
+        FeatureTile(
+            chrome = chrome,
+            item = LabItem(
+                title = stringResource(R.string.intent_image_title),
+                body = stringResource(R.string.intent_image_body),
+                ready = true
+            )
+        )
+        Spacer(Modifier.height(8.dp))
+        FeatureTile(
+            chrome = chrome,
+            item = LabItem(
+                title = stringResource(R.string.intent_motion_title),
+                body = stringResource(R.string.intent_motion_body),
+                ready = true
+            )
+        )
+    }
+}
+
+@Composable
+private fun installedCameraLabel(camera: InstalledCamera): String {
+    val facing = stringResource(
+        if (camera.lens == CameraLens.FRONT) {
+            R.string.engine_lens_front
+        } else {
+            R.string.engine_lens_back
+        }
+    )
+    val parts = ArrayList<String>(3)
+    parts.add(facing)
+    camera.zoomLabel?.let { zoom ->
+        val label = if (zoom % 1f == 0f) zoom.toInt().toString() else zoom.toString()
+        parts.add(stringResource(R.string.engine_zoom_format, label))
+    }
+    camera.focalMm?.let { mm ->
+        parts.add(stringResource(R.string.engine_focal_format, mm))
+    }
+    return parts.joinToString(" · ")
+}
+
+@Composable
+private fun boundUseCaseLabel(bound: BoundSession): String {
+    val parts = ArrayList<String>(4)
+    if (bound.preview) parts.add(stringResource(R.string.session_usecase_preview))
+    if (bound.stills) parts.add(stringResource(R.string.session_usecase_stills))
+    if (bound.video) parts.add(stringResource(R.string.session_usecase_video))
+    if (bound.analysis) parts.add(stringResource(R.string.session_usecase_analysis))
+    return if (parts.isEmpty()) stringResource(R.string.engine_value_none) else parts.joinToString()
+}
+
+private fun boundSessionKindRes(kind: BoundSessionKind): Int = when (kind) {
+    BoundSessionKind.STANDARD -> R.string.session_kind_standard
+    BoundSessionKind.HIGH_SPEED -> R.string.session_kind_high_speed
+    BoundSessionKind.CONCURRENT -> R.string.session_kind_concurrent
+}
+
+private fun stillFormatRes(format: StillFormat): Int = when (format) {
+    StillFormat.JPEG -> R.string.session_format_jpeg
+    StillFormat.JPEG_ULTRA_HDR -> R.string.session_format_jpeg_uhdr
+    StillFormat.HEIC_ULTRA_HDR -> R.string.session_format_heic_uhdr
+    StillFormat.RAW_JPEG -> R.string.session_format_raw
+}
+
+@Composable
+private fun deviceReportText(state: CameraUiState): String {
+    val yes = stringResource(R.string.report_yes)
+    val no = stringResource(R.string.report_no)
+    val none = stringResource(R.string.engine_value_none)
+    val features = state.deviceFeatures
+    val lines = ArrayList<String>()
+    fun kv(label: String, value: String) {
+        lines.add("$label: $value")
+    }
+    fun flag(label: String, on: Boolean) {
+        kv(label, if (on) yes else no)
+    }
+
+    lines.add(stringResource(R.string.app_name))
+    kv(stringResource(R.string.report_version), stringResource(R.string.app_version))
+    kv(stringResource(R.string.report_play_store), stringResource(R.string.link_playstore))
+    kv(stringResource(R.string.report_library), stringResource(R.string.engine_camerax_version))
+    kv(stringResource(R.string.report_android_api), Build.VERSION.SDK_INT.toString())
+    kv(stringResource(R.string.report_viewfinder), stringResource(R.string.engine_preview_impl))
+
+    lines.add("")
+    lines.add(stringResource(R.string.report_section_cameras))
+    if (features.cameras.isEmpty()) {
+        lines.add(stringResource(R.string.engine_cameras_empty))
+    } else {
+        features.cameras.forEach { camera ->
+            val details = installedCameraLabel(camera).replace(" · ", ", ")
+            lines.add(stringResource(R.string.report_camera_row, camera.id, details))
+        }
+    }
+
+    lines.add("")
+    lines.add(stringResource(R.string.report_section_capabilities))
+    kv(
+        stringResource(R.string.engine_row_extensions),
+        joinedExtensionLabel(features.extensions, none)
+    )
+    flag(stringResource(R.string.lab_concurrent_title), features.concurrent)
+    flag(stringResource(R.string.lab_high_speed_title), features.slowMotion.available)
+    flag(stringResource(R.string.lab_fps60_title), features.videoFps60)
+    flag(stringResource(R.string.lab_jpeg_uhdr_title), features.jpegUltraHdr)
+    flag(stringResource(R.string.lab_heic_uhdr_title), features.heicUltraHdr)
+    flag(stringResource(R.string.lab_raw_title), features.rawCapture)
+    flag(stringResource(R.string.lab_full_raw_title), features.fullSensorRaw)
+    flag(stringResource(R.string.lab_llb_title), features.lowLightBoost)
+    flag(stringResource(R.string.engine_row_stab), features.videoStabilization)
+    kv(
+        stringResource(R.string.engine_row_qualities),
+        joinedQualityLabel(features.videoQualities, none)
+    )
+    kv(
+        stringResource(R.string.engine_row_video_hdr),
+        joinedHdrLabel(features.videoHdrRanges)
+    )
+
+    lines.add("")
+    lines.add(stringResource(R.string.report_section_last_bind))
+    val session = state.lastSession
+    if (session == null) {
+        lines.add(stringResource(R.string.others_session_empty))
+    } else {
+        val bound = session.bound
+        kv(stringResource(R.string.session_row_mode), stringResource(session.mode.labelRes))
+        kv(
+            stringResource(R.string.others_session_kicker),
+            stringResource(boundSessionKindRes(bound.kind))
+        )
+        kv(stringResource(R.string.session_row_usecases), boundUseCaseLabel(bound))
+        val lens = stringResource(
+            if (bound.lens == CameraLens.FRONT) {
+                R.string.engine_lens_front
+            } else {
+                R.string.engine_lens_back
+            }
+        )
+        kv(
+            stringResource(R.string.session_row_camera),
+            bound.cameraId?.let { id -> "$id ($lens)" } ?: none
+        )
+        kv(stringResource(R.string.session_row_still), stringResource(stillFormatRes(bound.stillFormat)))
+        kv(stringResource(R.string.session_row_extension), stringResource(bound.extension.labelRes))
+        flag(stringResource(R.string.session_row_fallback), bound.stillsOnlyFallback)
+        flag(stringResource(R.string.session_row_fps60), bound.videoFps60)
+        flag(stringResource(R.string.session_row_stab), bound.videoStabilization)
+        kv(
+            stringResource(R.string.session_row_hdr),
+            if (bound.videoHdr == VideoHdrRange.SDR) {
+                stringResource(R.string.engine_value_sdr)
+            } else {
+                stringResource(hdrRangeRes(bound.videoHdr))
+            }
+        )
+    }
+    return lines.joinToString("\n")
 }
 
 @Composable

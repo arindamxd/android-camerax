@@ -107,7 +107,16 @@ fun CameraInfo.supportedStillFormats(): Set<Int> = runCatching {
 }.getOrDefault(emptySet())
 
 fun CameraInfo.supportsUltraHdr(): Boolean =
+    ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in supportedStillFormats() ||
+        supportsHeicUltraHdr()
+
+fun CameraInfo.supportsJpegUltraHdr(): Boolean =
     ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR in supportedStillFormats()
+
+fun CameraInfo.supportsHeicUltraHdr(): Boolean {
+    val heic = heicUltraHdrOutputFormat() ?: return false
+    return heic in supportedStillFormats()
+}
 
 fun CameraInfo.supportsRawJpeg(): Boolean =
     ImageCapture.OUTPUT_FORMAT_RAW_JPEG in supportedStillFormats()

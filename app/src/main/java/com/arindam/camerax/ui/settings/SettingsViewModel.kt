@@ -2,6 +2,7 @@ package com.arindam.camerax.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.arindam.camerax.di.AppDispatchers
 import com.arindam.camerax.di.CameraInteractors
 import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SettingsUiState(
     val features: DeviceCaptureFeatures = DeviceCaptureFeatures(),
@@ -21,7 +23,8 @@ data class SettingsUiState(
  */
 class SettingsViewModel(
     private val interactors: CameraInteractors,
-    versionLabel: String
+    versionLabel: String,
+    private val dispatchers: AppDispatchers = AppDispatchers()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState(versionLabel = versionLabel))
@@ -29,7 +32,9 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            val features = interactors.probeDeviceFeatures()
+            val features = withContext(dispatchers.default) {
+                interactors.probeDeviceFeatures()
+            }
             _uiState.update { it.copy(features = features) }
         }
     }

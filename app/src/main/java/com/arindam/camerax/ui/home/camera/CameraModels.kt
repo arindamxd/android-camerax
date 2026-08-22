@@ -18,6 +18,7 @@ import com.arindam.camerax.domain.model.DeviceCaptureFeatures
 import com.arindam.camerax.domain.model.EffectMode
 import com.arindam.camerax.domain.model.ExposureLimits
 import com.arindam.camerax.domain.model.ExposurePriority
+import com.arindam.camerax.domain.model.LastCameraSession
 import com.arindam.camerax.domain.model.FlashMode
 import com.arindam.camerax.domain.model.NightScene
 import com.arindam.camerax.domain.model.PhysicalZoom
@@ -149,6 +150,7 @@ data class CameraUiState(
     val videoFps60Supported: Boolean = false,
     val videoFps60Active: Boolean = false,
     val deviceFeatures: DeviceCaptureFeatures = DeviceCaptureFeatures(),
+    val lastSession: LastCameraSession? = null,
     val message: String? = null
 ) {
     val zoomChips: List<Float>

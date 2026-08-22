@@ -61,6 +61,8 @@ import androidx.core.net.toFile
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
+import com.arindam.camerax.domain.model.BoundSession
+import com.arindam.camerax.domain.model.BoundSessionKind
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraBindResult
 import com.arindam.camerax.domain.model.CameraExtension
@@ -150,6 +152,10 @@ class CameraSession(private val context: Context) : CameraRepository {
     private var previewBoosted = false
     private var userExposureIndex: Int? = null
     private var fps60Active = false
+    private var lastBoundKind = BoundSessionKind.STANDARD
+    private var lastStillsOnlyFallback = false
+    private var lastBoundExtension = CameraExtension.NONE
+    private var lastRawFullSensor = false
 
     suspend fun initialize() {
         if (cameraProvider != null) return
@@ -263,6 +269,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         val useFullSensor = useRaw &&
             config.rawFullSensor &&
             stillInfo.supportsFullSensorRaw(context) == true
+        lastRawFullSensor = useFullSensor
+        lastBoundExtension = if (useExtension) config.extension else CameraExtension.NONE
+        lastBoundKind = BoundSessionKind.STANDARD
+        lastStillsOnlyFallback = false
         if (useFullSensor) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Camera2Interop.Extender(captureBuilder).setCaptureRequestOption(
@@ -970,6 +980,8 @@ class CameraSession(private val context: Context) : CameraRepository {
                 this.videoCapture = videoCapture?.takeIf { capture -> useCases.contains(capture) }
                 this.imageCapture = imageCapture.takeIf { capture -> useCases.contains(capture) }
                 this.preview = preview?.takeIf { useCases.contains(it) }
+                lastStillsOnlyFallback = videoCapture != null &&
+                    !useCases.contains(videoCapture)
                 if (imageAnalysis == null || !useCases.contains(imageAnalysis)) {
                     stopColorAnalysis()
                 }
@@ -1064,6 +1076,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         } ?: concurrent.cameras.first()
         fps60Active = false
         stillFormat = StillFormat.JPEG
+        lastBoundKind = BoundSessionKind.CONCURRENT
+        lastBoundExtension = CameraExtension.NONE
+        lastRawFullSensor = false
+        lastStillsOnlyFallback = imageCapture == null
         Logger.debug(
             TAG,
             "Bound Dual PreviewViews: ${concurrent.cameras.map { bound -> bound.cameraInfo.lensFacing }}"
@@ -1144,6 +1160,10 @@ class CameraSession(private val context: Context) : CameraRepository {
             this.preview = previewUseCase
             this.videoCapture = video
             this.imageCapture = null
+            lastBoundKind = BoundSessionKind.HIGH_SPEED
+            lastBoundExtension = CameraExtension.NONE
+            lastRawFullSensor = false
+            lastStillsOnlyFallback = false
             HighSpeedBind(camera = bound, fps = fpsRange.upper)
         } catch (error: Exception) {
             Logger.warning(TAG, "High-speed session bind failed: ${error.message}")
@@ -1153,7 +1173,7 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     private fun isHighSpeedSupported(info: CameraInfo?): Boolean {
         if (info == null) return false
-        return info.supportsHighSpeedSlowMotion()
+        return info.cachedSlowMotion()?.available == true
     }
 
     private fun resolveVideoHdrRange(info: CameraInfo?, config: CameraBindConfig): DynamicRange {
@@ -1259,8 +1279,26 @@ class CameraSession(private val context: Context) : CameraRepository {
             concurrentSupported = cameraProvider?.let { provider ->
                 isDualCameraSupported(context, provider)
             } == true,
-            videoFps60Supported = info?.supportsVideoFps60() == true,
-            videoFps60Active = fps60Active
+            videoFps60Supported = info?.cachedVideoFps60() == true,
+            videoFps60Active = fps60Active,
+            session = BoundSession(
+                kind = lastBoundKind,
+                preview = preview != null,
+                stills = imageCapture != null,
+                video = videoCapture != null,
+                analysis = imageAnalysis != null,
+                stillsOnlyFallback = lastStillsOnlyFallback,
+                cameraId = runCatching {
+                    camera?.let { Camera2CameraInfo.from(it.cameraInfo).cameraId }
+                }.getOrNull(),
+                lens = config.lens,
+                extension = lastBoundExtension,
+                stillFormat = stillFormat,
+                videoHdr = videoCapture?.dynamicRange?.toVideoHdrRange() ?: VideoHdrRange.SDR,
+                videoFps60 = fps60Active,
+                videoStabilization = preview?.isPreviewStabilizationEnabled == true,
+                rawFullSensor = lastRawFullSensor
+            )
         )
     }
 

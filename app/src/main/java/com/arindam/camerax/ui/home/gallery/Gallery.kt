@@ -3,6 +3,10 @@
 package com.arindam.camerax.ui.home.gallery
 
 import android.widget.VideoView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,7 +17,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,8 +35,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
@@ -43,8 +49,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,20 +68,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.data.media.mediaFileInfo
+import com.arindam.camerax.ui.compose.CameraAlertDialog
+import com.arindam.camerax.ui.compose.CameraGlassButton
 import com.arindam.camerax.ui.compose.DarkLightPreviews
 import com.arindam.camerax.ui.home.camera.formatRecordingTime
 import com.arindam.camerax.ui.theme.AppTheme
 import com.arindam.camerax.ui.theme.CameraAccent
-import com.arindam.camerax.ui.theme.CameraDanger
-import com.arindam.camerax.ui.theme.CameraFontFamily
 import com.arindam.camerax.ui.theme.CameraMono
 import com.arindam.camerax.ui.theme.themedOverlayChrome
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /** Full-screen pager over captured files (photos, video, motion, DNG). */
 @Composable
@@ -87,6 +97,10 @@ fun GalleryScreen(
     val pagerState = rememberPagerState(pageCount = { items.size })
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var motionPlaying by remember { mutableStateOf(false) }
+    var videoPlaying by remember { mutableStateOf(false) }
+    var videoControlsVisible by remember { mutableStateOf(true) }
+    var videoControlsTick by remember { mutableIntStateOf(0) }
+    var showPlayError by remember { mutableStateOf(false) }
     val current = items.getOrNull(pagerState.currentPage)
     val isMotion = current != null && MotionPhotoMuxer.isMotionPhoto(current)
     val isVideo = current?.extension?.equals("mp4", ignoreCase = true) == true
@@ -102,6 +116,19 @@ fun GalleryScreen(
     LaunchedEffect(pagerState.currentPage) {
         playbackSpeed = 1f
         motionPlaying = false
+        videoPlaying = false
+        videoControlsVisible = true
+        showPlayError = false
+    }
+    LaunchedEffect(videoPlaying, videoControlsTick) {
+        if (!isVideo) return@LaunchedEffect
+        if (!videoPlaying) {
+            videoControlsVisible = true
+            return@LaunchedEffect
+        }
+        videoControlsVisible = true
+        delay(2_000)
+        videoControlsVisible = false
     }
 
     Box(
@@ -113,7 +140,20 @@ fun GalleryScreen(
             items = items,
             pagerState = pagerState,
             playbackSpeed = playbackSpeed,
-            motionPlaying = motionPlaying
+            motionPlaying = motionPlaying,
+            videoPlaying = videoPlaying,
+            onPlaybackError = {
+                motionPlaying = false
+                videoPlaying = false
+                showPlayError = true
+            },
+            onPlaybackEnded = {
+                videoPlaying = false
+                videoControlsVisible = true
+            },
+            onVideoTapped = {
+                if (videoPlaying) videoControlsTick++
+            }
         )
         Box(
             modifier = Modifier
@@ -161,9 +201,7 @@ fun GalleryScreen(
                     fontFamily = CameraMono,
                     fontSize = 10.sp,
                     letterSpacing = 0.06.em,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(start = 20.dp, bottom = if (isVideo) 12.dp else 8.dp)
+                    modifier = Modifier.padding(bottom = if (isVideo) 12.dp else 8.dp)
                 )
             }
             if (isVideo) {
@@ -179,6 +217,36 @@ fun GalleryScreen(
                 onDelete = onDelete
             )
         }
+        if (isVideo) {
+            AnimatedVisibility(
+                visible = !videoPlaying || videoControlsVisible,
+                enter = fadeIn(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(400)),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                CameraGlassButton(
+                    icon = if (videoPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(
+                        if (videoPlaying) R.string.pause_video else R.string.play_video
+                    ),
+                    onClick = {
+                        videoPlaying = !videoPlaying
+                        if (videoPlaying) videoControlsTick++
+                    },
+                    diameter = 56.dp,
+                    onGlass = chrome.onGlass,
+                    glass = chrome.glass,
+                    stroke = chrome.stroke
+                )
+            }
+        }
+        CameraAlertDialog(
+            show = showPlayError,
+            title = stringResource(R.string.video_play_error_title),
+            text = stringResource(R.string.video_play_error_body),
+            confirmLabel = stringResource(R.string.video_play_error_ok),
+            onDismiss = { showPlayError = false }
+        )
     }
 }
 
@@ -208,35 +276,42 @@ private fun GalleryHeader(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(
-                WindowInsets.safeDrawing
-                    .union(WindowInsets.systemGestures)
-                    .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                )
             )
-            .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp)
     ) {
-        GalleryActionButton(
-            icon = R.drawable.ic_back,
+        CameraGlassButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = stringResource(R.string.back_button_alt),
-            onClick = navigateBack
+            onClick = navigateBack,
+            onGlass = chrome.onGlass,
+            glass = chrome.glass,
+            stroke = chrome.stroke
         )
         if (showMotion) {
-            Text(
-                text = stringResource(
-                    if (motionPlaying) R.string.motion_photo_badge else R.string.play_motion_photo
-                ),
-                color = if (motionPlaying) Color.Black else CameraAccent,
-                fontFamily = CameraMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp,
+            val chipShape = RoundedCornerShape(22.dp)
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
+                    .height(44.dp)
+                    .clip(chipShape)
                     .background(if (motionPlaying) CameraAccent else chrome.glass)
-                    .border(1.dp, chrome.stroke, RoundedCornerShape(20.dp))
+                    .border(1.dp, chrome.stroke, chipShape)
                     .clickable(onClick = onMotionClicked)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-        } else {
-            Spacer(Modifier.size(48.dp))
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = stringResource(
+                        if (motionPlaying) R.string.motion_photo_badge else R.string.play_motion_photo
+                    ),
+                    color = if (motionPlaying) Color.Black else CameraAccent,
+                    fontFamily = CameraMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
@@ -249,9 +324,14 @@ private fun GalleryFooter(
     onDelete: (File) -> Unit
 ) {
     val showDialog = remember { mutableStateOf(false) }
-    DeleteDialog(
+    CameraAlertDialog(
         show = showDialog.value,
-        onConfirmed = {
+        title = stringResource(R.string.delete_title),
+        text = stringResource(R.string.delete_subtitle),
+        confirmLabel = stringResource(R.string.delete_button_alt),
+        dismissLabel = stringResource(R.string.delete_button_cancel),
+        destructiveConfirm = true,
+        onConfirm = {
             items.getOrNull(pagerState.currentPage)?.let(onDelete)
         },
         onDismiss = { showDialog.value = false }
@@ -262,7 +342,7 @@ private fun GalleryFooter(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp)
+            .padding(bottom = 4.dp)
     ) {
         if (items.isEmpty()) return@Row
         GalleryActionButton(
@@ -314,6 +394,10 @@ private fun GalleryPager(
     pagerState: PagerState,
     playbackSpeed: Float = 1f,
     motionPlaying: Boolean = false,
+    videoPlaying: Boolean = false,
+    onPlaybackError: () -> Unit = {},
+    onPlaybackEnded: () -> Unit = {},
+    onVideoTapped: () -> Unit = {},
 ) {
     HorizontalPager(
         state = pagerState,
@@ -326,19 +410,27 @@ private fun GalleryPager(
                 GalleryVideo(
                     file = file,
                     isActive = pagerState.currentPage == page,
-                    playbackSpeed = playbackSpeed
+                    playing = videoPlaying && pagerState.currentPage == page,
+                    playbackSpeed = playbackSpeed,
+                    loop = false,
+                    onPlaybackError = onPlaybackError,
+                    onPlaybackEnded = onPlaybackEnded,
+                    onSurfaceTapped = onVideoTapped
                 )
             } else {
                 val motion = MotionPhotoMuxer.isMotionPhoto(file)
+                val playMotion = motion && motionPlaying && pagerState.currentPage == page
                 Box(Modifier.fillMaxSize()) {
-                    Image(
-                        painter = rememberAsyncImagePainter(model = file),
-                        contentScale = ContentScale.Fit,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    if (motion) {
-                        GalleryMotionOverlay(file = file, playing = motionPlaying)
+                    if (!playMotion) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = file),
+                            contentScale = ContentScale.Fit,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    if (playMotion) {
+                        GalleryMotionOverlay(file = file, onPlaybackError = onPlaybackError)
                     }
                 }
             }
@@ -347,17 +439,37 @@ private fun GalleryPager(
 }
 
 @Composable
-private fun GalleryMotionOverlay(file: File, playing: Boolean) {
+private fun GalleryMotionOverlay(file: File, onPlaybackError: () -> Unit) {
     val context = LocalContext.current
     val clip = remember(file) {
         File(context.cacheDir, "motion_${file.nameWithoutExtension}.mp4")
     }
-    if (!playing) return
-    val extracted = remember(file) {
-        runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
+    var extracted by remember(file) { mutableStateOf<File?>(null) }
+    val reportError by rememberUpdatedState(onPlaybackError)
+    LaunchedEffect(file) {
+        val result = withContext(Dispatchers.IO) {
+            runCatching { MotionPhotoMuxer.extractVideo(file, clip) }.getOrNull()
+        }
+        extracted = result
+        if (result == null) reportError()
     }
-    if (extracted != null) {
-        GalleryVideo(file = extracted, isActive = true, playbackSpeed = 1f)
+    val clipFile = extracted
+    if (clipFile != null) {
+        GalleryVideo(
+            file = clipFile,
+            isActive = true,
+            playing = true,
+            playbackSpeed = 1f,
+            loop = true,
+            onPlaybackError = onPlaybackError
+        )
+    } else {
+        Image(
+            painter = rememberAsyncImagePainter(model = file),
+            contentScale = ContentScale.Fit,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -414,116 +526,81 @@ private fun PlaybackSpeedRow(
 }
 
 @Composable
-private fun GalleryVideo(file: File, isActive: Boolean, playbackSpeed: Float) {
+private fun GalleryVideo(
+    file: File,
+    isActive: Boolean,
+    playing: Boolean,
+    playbackSpeed: Float,
+    loop: Boolean = false,
+    onPlaybackError: () -> Unit = {},
+    onPlaybackEnded: () -> Unit = {},
+    onSurfaceTapped: (() -> Unit)? = null
+) {
     val videoView = remember(file) { mutableStateOf<VideoView?>(null) }
     val playerRef = remember(file) { mutableStateOf<android.media.MediaPlayer?>(null) }
-    AndroidView(
-        factory = { context ->
-            VideoView(context).apply {
-                setVideoPath(file.absolutePath)
-                setOnPreparedListener { player ->
-                    playerRef.value = player
-                    player.isLooping = true
+    val reportError by rememberUpdatedState(onPlaybackError)
+    val reportEnded by rememberUpdatedState(onPlaybackEnded)
+    val shouldPlay by rememberUpdatedState(isActive && playing)
+    Box(Modifier.fillMaxSize()) {
+        AndroidView(
+            factory = { context ->
+                VideoView(context).apply {
+                    setOnErrorListener { _, _, _ ->
+                        reportError()
+                        true
+                    }
+                    setOnCompletionListener {
+                        seekTo(1)
+                        reportEnded()
+                    }
+                    setVideoPath(file.absolutePath)
+                    setOnPreparedListener { player ->
+                        playerRef.value = player
+                        player.isLooping = loop
+                        runCatching {
+                            player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
+                        }
+                        if (shouldPlay) {
+                            start()
+                        } else {
+                            seekTo(1)
+                        }
+                    }
+                    videoView.value = this
+                }
+            },
+            update = { view ->
+                playerRef.value?.let { player ->
+                    player.isLooping = loop
                     runCatching {
                         player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
                     }
-                    if (isActive) start()
                 }
-                videoView.value = this
-            }
-        },
-        update = { view ->
-            playerRef.value?.let { player ->
-                runCatching {
-                    player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
+                if (shouldPlay) {
+                    if (!view.isPlaying) view.start()
+                } else if (view.isPlaying) {
+                    view.pause()
                 }
-            }
-            if (isActive) {
-                if (!view.isPlaying) view.start()
-            } else if (view.isPlaying) {
-                view.pause()
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        if (onSurfaceTapped != null) {
+            val tap by rememberUpdatedState(onSurfaceTapped)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { tap() }
+                    )
+            )
+        }
+    }
     DisposableEffect(file) {
         onDispose {
             videoView.value?.stopPlayback()
             playerRef.value = null
-        }
-    }
-}
-
-@Composable
-fun DeleteDialog(
-    show: Boolean = false,
-    title: Int = R.string.delete_title,
-    text: Int = R.string.delete_subtitle,
-    confirmTitle: Int = R.string.delete_button_alt,
-    dismissTitle: Int = R.string.delete_button_cancel,
-    onConfirmed: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    if (!show) return
-
-    val shape = RoundedCornerShape(24.dp)
-    val scheme = MaterialTheme.colorScheme
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(scheme.surface)
-                .border(1.dp, scheme.outline.copy(alpha = 0.4f), shape)
-                .padding(20.dp)
-        ) {
-            Text(
-                text = stringResource(id = title),
-                color = scheme.onSurface,
-                fontFamily = CameraFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(id = text),
-                color = scheme.onSurfaceVariant,
-                fontFamily = CameraFontFamily,
-                fontSize = 14.sp
-            )
-            Spacer(Modifier.height(20.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(id = dismissTitle),
-                    color = scheme.onSurface,
-                    fontFamily = CameraFontFamily,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable(onClick = onDismiss)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                )
-                Text(
-                    text = stringResource(id = confirmTitle),
-                    color = Color.Black,
-                    fontFamily = CameraFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(CameraDanger)
-                        .clickable {
-                            onDismiss.invoke()
-                            onConfirmed.invoke()
-                        }
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                )
-            }
         }
     }
 }

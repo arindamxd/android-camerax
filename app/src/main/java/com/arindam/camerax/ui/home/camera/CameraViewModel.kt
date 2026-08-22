@@ -18,6 +18,7 @@ import com.arindam.camerax.data.camera.MotionPhotoMuxer
 import com.arindam.camerax.data.camera.PreviewViewHost
 import com.arindam.camerax.di.AppDispatchers
 import com.arindam.camerax.di.CameraInteractors
+import com.arindam.camerax.domain.model.LastCameraSession
 import com.arindam.camerax.data.media.mediaFileInfo
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraExtension
@@ -103,7 +104,9 @@ class CameraViewModel(
         applyCaptureSettings(interactors.loadCaptureSettings())
         persistChrome()
         viewModelScope.launch {
-            val features = interactors.probeDeviceFeatures()
+            val features = withContext(dispatchers.default) {
+                interactors.probeDeviceFeatures()
+            }
             _uiState.update { state ->
                 val dualSupported = features.concurrent && !dualDisabled
                 val resolvedMode = CameraModeCatalog.resolve(
@@ -114,6 +117,7 @@ class CameraViewModel(
                 state.copy(
                     slowMotionSupported = features.slowMotion.available,
                     concurrentSupported = dualSupported,
+                    videoFps60Supported = features.videoFps60,
                     mode = resolvedMode,
                     deviceFeatures = features
                 )
@@ -210,8 +214,9 @@ class CameraViewModel(
                             !dualDisabled
                         val resolved = CameraModeCatalog.resolve(
                             mode = it.mode,
-                            slowMotionSupported = result.slowMotionSupported &&
-                                (it.slowMotionSupported || result.slowMotionFps > 0),
+                            slowMotionSupported = result.slowMotionSupported ||
+                                it.slowMotionSupported ||
+                                result.slowMotionFps > 0,
                             concurrentSupported = dualSupported
                         )
                         val modeChanged = resolved != it.mode
@@ -240,15 +245,20 @@ class CameraViewModel(
                             },
                             physicalZooms = result.physicalZooms,
                             cameraId = result.boundCameraId,
-                            slowMotionSupported = result.slowMotionSupported &&
-                                (it.slowMotionSupported || result.slowMotionFps > 0),
+                            slowMotionSupported = result.slowMotionSupported ||
+                                it.slowMotionSupported ||
+                                result.slowMotionFps > 0,
                             slowMotionFps = result.slowMotionFps,
                             videoStabilizationActive = result.videoStabilizationActive,
                             lowLightBoostSupported = result.lowLightBoostSupported,
                             videoHdrBound = result.videoHdrRange,
                             concurrentSupported = dualSupported,
-                            videoFps60Supported = result.videoFps60Supported,
+                            videoFps60Supported = result.videoFps60Supported || it.videoFps60Supported,
                             videoFps60Active = result.videoFps60Active,
+                            lastSession = LastCameraSession(
+                                mode = resolved,
+                                bound = result.session
+                            ),
                             mode = resolved,
                             bindRevision = if (modeChanged) it.bindRevision + 1 else it.bindRevision,
                             message = null

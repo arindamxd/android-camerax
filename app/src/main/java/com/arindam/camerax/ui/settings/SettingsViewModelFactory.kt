@@ -11,7 +11,11 @@ class SettingsViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
-            return SettingsViewModel(container.cameraInteractors, versionLabel) as T
+            return SettingsViewModel(
+                container.cameraInteractors,
+                versionLabel,
+                container.dispatchers
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }

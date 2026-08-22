@@ -204,7 +204,38 @@ data class CameraBindResult(
     val videoHdrRange: VideoHdrRange = VideoHdrRange.SDR,
     val concurrentSupported: Boolean = false,
     val videoFps60Supported: Boolean = false,
-    val videoFps60Active: Boolean = false
+    val videoFps60Active: Boolean = false,
+    val session: BoundSession = BoundSession()
+)
+
+/** Use cases and format flags from the last successful bind. */
+data class BoundSession(
+    val kind: BoundSessionKind = BoundSessionKind.STANDARD,
+    val preview: Boolean = true,
+    val stills: Boolean = true,
+    val video: Boolean = false,
+    val analysis: Boolean = false,
+    val stillsOnlyFallback: Boolean = false,
+    val cameraId: String? = null,
+    val lens: CameraLens = CameraLens.BACK,
+    val extension: CameraExtension = CameraExtension.NONE,
+    val stillFormat: StillFormat = StillFormat.JPEG,
+    val videoHdr: VideoHdrRange = VideoHdrRange.SDR,
+    val videoFps60: Boolean = false,
+    val videoStabilization: Boolean = false,
+    val rawFullSensor: Boolean = false
+)
+
+enum class BoundSessionKind {
+    STANDARD,
+    HIGH_SPEED,
+    CONCURRENT
+}
+
+/** Last bind plus pager mode, kept after Tools unbinds the preview. */
+data class LastCameraSession(
+    val mode: CameraMode,
+    val bound: BoundSession
 )
 
 enum class LowLightBoost {
@@ -265,6 +296,8 @@ data class DeviceCaptureFeatures(
     val fullSensorRaw: Boolean = false,
     val lowLightBoost: Boolean = false,
     val videoFps60: Boolean = false,
+    val jpegUltraHdr: Boolean = false,
+    val heicUltraHdr: Boolean = false,
     val cameras: List<InstalledCamera> = emptyList(),
     val extensions: Set<CameraExtension> = emptySet()
 )
@@ -272,7 +305,9 @@ data class DeviceCaptureFeatures(
 /** One physical camera listed by CameraX for diagnostics. */
 data class InstalledCamera(
     val id: String,
-    val lens: CameraLens
+    val lens: CameraLens,
+    val zoomLabel: Float? = null,
+    val focalMm: Float? = null
 )
 
 /** Opaque preview/lifecycle handle. Data layer provides the CameraX implementation. */

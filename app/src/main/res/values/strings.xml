@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Common chrome (content descriptions, share, navigation) -->
     <string name="capture_button_alt">Capture</string>
     <string name="switch_camera_button_alt">Switch camera</string>
     <string name="gallery_button_alt">Gallery</string>
     <string name="back_button_alt">Back</string>
     <string name="share_button_alt">Share</string>
     <string name="share_hint">Share using</string>
-    <string name="capture_mode_camera">Camera</string>
-    <string name="capture_mode_hdr">HDR</string>
-    <string name="capture_mode_night">Night</string>
+    <string name="settings">Settings</string>
+    <string name="shutter">Shutter</string>
+    <string name="slider">Photo Slider</string>
+    <string name="under_dev">Currently under development</string>
+
+    <!-- Permissions -->
+    <string name="permission_request_denied">Camera permission denied</string>
+    <string name="permission_request_granted">Camera permission granted</string>
+
+    <!-- Live camera: mode pager -->
     <string name="mode_photo">Photo</string>
     <string name="mode_video">Video</string>
     <string name="mode_slow_motion">Slo-mo</string>
@@ -17,6 +25,98 @@
     <string name="mode_panorama">Pano</string>
     <string name="mode_dual">Dual</string>
     <string name="mode_others">Others</string>
+    <string name="capture_mode_camera">Camera</string>
+    <string name="capture_mode_hdr">HDR</string>
+    <string name="capture_mode_night">Night</string>
+
+    <!-- Live camera: header / HUD -->
+    <string name="flash_off">Flash off</string>
+    <string name="flash_on">Flash on</string>
+    <string name="flash_auto">Flash auto</string>
+    <string name="flash_torch">Torch</string>
+    <string name="timer_off">Timer off</string>
+    <string name="timer_3">Timer 3 seconds</string>
+    <string name="timer_10">Timer 10 seconds</string>
+    <string name="grid_on">Grid on</string>
+    <string name="grid_off">Grid off</string>
+    <string name="motion_photo_on">Motion photo on</string>
+    <string name="motion_photo_off">Motion photo off</string>
+    <string name="zoom_chip">Zoom %1$s</string>
+    <string name="night_mode_recommended">Night recommended</string>
+    <string name="night_mode_active">Night mode</string>
+    <string name="ultrahdr">Ultra HDR</string>
+    <string name="ultrahdr_heic">Ultra HDR HEIC</string>
+    <string name="raw_dng">RAW / DNG</string>
+    <string name="video_fps_60_on">60 fps</string>
+    <string name="video_stabilization_on">Stabilized</string>
+    <string name="low_light_boost_on">Low light boost</string>
+    <string name="video_hdr_hlg">HLG</string>
+    <string name="video_hdr_hdr10">HDR10</string>
+    <string name="video_hdr_hdr10_plus">HDR10+</string>
+    <string name="video_hdr_dolby">Dolby Vision</string>
+    <string name="dual_live_hint">Front + back</string>
+    <string name="slow_motion_fps">Slo-mo · %1$d fps</string>
+    <string name="slow_motion_unsupported">This device doesn\'t support slow motion</string>
+    <string name="panorama_hint">Tap shutter, then pan slowly</string>
+    <string name="panorama_panning">Panning · %1$d frames</string>
+
+    <!-- Live camera: recording -->
+    <string name="pause_recording">Pause recording</string>
+    <string name="resume_recording">Resume recording</string>
+    <string name="recording_paused">Paused</string>
+    <string name="mute_audio">Mute audio</string>
+    <string name="unmute_audio">Unmute audio</string>
+    <string name="recording_notification_channel">Recording</string>
+    <string name="recording_notification_title">Recording video</string>
+    <string name="recording_notification_text">CameraX is capturing video</string>
+
+    <!-- Live camera: exposure -->
+    <string name="exposure_button">Exposure</string>
+    <string name="ae_auto">AE</string>
+    <string name="ae_iso">ISO</string>
+    <string name="ae_shutter">Shutter</string>
+    <string name="iso_value">ISO %1$d</string>
+    <string name="shutter_value">%1$s</string>
+    <string name="exposure_ev">EV %1$s</string>
+
+    <!-- Live camera: OEM extensions -->
+    <string name="extension_none">None</string>
+    <string name="extension_hdr">HDR</string>
+    <string name="extension_night">Night</string>
+    <string name="extension_portrait">Portrait</string>
+    <string name="extension_beauty">Beauty</string>
+
+    <!-- Live camera: Effects mode -->
+    <string name="effect_none">None</string>
+    <string name="effect_grayscale">Grayscale</string>
+    <string name="effect_invert">Invert</string>
+    <string name="effect_sepia">Sepia</string>
+    <string name="effect_cool">Cool</string>
+    <string name="effect_warm">Warm</string>
+    <string name="effect_vivid">Vivid</string>
+    <string name="effect_frame_description">Effect camera frame</string>
+
+    <!-- Capture confirmation -->
+    <string name="capture_review_retake">Retake</string>
+    <string name="capture_review_keep">Done</string>
+    <string name="capture_review_photo">Captured photo</string>
+    <string name="video_content_desc">Recorded video</string>
+    <string name="play_video">Play video</string>
+    <string name="pause_video">Pause video</string>
+
+    <!-- Gallery -->
+    <string name="playback_speed">Speed %1$sx</string>
+    <string name="motion_photo_badge">Motion photo</string>
+    <string name="play_motion_photo">Play motion photo</string>
+    <string name="delete_title">Confirm</string>
+    <string name="delete_subtitle">Delete this item?</string>
+    <string name="delete_button_alt">Delete</string>
+    <string name="delete_button_cancel">Cancel</string>
+    <string name="video_play_error_title">Unavailable</string>
+    <string name="video_play_error_body">This video could not be played.</string>
+    <string name="video_play_error_ok">OK</string>
+
+    <!-- Tools hub (Others mode) -->
     <string name="others_hub_kicker">Labs</string>
     <string name="others_hub_title">Tools</string>
     <string name="others_hub_subtitle">Experimental CameraX features and a live readout of this device\'s camera engine.</string>
@@ -26,8 +126,19 @@
     <string name="others_engine_kicker">Diagnostics</string>
     <string name="others_engine_title">Camera engine</string>
     <string name="others_engine_subtitle">Cameras, session features, and what CameraX reported</string>
+    <string name="others_session_kicker">Session</string>
+    <string name="others_session_title">Last session</string>
+    <string name="others_session_subtitle">Use cases and formats from the last successful bind</string>
+    <string name="others_intents_kicker">Intents</string>
+    <string name="others_intents_title">Capture intents</string>
+    <string name="others_intents_subtitle">How other apps request a still or motion photo from this sample</string>
+    <string name="others_share_report">Share device report</string>
+    <string name="others_share_report_subtitle">CameraX version, API level, cameras, and lab availability</string>
+    <string name="others_share_chooser">Share report</string>
     <string name="others_ready">Ready</string>
     <string name="others_unavailable">Unavailable</string>
+
+    <!-- Tools: Experimental lab tiles -->
     <string name="lab_extensions_title">OEM extensions</string>
     <string name="lab_extensions_body">HDR, Night, Portrait, and Beauty chips when ExtensionsManager lists the mode</string>
     <string name="lab_night_auto_title">Night auto-switch</string>
@@ -42,12 +153,24 @@
     <string name="lab_fps60_body">Binds GroupableFeature.FPS_60 when the session combination is supported</string>
     <string name="lab_ultra_hdr_title">Ultra HDR stills</string>
     <string name="lab_ultra_hdr_body">JPEG or HEIC gain-map output when ImageCapture advertises the format</string>
+    <string name="lab_jpeg_uhdr_title">JPEG Ultra HDR</string>
+    <string name="lab_jpeg_uhdr_body">OUTPUT_FORMAT_JPEG_ULTRA_HDR gain maps when ImageCapture lists the format</string>
+    <string name="lab_heic_uhdr_title">HEIC Ultra HDR</string>
+    <string name="lab_heic_uhdr_body">Reflected CameraX HEIC Ultra HDR output when the device advertises it</string>
     <string name="lab_raw_title">RAW / DNG</string>
     <string name="lab_raw_body">Paired DNG + JPEG when OUTPUT_FORMAT_RAW_JPEG is listed</string>
+    <string name="lab_full_raw_title">Full sensor RAW</string>
+    <string name="lab_full_raw_body">SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION DNG when the camera lists an ultra-high-resolution RAW map</string>
+    <string name="lab_motion_title">Motion photos</string>
+    <string name="lab_motion_body">Short muted VideoCapture clip muxed with the still when VideoCapture can bind</string>
+    <string name="lab_persistent_title">Flip while recording</string>
+    <string name="lab_persistent_body">PendingRecording.asPersistentRecording() keeps the same Recorder across unbindAll and a lens rebind</string>
     <string name="lab_video_hdr_title">Video HDR</string>
     <string name="lab_video_hdr_body">HLG, HDR10, or HDR10+ dynamic range on the Recorder</string>
     <string name="lab_llb_title">Low light boost</string>
     <string name="lab_llb_body">CameraControl.enableLowLightBoostAsync without a rebind</string>
+
+    <!-- Tools: Camera engine -->
     <string name="engine_library">Library</string>
     <string name="engine_camerax_version">CameraX 1.6.1</string>
     <string name="engine_preview_impl">PreviewView COMPATIBLE · TextureView</string>
@@ -55,6 +178,8 @@
     <string name="engine_cameras_empty">No cameras reported</string>
     <string name="engine_lens_back">Back</string>
     <string name="engine_lens_front">Front</string>
+    <string name="engine_zoom_format">%1$s×</string>
+    <string name="engine_focal_format">%1$.1f mm</string>
     <string name="engine_capabilities_heading">Engine support</string>
     <string name="engine_row_concurrent">Concurrent</string>
     <string name="engine_row_slow_motion">High-speed</string>
@@ -68,93 +193,52 @@
     <string name="engine_row_extensions">OEM extensions</string>
     <string name="engine_value_none">None</string>
     <string name="engine_value_sdr">SDR only</string>
-    <string name="dual_live_hint">Front + back</string>
-    <string name="video_fps_60_on">60 fps</string>
-    <string name="panorama_hint">Tap shutter, then pan slowly</string>
-    <string name="panorama_panning">Panning · %1$d frames</string>
-    <string name="slow_motion_fps">Slo-mo · %1$d fps</string>
-    <string name="slow_motion_unsupported">This device doesn\'t support slow motion</string>
-    <string name="video_stabilization_on">Stabilized</string>
-    <string name="low_light_boost_on">Low light boost</string>
-    <string name="video_hdr_hlg">HLG</string>
-    <string name="video_hdr_hdr10">HDR10</string>
-    <string name="video_hdr_hdr10_plus">HDR10+</string>
-    <string name="video_hdr_dolby">Dolby Vision</string>
-    <string name="playback_speed">Speed %1$sx</string>
-    <string name="flash_off">Flash off</string>
-    <string name="flash_on">Flash on</string>
-    <string name="flash_auto">Flash auto</string>
-    <string name="flash_torch">Torch</string>
-    <string name="timer_off">Timer off</string>
-    <string name="timer_3">Timer 3 seconds</string>
-    <string name="timer_10">Timer 10 seconds</string>
-    <string name="grid_on">Grid on</string>
-    <string name="grid_off">Grid off</string>
-    <string name="settings">Settings</string>
-    <string name="pause_recording">Pause recording</string>
-    <string name="resume_recording">Resume recording</string>
-    <string name="recording_paused">Paused</string>
-    <string name="mute_audio">Mute audio</string>
-    <string name="unmute_audio">Unmute audio</string>
-    <string name="extension_none">None</string>
-    <string name="extension_hdr">HDR</string>
-    <string name="extension_night">Night</string>
-    <string name="extension_portrait">Portrait</string>
-    <string name="extension_beauty">Beauty</string>
-    <string name="effect_none">None</string>
-    <string name="effect_grayscale">Grayscale</string>
-    <string name="effect_invert">Invert</string>
-    <string name="effect_sepia">Sepia</string>
-    <string name="effect_cool">Cool</string>
-    <string name="effect_warm">Warm</string>
-    <string name="effect_vivid">Vivid</string>
-    <string name="effect_frame_description">Effect camera frame</string>
-    <string name="zoom_chip">Zoom %1$s</string>
-    <string name="motion_photo_on">Motion photo on</string>
-    <string name="motion_photo_off">Motion photo off</string>
-    <string name="night_mode_recommended">Night recommended</string>
-    <string name="night_mode_active">Night mode</string>
-    <string name="ultrahdr">Ultra HDR</string>
-    <string name="ultrahdr_heic">Ultra HDR HEIC</string>
-    <string name="raw_dng">RAW / DNG</string>
-    <string name="ae_auto">AE</string>
-    <string name="ae_iso">ISO</string>
-    <string name="ae_shutter">Shutter</string>
-    <string name="iso_value">ISO %1$d</string>
-    <string name="shutter_value">%1$s</string>
-    <string name="exposure_ev">EV %1$s</string>
-    <string name="exposure_button">Exposure</string>
-    <string name="motion_photo_badge">Motion photo</string>
-    <string name="play_motion_photo">Play motion photo</string>
-    <string name="recording_notification_channel">Recording</string>
-    <string name="recording_notification_title">Recording video</string>
-    <string name="recording_notification_text">CameraX is capturing video</string>
-    <string name="capture_review_retake">Retake</string>
-    <string name="capture_review_keep">Done</string>
-    <string name="capture_review_photo">Captured photo</string>
-    <string name="video_content_desc">Recorded video</string>
-    <string name="play_video">Play video</string>
-    <string name="delete_title">Confirm</string>
-    <string name="delete_subtitle">Delete this item?</string>
-    <string name="delete_button_alt">Delete</string>
-    <string name="delete_button_cancel">Cancel</string>
-    <string name="slider">Photo Slider</string>
-    <string name="shutter">Shutter</string>
-    <string name="under_dev">Currently under development</string>
 
-    <!-- Info -->
-    <string name="default_quote_message">#StayHome</string>
-    <string name="default_quote_author">CameraX</string>
+    <!-- Tools: Last session -->
+    <string name="others_session_empty">Open Photo, Video, or another mode first so CameraX can bind.</string>
+    <string name="session_kind_standard">Standard session</string>
+    <string name="session_kind_high_speed">High-speed slo-mo</string>
+    <string name="session_kind_concurrent">Concurrent Dual</string>
+    <string name="session_row_mode">Mode</string>
+    <string name="session_row_usecases">Use cases</string>
+    <string name="session_row_fallback">Stills-only fallback</string>
+    <string name="session_row_camera">Camera id</string>
+    <string name="session_row_lens">Lens</string>
+    <string name="session_row_extension">Extension</string>
+    <string name="session_row_still">Still format</string>
+    <string name="session_row_hdr">Video HDR</string>
+    <string name="session_row_fps60">60 fps group</string>
+    <string name="session_row_stab">Preview stabilization</string>
+    <string name="session_row_full_raw">Full sensor RAW</string>
+    <string name="session_usecase_preview">Preview</string>
+    <string name="session_usecase_stills">ImageCapture</string>
+    <string name="session_usecase_video">VideoCapture</string>
+    <string name="session_usecase_analysis">ImageAnalysis</string>
+    <string name="session_format_jpeg">JPEG</string>
+    <string name="session_format_jpeg_uhdr">JPEG Ultra HDR</string>
+    <string name="session_format_heic_uhdr">HEIC Ultra HDR</string>
+    <string name="session_format_raw">RAW + JPEG</string>
 
-    <!-- BottomAppBar -->
-    <string name="bottom_app_bar_chevron_content_desc">Open or close bottom navigation drawer</string>
-    <string name="bottom_app_bar_extensions">Effects</string>
+    <!-- Tools: Capture intents -->
+    <string name="intent_image_title">IMAGE_CAPTURE</string>
+    <string name="intent_image_body">android.media.action.IMAGE_CAPTURE writes EXTRA_OUTPUT or returns a thumbnail / FileProvider URI. This app stays the camera; the caller gets the still.</string>
+    <string name="intent_motion_title">MOTION_PHOTO_CAPTURE</string>
+    <string name="intent_motion_body">android.provider.action.MOTION_PHOTO_CAPTURE and _SECURE mux a short muted clip with the still. FileProvider is used for the result URI.</string>
 
-    <!-- BottomSheet Menus -->
-    <string name="menu_item_flash">Toggle Flash</string>
-    <string name="menu_item_settings">Settings</string>
+    <!-- Tools: Share device report -->
+    <string name="report_play_store">Play Store</string>
+    <string name="report_version">Version</string>
+    <string name="report_library">Library</string>
+    <string name="report_android_api">Android API</string>
+    <string name="report_viewfinder">Viewfinder</string>
+    <string name="report_section_cameras">Cameras</string>
+    <string name="report_section_capabilities">Capabilities</string>
+    <string name="report_section_last_bind">Last bind</string>
+    <string name="report_yes">Yes</string>
+    <string name="report_no">No</string>
+    <string name="report_camera_row">%1$s — %2$s</string>
 
-    <!-- Preference Keys -->
+    <!-- Settings: preference keys (not shown in UI) -->
     <string name="pref_key_theme" translatable="false">key_theme</string>
     <string name="pref_key_theme_default" translatable="false">on</string>
     <string name="pref_key_capture_confirm" translatable="false">key_capture_confirm</string>
@@ -173,24 +257,29 @@
     <string name="pref_key_record_muted" translatable="false">key_record_muted</string>
     <string name="pref_key_front_mirror" translatable="false">key_front_mirror</string>
 
-    <!-- Preferences -->
+    <!-- Settings: section titles -->
     <string name="pref_title_theme">Theme</string>
+    <string name="pref_title_general">General</string>
     <string name="pref_title_photo">Photo</string>
     <string name="pref_title_video">Video</string>
     <string name="pref_title_slow_motion">Slo-mo</string>
-    <string name="pref_title_general">General</string>
     <string name="pref_title_links">Links</string>
     <string name="pref_title_about">About</string>
 
+    <!-- Settings: Theme -->
     <string name="pref_title_theme_mode">Theme</string>
     <string name="pref_subtitle_theme_mode">Select a dark or light theme.</string>
     <string name="pref_theme_light">Light</string>
     <string name="pref_theme_dark">Dark</string>
     <string name="pref_theme_system">System</string>
+
+    <!-- Settings: General -->
     <string name="pref_title_capture_confirm">Capture confirmation</string>
     <string name="pref_subtitle_capture_confirm">Review each photo or video before saving</string>
     <string name="pref_title_front_mirror">Front camera mirror</string>
     <string name="pref_subtitle_front_mirror">Flip selfie preview and saved photos or videos</string>
+
+    <!-- Settings: Photo -->
     <string name="pref_title_ultra_hdr">Ultra HDR</string>
     <string name="pref_subtitle_ultra_hdr">Gain-map HDR stills (JPEG / HEIC)</string>
     <string name="pref_subtitle_ultra_hdr_unsupported">This device doesn\'t support Ultra HDR stills</string>
@@ -205,8 +294,14 @@
     <string name="pref_aspect_4_3">4:3</string>
     <string name="pref_aspect_16_9">16:9</string>
     <string name="pref_aspect_full">Full</string>
+
+    <!-- Settings: Video -->
     <string name="pref_title_video_quality">Video quality</string>
     <string name="pref_subtitle_video_quality">Resolutions this device can record</string>
+    <string name="pref_video_sd">SD (480p)</string>
+    <string name="pref_video_hd">HD (720p)</string>
+    <string name="pref_video_fhd">FHD (1080p)</string>
+    <string name="pref_video_uhd">4K (2160p)</string>
     <string name="pref_title_video_hdr">Video HDR</string>
     <string name="pref_subtitle_video_hdr">HLG / HDR10 dynamic range for recordings</string>
     <string name="pref_subtitle_video_hdr_unsupported">This device doesn\'t support HDR video</string>
@@ -228,6 +323,8 @@
     <string name="pref_title_low_light_boost">Low light boost</string>
     <string name="pref_subtitle_low_light_boost">Brightens preview and video in the dark</string>
     <string name="pref_subtitle_low_light_boost_unsupported">This device doesn\'t support low light boost</string>
+
+    <!-- Settings: Slo-mo -->
     <string name="pref_title_slow_motion_quality">Slo-mo quality</string>
     <string name="pref_subtitle_slow_motion_quality">Resolution CameraX can use for high-speed capture</string>
     <string name="pref_title_slow_motion_fps">Slo-mo speed</string>
@@ -237,30 +334,29 @@
     <string name="pref_slow_motion_fps_240">240 fps</string>
     <string name="pref_slow_motion_fps_480">480 fps</string>
     <string name="pref_slow_motion_fps_960">960 fps</string>
-    <string name="pref_video_sd">SD (480p)</string>
-    <string name="pref_video_hd">HD (720p)</string>
-    <string name="pref_video_fhd">FHD (1080p)</string>
-    <string name="pref_video_uhd">4K (2160p)</string>
 
+    <!-- Settings: Links + About -->
     <string name="pref_title_playstore">PlayStore</string>
     <string name="pref_subtitle_playstore">com.arindam.camerax ↗</string>
     <string name="pref_title_github">GitHub</string>
     <string name="pref_subtitle_github">android-camerax ↗</string>
     <string name="pref_title_privacy">Privacy Policy</string>
     <string name="pref_subtitle_privacy">How CameraX uses data ↗</string>
-
     <string name="pref_title_developer">Developer</string>
     <string name="pref_subtitle_developer">Arindam Karmakar ↗</string>
     <string name="pref_title_version">Version</string>
     <string name="pref_subtitle_version">@string/app_version</string>
-
-    <string name="permission_request_denied">Camera permission denied</string>
-    <string name="permission_request_granted">Camera permission granted</string>
-
-    <!-- Links -->
     <string name="link_playstore" translatable="false">https://play.google.com/store/apps/details?id=com.arindam.camerax</string>
     <string name="link_repository" translatable="false">https://github.com/arindamxd/android-camerax</string>
     <string name="link_developer" translatable="false">https://arindamxd.github.io/</string>
     <string name="link_privacy" translatable="false">https://arindamxd.github.io/projects/camerax/privacy-policy/</string>
+
+    <!-- Unused / legacy -->
+    <string name="default_quote_message">#StayHome</string>
+    <string name="default_quote_author">CameraX</string>
+    <string name="bottom_app_bar_chevron_content_desc">Open or close bottom navigation drawer</string>
+    <string name="bottom_app_bar_extensions">Effects</string>
+    <string name="menu_item_flash">Toggle Flash</string>
+    <string name="menu_item_settings">Settings</string>
 
 </resources>
