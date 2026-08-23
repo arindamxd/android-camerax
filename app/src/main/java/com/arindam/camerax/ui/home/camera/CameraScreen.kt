@@ -37,20 +37,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -196,6 +201,10 @@ fun CameraScreen(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val compact = maxHeight < 480.dp ||
             configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val density = LocalDensity.current
+        var headerHeightPx by remember { mutableIntStateOf(0) }
+        var footerHeightPx by remember { mutableIntStateOf(0) }
+        val headerHeightForFocus by rememberUpdatedState(headerHeightPx)
         Box(
             Modifier
                 .fillMaxSize()
@@ -258,9 +267,16 @@ fun CameraScreen(
                         if (state.showsTools) {
                             Modifier
                         } else {
-                            Modifier.pointerInput(previewView, state.showsZoomChips) {
+                            Modifier
+                                // Keep focus / pinch / drag off the chrome so zoom chips
+                                // stay reliably tappable while recording (footer animates).
+                                .padding(
+                                    top = with(density) { headerHeightPx.toDp() },
+                                    bottom = with(density) { footerHeightPx.toDp() }
+                                )
+                                .pointerInput(previewView, state.showsZoomChips) {
                                 awaitEachGesture {
-                                    val down = awaitFirstDown()
+                                    val down = awaitFirstDown(requireUnconsumed = true)
                                     val start = down.position
                                     val slop = viewConfiguration.touchSlop
                                     var dragged = false
@@ -302,7 +318,12 @@ fun CameraScreen(
                                         }
                                     }
                                     if (!dragged) {
-                                        viewModel.tapToFocus(previewView, start)
+                                        // Map tap into full PreviewView coords (gesture layer is inset).
+                                        val focus = Offset(
+                                            start.x,
+                                            start.y + headerHeightForFocus.toFloat()
+                                        )
+                                        viewModel.tapToFocus(previewView, focus)
                                     }
                                 }
                             }
@@ -336,6 +357,7 @@ fun CameraScreen(
                 Modifier
                     .fillMaxWidth()
                     .zIndex(1f)
+                    .onGloballyPositioned { headerHeightPx = it.size.height }
             ) {
                 CameraHeader(
                     state = state,
@@ -367,7 +389,8 @@ fun CameraScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .zIndex(1f),
+                    .zIndex(1f)
+                    .onGloballyPositioned { footerHeightPx = it.size.height },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CameraFooter(

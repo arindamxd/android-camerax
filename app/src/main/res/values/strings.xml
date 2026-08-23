@@ -65,7 +65,7 @@
     <string name="video_hdr_hdr10">HDR10</string>
     <string name="video_hdr_hdr10_plus">HDR10+</string>
     <string name="video_hdr_dolby">Dolby Vision</string>
-    <string name="dual_live_hint">Front + back</string>
+    <string name="dual_live_hint">Front + Back</string>
     <string name="slow_motion_fps">Slo-mo · %1$d fps</string>
     <string name="slow_motion_unsupported">This device doesn\'t support slow motion</string>
     <string name="panorama_hint">Tap shutter, then pan slowly</string>

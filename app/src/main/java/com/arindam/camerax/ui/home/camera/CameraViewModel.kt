@@ -505,11 +505,13 @@ class CameraViewModel(
             return
         }
         val state = _uiState.value
-        val target = if (ratio <= 0.7f) {
-            state.minZoom
-        } else {
-            ratio.coerceIn(state.minZoom, state.maxZoom)
-        }
+        // Chip labels are equivalent FOV (0.5× / 1× / 2×). CameraX zoom is relative to
+        // the bound physical camera's native FOV, so convert before applying digitally
+        // (needed while recording when physical rebind is blocked).
+        val boundLabel = state.cameraId?.let { id ->
+            state.physicalZooms.firstOrNull { it.cameraId == id }?.label
+        }?.takeIf { it > 0.01f } ?: 1f
+        val target = (ratio / boundLabel).coerceIn(state.minZoom, state.maxZoom)
         val start = state.zoomRatio
         if (kotlin.math.abs(start - target) < 0.01f) return
         zoomAnimator = ValueAnimator.ofFloat(start, target).apply {

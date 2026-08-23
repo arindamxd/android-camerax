@@ -700,6 +700,12 @@ fun ZoomChips(
             .clip(RoundedCornerShape(28.dp))
             .background(CameraGlassStrong)
             .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(28.dp))
+            // Keep preview pinch/drag gestures from stealing taps on the chip row.
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
