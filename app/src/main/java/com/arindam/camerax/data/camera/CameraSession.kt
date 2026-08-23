@@ -27,6 +27,7 @@ import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CompositionSettings
 import androidx.camera.core.ConcurrentCamera.SingleCameraConfig
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.FocusMeteringAction
@@ -40,11 +41,13 @@ import androidx.camera.core.SessionConfig
 import androidx.camera.core.UseCase
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.featuregroup.GroupableFeature
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.ExperimentalPersistentRecording
+import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.HighSpeedVideoSessionConfig
 import androidx.camera.video.PendingRecording
@@ -124,9 +127,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private val _effectFrame = MutableStateFlow<Bitmap?>(null)
     override val effectFrame: StateFlow<Bitmap?> = _effectFrame.asStateFlow()
     private var boundPreviewView: PreviewView? = null
-    private var boundPipPreviewView: PreviewView? = null
     private var frontMirrorEnabled = true
-    private var pipPreview: Preview? = null
     private val _nightScene = MutableStateFlow(NightScene.UNKNOWN)
     override val nightScene: StateFlow<NightScene> = _nightScene.asStateFlow()
     private val _lowLightBoost = MutableStateFlow(LowLightBoost.OFF)
@@ -179,7 +180,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         val lifecycleOwner = previewHost.lifecycleOwner
         val previewView = previewHost.previewView
         boundPreviewView = previewView
-        boundPipPreviewView = previewHost.pipPreviewView
         initialize()
         val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
         if (config.retainRecording && canRetainRecording()) {
@@ -191,7 +191,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         imageCapture = null
         videoCapture = null
         preview = null
-        pipPreview = null
 
         previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         previewView.scaleType = if (config.slowMotion || config.captureAspect == CaptureAspect.FULL) {
@@ -202,7 +201,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
         if (config.concurrent) {
-            if (!isDualCameraSupported(context, provider) || previewHost.pipPreviewView == null) {
+            if (!isDualCameraSupported(context, provider)) {
                 throw IllegalStateException("Dual camera is not supported on this device")
             }
             return bindConcurrent(provider, previewHost, config, rotation)
@@ -483,7 +482,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation
         imageAnalysis?.targetRotation = rotation
-        pipPreview?.targetRotation = rotation
     }
 
     @OptIn(ExperimentalCamera2Interop::class)
@@ -533,11 +531,9 @@ class CameraSession(private val context: Context) : CameraRepository {
         stopColorAnalysis()
         camera = null
         preview = null
-        pipPreview = null
         imageCapture = null
         videoCapture = null
         boundPreviewView = null
-        boundPipPreviewView = null
         highSpeedSession = false
         fps60Active = false
         previewBoosted = false
@@ -917,7 +913,6 @@ class CameraSession(private val context: Context) : CameraRepository {
         val lifecycleOwner = host.lifecycleOwner
         val previewView = host.previewView
         boundPreviewView = previewView
-        boundPipPreviewView = host.pipPreviewView
         val provider = cameraProvider ?: throw IllegalStateException("Camera provider missing")
         val previewUseCase = preview ?: throw IllegalStateException("Preview missing")
         val video = videoCapture ?: throw IllegalStateException("Video capture missing")
@@ -1012,53 +1007,77 @@ class CameraSession(private val context: Context) : CameraRepository {
         config: CameraBindConfig,
         rotation: Int
     ): CameraBindResult {
-        val pipView = host.pipPreviewView ?: throw IllegalStateException("Dual preview missing")
         val group = provider.concurrentFrontBackGroup()
             ?: throw IllegalStateException("Dual camera is not supported on this device")
-        pipView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-        pipView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        val backInfo = group.firstOrNull { info ->
+            info.lensFacing == CameraSelector.LENS_FACING_BACK
+        } ?: throw IllegalStateException("Dual camera is not supported on this device")
+        val frontInfo = group.firstOrNull { info ->
+            info.lensFacing == CameraSelector.LENS_FACING_FRONT
+        } ?: throw IllegalStateException("Dual camera is not supported on this device")
+
+        // Fit the 16:9 composed frame; FILL_CENTER can crop away the primary stream on tall phones.
+        host.previewView.scaleType = PreviewView.ScaleType.FIT_CENTER
         val streams = concurrentStreamSelector()
-        val primary = Preview.Builder()
+        val previewUseCase = Preview.Builder()
             .setTargetRotation(rotation)
             .setResolutionSelector(streams)
             .build()
             .also { it.surfaceProvider = host.previewView.surfaceProvider }
-        val secondary = Preview.Builder()
-            .setTargetRotation(rotation)
-            .setResolutionSelector(streams)
-            .build()
-            .also { it.surfaceProvider = pipView.surfaceProvider }
-        preview = primary
-        pipPreview = secondary
-        videoCapture = null
-        val capture = ImageCapture.Builder()
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .setFlashMode(config.flash.toImageCaptureMode())
-            .setTargetRotation(rotation)
-            .build()
-        val bindPair: (Boolean) -> androidx.camera.core.ConcurrentCamera = { includeStill ->
-            provider.bindToLifecycle(
-                group.map { info ->
-                    val useCases = UseCaseGroup.Builder().apply {
-                        if (info.lensFacing == CameraSelector.LENS_FACING_BACK) {
-                            addUseCase(primary)
-                            if (includeStill) addUseCase(capture)
-                        } else {
-                            addUseCase(secondary)
-                        }
-                    }.build()
-                    SingleCameraConfig(info.toConcurrentSelector(), useCases, host.lifecycleOwner)
-                }
+        preview = previewUseCase
+
+        val recorder = Recorder.Builder()
+            .setQualitySelector(
+                QualitySelector.fromOrderedList(
+                    listOf(Quality.HD, Quality.SD),
+                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
+                )
             )
-        }
+            .build()
+        // Composition mode ignores VideoCapture mirrorMode; stream mirrors with Preview.
+        val video = VideoCapture.Builder(recorder)
+            .setTargetRotation(rotation)
+            .setMirrorMode(MirrorMode.MIRROR_MODE_OFF)
+            .build()
+
+        val sharedBuilder = UseCaseGroup.Builder()
+            .addUseCase(previewUseCase)
+            .addUseCase(video)
+        // Align composition output with the PreviewView aspect so both cameras fill the frame.
+        host.previewView.viewPort?.let(sharedBuilder::setViewPort)
+        val shared = sharedBuilder.build()
+        val backComposition = CompositionSettings.DEFAULT
+        // NDC: origin center, +X right, +Y up. Equal scale avoids squashing the front stream.
+        val frontComposition = CompositionSettings.Builder()
+            .setAlpha(1f)
+            .setOffset(DualComposition.PIP_OFFSET_X, DualComposition.PIP_OFFSET_Y)
+            .setScale(DualComposition.PIP_SCALE, DualComposition.PIP_SCALE)
+            .build()
+        val configs = listOf(
+            SingleCameraConfig(
+                backInfo.toConcurrentSelector(),
+                shared,
+                backComposition,
+                host.lifecycleOwner
+            ),
+            SingleCameraConfig(
+                frontInfo.toConcurrentSelector(),
+                shared,
+                frontComposition,
+                host.lifecycleOwner
+            )
+        )
+
+        imageCapture = null
         val concurrent = try {
-            imageCapture = capture
-            bindPair(true)
+            videoCapture = video
+            provider.bindToLifecycle(configs)
         } catch (error: Exception) {
-            Logger.warning(TAG, "Dual still bind failed, preview only: ${error.message}")
-            imageCapture = null
+            Logger.warning(TAG, "Dual composition bind failed: ${error.message}")
+            videoCapture = null
+            preview = null
             provider.unbindAll()
-            bindPair(false)
+            throw IllegalStateException("Dual camera is not supported on this device", error)
         }
         camera = concurrent.cameras.firstOrNull { bound ->
             bound.cameraInfo.lensFacing == CameraSelector.LENS_FACING_BACK
@@ -1068,10 +1087,10 @@ class CameraSession(private val context: Context) : CameraRepository {
         lastBoundKind = BoundSessionKind.CONCURRENT
         lastBoundExtension = CameraExtension.NONE
         lastRawFullSensor = false
-        lastStillsOnlyFallback = imageCapture == null
+        lastStillsOnlyFallback = false
         Logger.debug(
             TAG,
-            "Bound Dual PreviewViews: ${concurrent.cameras.map { bound -> bound.cameraInfo.lensFacing }}"
+            "Bound Dual composition: ${concurrent.cameras.map { bound -> bound.cameraInfo.lensFacing }}"
         )
         return finishBind(
             config = config,
@@ -1095,12 +1114,7 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     private fun concurrentStreamSelector(): ResolutionSelector =
         ResolutionSelector.Builder()
-            .setResolutionStrategy(
-                ResolutionStrategy(
-                    Size(1280, 720),
-                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
-                )
-            )
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
             .build()
 
     private fun bindHighSpeed(
@@ -1211,15 +1225,6 @@ class CameraSession(private val context: Context) : CameraRepository {
             frontCamera = config.lens == CameraLens.FRONT && !config.concurrent,
             frontMirror = config.frontMirror
         )
-        if (config.concurrent) {
-            applyViewfinderMirror(
-                boundPipPreviewView,
-                frontCamera = true,
-                frontMirror = config.frontMirror
-            )
-        } else {
-            boundPipPreviewView?.scaleX = 1f
-        }
     }
 
     private fun applyViewfinderMirror(

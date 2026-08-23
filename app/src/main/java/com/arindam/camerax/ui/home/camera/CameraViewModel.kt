@@ -188,8 +188,7 @@ class CameraViewModel(
 
     fun bind(
         lifecycleOwner: LifecycleOwner,
-        previewView: PreviewView,
-        pipPreviewView: PreviewView? = null
+        previewView: PreviewView
     ) {
         viewModelScope.launch {
             bindMutex.withLock {
@@ -198,7 +197,7 @@ class CameraViewModel(
                     val state = _uiState.value
                     val profile = state.mode.profile()
                     val result = interactors.bindCamera(
-                        host = PreviewViewHost(lifecycleOwner, previewView, pipPreviewView),
+                        host = PreviewViewHost(lifecycleOwner, previewView),
                         config = CameraBindConfig(
                             lens = state.lens,
                             flash = state.flash,

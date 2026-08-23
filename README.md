@@ -1,6 +1,6 @@
 # CameraX
 
-A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live ColorMatrix effects (`ImageAnalysis`), and Dual preview, with a Compose UI.
+A Play Store camera app in Kotlin, built with [Jetpack CameraX](https://developer.android.com/media/camera/camerax) 1.6. It is a working reference other apps can copy: photo, video, OEM extensions, live ColorMatrix effects (`ImageAnalysis`), and Dual PiP video, with a Compose UI.
 
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
 alt="Get it on Google Play" height="90">](https://play.google.com/store/apps/details?id=com.arindam.camerax)
@@ -23,9 +23,9 @@ The **app** is named CameraX. It is built with the Jetpack **CameraX library** (
 | **Slo-mo** | High-speed `Preview` + `VideoCapture` when the device lists SDR high-speed qualities |
 | **Effects** | Live ColorMatrix effects on `ImageAnalysis` (None, Grayscale, Invert, Sepia, Cool, Warm, Vivid) |
 | **Pano** | Horizontal sweep stitch |
-| **Dual** | Concurrent front + back preview (`availableConcurrentCameraInfos`) |
+| **Dual** | Concurrent front + back composition (`CompositionSettings`): one PiP preview and one MP4 (~720p) |
 
-Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video together, the camera falls back (drop video, stills only) instead of crashing. Dual falls back to concurrent preview-only if stills cannot bind.
+Unsupported OEM chips stay hidden. If a device cannot bind preview + photo + video together, the camera falls back (drop video, stills only) instead of crashing. Dual uses composition video (no stills); if composition cannot bind, Dual is hidden / unavailable.
 
 ## Try it
 
@@ -97,7 +97,7 @@ Glass chrome controls (back, motion chip, Retake/Done, gallery actions) share **
 | Tap to focus | `FocusMeteringAction` |
 | HDR / Night / Portrait / Beauty | `ExtensionsManager` (`ExtensionMode`) |
 | Live color-matrix effects | `ImageAnalysis` + `ColorMatrix` / `ColorMatrixColorFilter` (`ColorEffectAnalyzer`) |
-| Dual preview | `ProcessCameraProvider.bindToLifecycle(List)` + concurrent camera infos |
+| Dual PiP video | Concurrent composition (`CompositionSettings` + shared Preview/VideoCapture) |
 | 60 fps video | `SessionConfig` + `GroupableFeature.FPS_60` after `isSessionConfigSupported` |
 
 Copy-paste path for another app: start at [`CameraRepository`](app/src/main/java/com/arindam/camerax/domain/repository/CameraRepository.kt) and [`CameraSession`](app/src/main/java/com/arindam/camerax/data/camera/CameraSession.kt).
@@ -150,7 +150,7 @@ Repositories run disk and MediaStore work on `AppDispatchers.io`. ViewModels use
 
 ## Stretch (not in this app yet)
 
-Full photo editor; catalog-style green-screen (selfie segmentation over the back camera); Scan / ML Kit analysis. Dual is concurrent preview, not that overlay.
+Full photo editor; catalog-style green-screen (selfie segmentation over the back camera); Scan / ML Kit analysis. Dual is concurrent PiP composition video, not that overlay.
 
 ## Contributing
 

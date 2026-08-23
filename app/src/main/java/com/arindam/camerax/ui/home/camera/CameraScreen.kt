@@ -18,7 +18,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
@@ -27,11 +26,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,7 +41,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -101,15 +96,6 @@ fun CameraScreen(
         }
     }
 
-    val pipPreviewView = remember {
-        PreviewView(context).apply {
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-            isClickable = false
-            isFocusable = false
-        }
-    }
-
     var keepPreview by remember { mutableStateOf(true) }
     var showActiveCaptureExitDialog by rememberSaveable { mutableStateOf(false) }
     val activeCaptureInProgress = state.isRecording || state.panoramaActive
@@ -124,7 +110,6 @@ fun CameraScreen(
         state.lens,
         state.extension,
         state.mode,
-        state.showsPip,
         previewView
     ) {
         if (inspection) return@LaunchedEffect
@@ -136,8 +121,7 @@ fun CameraScreen(
             keepPreview = true
             viewModel.bind(
                 lifecycleOwner,
-                previewView,
-                pipPreviewView.takeIf { state.showsPip }
+                previewView
             )
             previewView.display?.rotation?.let(viewModel::updateTargetRotation)
         }
@@ -243,19 +227,6 @@ fun CameraScreen(
                     AndroidView(
                         factory = { previewView },
                         modifier = Modifier.fillMaxSize()
-                    )
-                }
-                if (state.showsPip) {
-                    AndroidView(
-                        factory = { pipPreviewView },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .zIndex(0.5f)
-                            .padding(end = 16.dp, bottom = 228.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(1.5.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(16.dp))
-                            .width(108.dp)
-                            .height(144.dp)
                     )
                 }
             }

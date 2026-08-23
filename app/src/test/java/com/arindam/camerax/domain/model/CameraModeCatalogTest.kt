@@ -41,6 +41,15 @@ class CameraModeCatalogTest {
     }
 
     @Test
+    fun dualProfile_recordsCompositionVideo() {
+        val profile = CameraModeCatalog.profile(CameraMode.DUAL)
+        assertEquals(CaptureAction.VIDEO, profile.captureAction)
+        assertTrue(profile.showsVideoStatus)
+        assertTrue(profile.bindConcurrent)
+        assertTrue(profile.showsPip)
+    }
+
+    @Test
     fun resolve_fallsBackFromDualToPhoto() {
         val resolved = CameraModeCatalog.resolve(
             mode = CameraMode.DUAL,

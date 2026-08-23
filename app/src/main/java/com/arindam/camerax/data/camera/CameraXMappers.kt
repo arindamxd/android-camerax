@@ -37,8 +37,7 @@ import com.arindam.camerax.domain.model.VideoQuality
  */
 class PreviewViewHost(
     val lifecycleOwner: LifecycleOwner,
-    val previewView: PreviewView,
-    val pipPreviewView: PreviewView? = null
+    val previewView: PreviewView
 ) : CameraHost
 
 fun CameraLens.toSelector(): CameraSelector = when (this) {

@@ -161,7 +161,7 @@
     <string name="lab_hybrid_ae_title">Hybrid AE</string>
     <string name="lab_hybrid_ae_body">ISO or shutter priority through Camera2 interop on API 36+</string>
     <string name="lab_concurrent_title">Concurrent cameras</string>
-    <string name="lab_concurrent_body">Front + back Dual preview when the system lists a concurrent pair</string>
+    <string name="lab_concurrent_body">Front + Back Dual PiP video when the system lists a concurrent pair</string>
     <string name="lab_high_speed_title">High-speed slo-mo</string>
     <string name="lab_high_speed_body">Preview + VideoCapture high-speed session at 120 fps or higher</string>
     <string name="lab_fps60_title">60 fps feature group</string>
