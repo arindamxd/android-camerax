@@ -22,8 +22,6 @@
         <item name="colorOnError">@color/black_900</item>
 
         <item name="scrimBackground">@color/white_50_alpha_060</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
 
         <!-- Typography -->
         <item name="android:fontFamily">@font/space_grotesk</item>
@@ -57,7 +55,6 @@
         <item name="android:windowBackground">?android:colorBackground</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
         <!--<item name="buttonBarButtonStyle">@style/Widget.Catalog.Button.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.Catalog.Button.Dialog</item>

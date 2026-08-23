@@ -1350,7 +1350,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     private fun applyStillOutput(file: File, type: EffectMode, mirror: Boolean): File {
         if (type == EffectMode.NONE && !mirror) return file
         return try {
-            val original = BitmapFactory.decodeFile(file.absolutePath) ?: return file
+            val original = decodeStillBitmap(file) ?: return file
             val flipped = if (mirror) original.flippedHorizontally() else original
             val processed = ColorEffects.applyToBitmap(flipped, type)
             FileOutputStream(file).use { stream ->
@@ -1364,6 +1364,27 @@ class CameraSession(private val context: Context) : CameraRepository {
             Logger.error(TAG, "Still effect failed: ${error.message}", error)
             file
         }
+    }
+
+    /**
+     * Decode a still with [BitmapFactory.Options.inSampleSize] so captures larger than
+     * [MAX_STILL_EDGE] do not inflate full-resolution bitmaps into memory.
+     */
+    private fun decodeStillBitmap(file: File): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        val longest = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
+        var sample = 1
+        while (longest / sample > MAX_STILL_EDGE) {
+            sample *= 2
+        }
+        return BitmapFactory.decodeFile(
+            file.absolutePath,
+            BitmapFactory.Options().apply {
+                inSampleSize = sample
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+        )
     }
 
     private fun Bitmap.flippedHorizontally(): Bitmap {
@@ -1403,5 +1424,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     companion object {
         private const val TAG = "CameraSession"
         private const val MOTION_DURATION_MS = 1_500L
+        /** Cap decoded still edge length when applying effects / front mirror. */
+        private const val MAX_STILL_EDGE = 8192
     }
 }
