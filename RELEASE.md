@@ -8,7 +8,7 @@ Edit `versionMajor`, `versionMinor`, or `versionPatch` in the root [`build.gradl
 For another Play upload of the **same** `X.Y.Z`, bump `versionCodeOffset` instead (keeps `versionName`, raises `versionCode`).  
 `versionCode` = `major * 10000 + minor * 100 + patch + versionCodeOffset`.
 
-Current shipping target: **1.7.0** (`versionCode` **10702**, `versionCodeOffset` **2**).
+Current shipping target: **1.7.0** (`versionCode` **10703**, `versionCodeOffset` **3**).
 
 ## Local signing
 
@@ -57,7 +57,7 @@ Upload all three to Play Console for deobfuscation and native crash symbolicatio
 
 ## Play Console notes
 
-- **Version:** `versionName` / `versionCode` from root [`build.gradle.kts`](build.gradle.kts) (currently **1.7.0** / **10702**)
+- **Version:** `versionName` / `versionCode` from root [`build.gradle.kts`](build.gradle.kts) (currently **1.7.0** / **10703**)
 - **Target API:** compile/targetSdk 37 (see root `build.gradle.kts`)
 - **16 KB page size:** `packaging.jniLibs.useLegacyPackaging = false`
 - **Native symbols:** `ndk.debugSymbolLevel = "SYMBOL_TABLE"` (upload the zip from `printNativeDebugSymbols`)
@@ -74,7 +74,7 @@ Upload all three to Play Console for deobfuscation and native crash symbolicatio
 
 ## Last local verification (2026-08-22)
 
-Automated checks already green on this machine for **1.7.0 / 10702**:
+Automated checks already green on this machine for **1.7.0 / 10703**:
 
 - [x] `./gradlew testDebugUnitTest` — 102 tests, 0 failures
 - [x] `./gradlew lintDebug` — completed (warnings only; no fatal lint)

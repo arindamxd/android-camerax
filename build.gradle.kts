@@ -13,7 +13,7 @@ ext["versionMajor"] = 1
 ext["versionMinor"] = 7
 ext["versionPatch"] = 0
 // Bump for a new Play upload of the same X.Y.Z (versionName stays 1.7.0 → 10701, 10702, …).
-ext["versionCodeOffset"] = 2
+ext["versionCodeOffset"] = 3
 
 // X.Y.Z; X = Major, Y = minor, Z = Patch / XYYZZM; M = Module (tv, mobile)
 ext["versionNameBase"] = "${ext["versionMajor"]}.${ext["versionMinor"]}.${ext["versionPatch"]}"
