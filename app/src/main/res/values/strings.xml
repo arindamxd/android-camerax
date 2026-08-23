@@ -358,7 +358,7 @@
     <string name="pref_title_playstore">PlayStore</string>
     <string name="pref_subtitle_playstore">com.arindam.camerax ↗</string>
     <string name="pref_title_github">GitHub</string>
-    <string name="pref_subtitle_github">android-camerax ↗</string>
+    <string name="pref_subtitle_github">camerax-android ↗</string>
     <string name="pref_title_privacy">Privacy Policy</string>
     <string name="pref_subtitle_privacy">How CameraX uses data ↗</string>
     <string name="pref_title_developer">Developer</string>
@@ -366,7 +366,7 @@
     <string name="pref_title_version">Version</string>
     <string name="pref_subtitle_version">@string/app_version</string>
     <string name="link_playstore" translatable="false">https://play.google.com/store/apps/details?id=com.arindam.camerax</string>
-    <string name="link_repository" translatable="false">https://github.com/arindamxd/android-camerax</string>
+    <string name="link_repository" translatable="false">https://github.com/arindamxd/camerax-android</string>
     <string name="link_developer" translatable="false">https://arindamxd.github.io/</string>
     <string name="link_privacy" translatable="false">https://arindamxd.github.io/projects/camerax/privacy-policy/</string>
 

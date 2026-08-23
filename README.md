@@ -175,5 +175,5 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
 ## Reference
 
-CameraX API usage and patterns take reference from the
-[Android camera-samples](https://github.com/android/camera-samples) project.
+CameraX API usage and patterns take reference from the Android
+[camera-samples](https://github.com/android/camera-samples) project.
