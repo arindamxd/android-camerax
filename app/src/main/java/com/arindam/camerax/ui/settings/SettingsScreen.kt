@@ -1,5 +1,7 @@
 package com.arindam.camerax.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -288,7 +290,7 @@ private fun SettingsRowView(
                 title = stringResource(row.titleRes),
                 subtitle = stringResource(row.subtitleRes),
                 onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    openUrlInBrowser(context, url)
                 },
                 trailing = {
                     Icon(
@@ -385,5 +387,24 @@ private fun SettingsBaseRow(
 private fun SettingsScreenPreview() {
     AppTheme {
         SettingsScreen(onBack = {})
+    }
+}
+
+/**
+ * Presentation: Open http(s) links in a browser so verified App Links for our
+ * host do not reopen this app (e.g. Privacy Policy on github.io).
+ */
+private fun openUrlInBrowser(context: Context, url: String) {
+    val uri = Uri.parse(url)
+    try {
+        val browserIntent = Intent.makeMainSelectorActivity(
+            Intent.ACTION_MAIN,
+            Intent.CATEGORY_APP_BROWSER
+        ).apply {
+            data = uri
+        }
+        context.startActivity(browserIntent)
+    } catch (_: ActivityNotFoundException) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
 }

@@ -80,7 +80,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
-            <!-- App links for http/s -->
+            <!-- App links: project landing only — not privacy / other subpages (those stay in the browser). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -90,8 +90,9 @@
                 <data android:scheme="http" />
                 <data android:scheme="https" />
                 <data android:host="arindamxd.github.io" />
-                <data android:pathPrefix="/projects/camerax" />
-                <data android:pathPattern="/camerax" />
+                <data android:path="/projects/camerax" />
+                <data android:path="/projects/camerax/" />
+                <data android:path="/camerax" />
             </intent-filter>
 
             <!-- Declare notch support -->
