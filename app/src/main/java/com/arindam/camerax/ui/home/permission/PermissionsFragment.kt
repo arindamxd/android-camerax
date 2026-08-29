@@ -103,6 +103,9 @@ class PermissionsFragment : BaseFragmentCompose() {
     }
 
     private fun openCamera() {
-        navigate(PermissionsFragmentDirections.actionPermissionsToCamera())
+        navigate(
+            PermissionsFragmentDirections.actionPermissionsToCamera(),
+            fromDestinationId = R.id.permissionsFragment
+        )
     }
 }

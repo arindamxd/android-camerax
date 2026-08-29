@@ -17,6 +17,7 @@ class HomeActivity : BaseActivity<ActivityHomeBinding>() {
     override fun provideBinding(): ActivityHomeBinding = ActivityHomeBinding.inflate(layoutInflater)
 
     override fun setupView(savedInstanceState: Bundle?) {
+        // XML app:navGraph restores after process death. Override start dest only on a fresh create.
         if (savedInstanceState != null) return
         val navHost = supportFragmentManager.findFragmentById(R.id.fragment_container) as NavHostFragment
         val navController = navHost.navController

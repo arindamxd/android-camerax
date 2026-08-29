@@ -1,7 +1,7 @@
 package com.arindam.camerax.data.media
 
-import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import com.arindam.camerax.data.camera.StillImageExif
 import java.io.File
 
 /**
@@ -35,7 +35,6 @@ fun mediaFileInfo(file: File, video: Boolean = file.extension.equals("mp4", igno
             retriever.release()
         }
     }
-    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(file.absolutePath, options)
-    return MediaFileInfo(options.outWidth, options.outHeight, null)
+    val (width, height) = StillImageExif.displaySize(file)
+    return MediaFileInfo(width, height, null)
 }

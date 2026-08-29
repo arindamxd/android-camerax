@@ -19,6 +19,7 @@ import com.arindam.camerax.data.camera.PreviewViewHost
 import com.arindam.camerax.di.AppDispatchers
 import com.arindam.camerax.di.CameraInteractors
 import com.arindam.camerax.domain.model.LastCameraSession
+import com.arindam.camerax.data.media.MediaPublishException
 import com.arindam.camerax.data.media.mediaFileInfo
 import com.arindam.camerax.domain.model.CameraBindConfig
 import com.arindam.camerax.domain.model.CameraExtension
@@ -1141,7 +1142,12 @@ class CameraViewModel(
     private fun publishQuietly(file: File) {
         viewModelScope.launch {
             interactors.publishMedia(file).onFailure { error ->
-                Logger.error(TAG, "Publish failed: ${error.message}", error)
+                val expected = error is MediaPublishException && error.expected
+                if (expected) {
+                    Logger.warning(TAG, "Publish failed: ${error.message}", error)
+                } else {
+                    Logger.error(TAG, "Publish failed: ${error.message}", error)
+                }
                 _uiState.update {
                     it.copy(message = error.message ?: "Unable to save to gallery")
                 }

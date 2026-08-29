@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -22,6 +21,7 @@ import com.arindam.camerax.BuildConfig
 import com.arindam.camerax.CameraX
 import com.arindam.camerax.R
 import com.arindam.camerax.data.camera.MotionPhotoMuxer
+import com.arindam.camerax.data.camera.StillImageExif
 import com.arindam.camerax.ui.base.BaseFragmentCompose
 import com.arindam.camerax.ui.settings.SettingsActivity
 import com.arindam.camerax.ui.theme.AppTheme
@@ -105,7 +105,10 @@ class CameraFragment : BaseFragmentCompose() {
         viewModel.updateMicrophonePermission(MicrophonePermission.isGranted(requireContext()))
         viewModel.syncHost()
         if (!hasPermissions()) {
-            navigate(CameraFragmentDirections.actionCameraToPermissions())
+            navigate(
+                CameraFragmentDirections.actionCameraToPermissions(),
+                fromDestinationId = R.id.cameraFragment
+            )
         }
     }
 
@@ -168,14 +171,8 @@ class CameraFragment : BaseFragmentCompose() {
     }
 
     private fun thumbnailBitmap(file: File): Bitmap {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, bounds)
-        val longest = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
-        val sample = (longest / THUMBNAIL_SIZE).coerceAtLeast(1)
-        val bitmap = BitmapFactory.decodeFile(
-            file.absolutePath,
-            BitmapFactory.Options().apply { inSampleSize = sample }
-        ) ?: error("Unable to decode capture")
+        val bitmap = StillImageExif.decodeSampled(file, THUMBNAIL_SIZE * 2)
+            ?: error("Unable to decode capture")
         return if (bitmap.width <= THUMBNAIL_SIZE && bitmap.height <= THUMBNAIL_SIZE) {
             bitmap
         } else {

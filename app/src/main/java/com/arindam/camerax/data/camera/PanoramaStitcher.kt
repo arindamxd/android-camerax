@@ -1,7 +1,6 @@
 package com.arindam.camerax.data.camera
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
@@ -10,7 +9,6 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Shader
 import com.arindam.camerax.util.commons.Constants
 import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.abs
@@ -36,27 +34,13 @@ object PanoramaStitcher {
             SimpleDateFormat(Constants.FILE.FILENAME_FORMAT, Locale.US)
                 .format(System.currentTimeMillis()) + Constants.FILE.PHOTO_EXTENSION
         )
-        FileOutputStream(output).use { stream ->
-            result.compress(Bitmap.CompressFormat.JPEG, 92, stream)
-        }
+        StillImageExif.writeJpeg(result, output, quality = 92)
         if (result !== bitmaps[0]) result.recycle()
         bitmaps.forEach { it.recycle() }
         return output
     }
 
-    private fun decode(file: File): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, bounds)
-        val longest = max(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
-        val sample = max(1, longest / MAX_EDGE)
-        return BitmapFactory.decodeFile(
-            file.absolutePath,
-            BitmapFactory.Options().apply {
-                inSampleSize = sample
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            }
-        )
-    }
+    private fun decode(file: File): Bitmap? = StillImageExif.decodeSampled(file, MAX_EDGE)
 
     private fun merge(frames: List<Bitmap>): Bitmap {
         val height = frames.minOf { it.height }

@@ -3,9 +3,7 @@ package com.arindam.camerax.data.camera
 import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
-import android.graphics.Matrix
 import android.util.Size
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -646,7 +644,7 @@ class CameraSession(private val context: Context) : CameraRepository {
         val photoFile = createFile(outputDirectory, extension)
         val mirrorOutput = shouldMirrorFrontOutput(lens)
         val metadata = ImageCapture.Metadata().apply {
-            isReversedHorizontal = mirrorOutput && stillFormat != StillFormat.JPEG
+            isReversedHorizontal = mirrorOutput
         }
         val options = ImageCapture.OutputFileOptions.Builder(photoFile)
             .setMetadata(metadata)
@@ -661,7 +659,7 @@ class CameraSession(private val context: Context) : CameraRepository {
                     val processed = if (preserveHdr) {
                         file
                     } else {
-                        applyStillOutput(file, effect, mirrorOutput)
+                        applyStillOutput(file, effect)
                     }
                     onSaved(processed)
                 }
@@ -1352,49 +1350,16 @@ class CameraSession(private val context: Context) : CameraRepository {
 
     private data class HighSpeedBind(val camera: Camera, val fps: Int)
 
-    private fun applyStillOutput(file: File, type: EffectMode, mirror: Boolean): File {
-        if (type == EffectMode.NONE && !mirror) return file
+    private fun applyStillOutput(file: File, type: EffectMode): File {
+        if (type == EffectMode.NONE) return file
         return try {
-            val original = decodeStillBitmap(file) ?: return file
-            val flipped = if (mirror) original.flippedHorizontally() else original
-            val processed = ColorEffects.applyToBitmap(flipped, type)
-            FileOutputStream(file).use { stream ->
-                processed.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, stream)
+            StillImageExif.rewriteJpeg(file, quality = 95, maxEdge = MAX_STILL_EDGE) { oriented ->
+                ColorEffects.applyToBitmap(oriented, type)
             }
-            if (processed !== flipped) processed.recycle()
-            if (flipped !== original) flipped.recycle()
-            original.recycle()
-            file
         } catch (error: Throwable) {
             Logger.error(TAG, "Still effect failed: ${error.message}", error)
             file
         }
-    }
-
-    /**
-     * Decode a still with [BitmapFactory.Options.inSampleSize] so captures larger than
-     * [MAX_STILL_EDGE] do not inflate full-resolution bitmaps into memory.
-     */
-    private fun decodeStillBitmap(file: File): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, bounds)
-        val longest = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
-        var sample = 1
-        while (longest / sample > MAX_STILL_EDGE) {
-            sample *= 2
-        }
-        return BitmapFactory.decodeFile(
-            file.absolutePath,
-            BitmapFactory.Options().apply {
-                inSampleSize = sample
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            }
-        )
-    }
-
-    private fun Bitmap.flippedHorizontally(): Bitmap {
-        val matrix = Matrix().apply { preScale(-1f, 1f) }
-        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 
     private fun createFile(baseFolder: File, extension: String): File {
@@ -1429,7 +1394,7 @@ class CameraSession(private val context: Context) : CameraRepository {
     companion object {
         private const val TAG = "CameraSession"
         private const val MOTION_DURATION_MS = 1_500L
-        /** Cap decoded still edge length when applying effects / front mirror. */
+        /** Cap decoded still edge length when applying color effects. */
         private const val MAX_STILL_EDGE = 8192
     }
 }

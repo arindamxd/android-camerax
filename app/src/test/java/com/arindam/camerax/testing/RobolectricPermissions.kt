@@ -19,4 +19,10 @@ object RobolectricPermissions {
             android.Manifest.permission.RECORD_AUDIO
         )
     }
+
+    fun denyWriteExternalStorage() {
+        shadowOf(RuntimeEnvironment.getApplication()).denyPermissions(
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+    }
 }

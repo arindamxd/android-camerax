@@ -31,8 +31,20 @@ abstract class BaseFragmentCompose : Fragment() {
 
     abstract fun setComposeView(view: ComposeView)
 
-    protected fun navigate(directions: NavDirections) = findNavController().navigate(directions)
-    protected fun navigateBack() = findNavController().navigateUp()
+    protected fun navigate(directions: NavDirections, fromDestinationId: Int? = null) {
+        val controller = findNavController()
+        if (fromDestinationId != null && controller.currentDestination?.id != fromDestinationId) {
+            return
+        }
+        if (!controller.canNavigate(directions)) return
+        controller.navigate(directions)
+    }
+
+    protected fun navigateBack() {
+        val controller = findNavController()
+        if (controller.currentDestination == null) return
+        controller.navigateUp()
+    }
 
     protected fun hasPermissions() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED

@@ -60,10 +60,6 @@ class FileMediaRepository(
         }
 
     override suspend fun publish(file: File): Result<Unit> = withContext(io) {
-        if (MediaStorePublisher.publish(context, file)) {
-            Result.success(Unit)
-        } else {
-            Result.failure(IllegalStateException("Unable to save to gallery"))
-        }
+        MediaStorePublisher.publish(context, file)
     }
 }
