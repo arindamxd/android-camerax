@@ -8,7 +8,7 @@ Edit `versionMajor`, `versionMinor`, or `versionPatch` in the root [`build.gradl
 For another Play upload of the **same** `X.Y.Z`, bump `versionCodeOffset` instead (keeps `versionName`, raises `versionCode`).  
 `versionCode` = `major * 10000 + minor * 100 + patch + versionCodeOffset`.
 
-Current shipping target: **1.7.0** (`versionCode` **10703**, `versionCodeOffset` **3**).
+Current shipping target: **1.7.0** (`versionCode` **10704**, `versionCodeOffset` **4**).
 
 ## Local signing
 
@@ -57,7 +57,7 @@ Upload all three to Play Console for deobfuscation and native crash symbolicatio
 
 ## Play Console notes
 
-- **Version:** `versionName` / `versionCode` from root [`build.gradle.kts`](build.gradle.kts) (currently **1.7.0** / **10703**)
+- **Version:** `versionName` / `versionCode` from root [`build.gradle.kts`](build.gradle.kts) (currently **1.7.0** / **10704**)
 - **Target API:** compile/targetSdk 37 (see root `build.gradle.kts`)
 - **16 KB page size:** `packaging.jniLibs.useLegacyPackaging = false`
 - **Native symbols:** `ndk.debugSymbolLevel = "SYMBOL_TABLE"` (upload the zip from `printNativeDebugSymbols`)
