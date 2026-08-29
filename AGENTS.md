@@ -98,6 +98,8 @@ Full-screen overlays with a back button (Gallery, Confirm / review, Permissions 
 
 ## Play Console release notes
 
+When the user says **bump version** / **version bump** / **bump the version**, follow [`.cursor/rules/bump-version.mdc`](.cursor/rules/bump-version.mdc) or [`.agents/skills/bump-version/SKILL.md`](.agents/skills/bump-version/SKILL.md) (increment `versionCodeOffset`, then print Play notes from `git log` since the previous upload).
+
 When drafting Google Play **Release details**, prefer the **long bullet** form (not a one-liner). Also see [`.cursor/rules/play-console-release-notes.mdc`](.cursor/rules/play-console-release-notes.mdc).
 
 1. **Release name** — `versionName` only, ≤50 characters. Internal; not shown on Play.
