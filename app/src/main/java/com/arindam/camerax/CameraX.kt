@@ -3,15 +3,10 @@ package com.arindam.camerax
 import android.app.Application
 import android.os.Build
 import android.os.StrictMode
-import android.os.strictmode.DiskReadViolation
-import android.os.strictmode.DiskWriteViolation
-import android.os.strictmode.Violation
-import android.util.Log
 import androidx.preference.PreferenceManager
 import com.arindam.camerax.di.AppContainer
-import com.arindam.camerax.util.debug.StrictModeFilters
+import com.arindam.camerax.util.debug.StrictModePenalty
 import com.arindam.camerax.util.theme.NightMode
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -58,11 +53,7 @@ class CameraX : Application() {
             // Log only app-owned violations. ColorOS/OxygenOS (and similar) do disk I/O inside
             // system_server during Binder (edge-to-edge, permission dialogs, pause/resume); that
             // is attributed to us via readAndHandleBinderCallViolations and cannot be fixed here.
-            threadBuilder.penaltyListener(Executors.newSingleThreadExecutor()) { violation ->
-                if (!isPlatformBinderDiskNoise(violation)) {
-                    Log.d(STRICT_MODE_TAG, Log.getStackTraceString(violation))
-                }
-            }
+            StrictModePenalty.install(threadBuilder)
         } else {
             threadBuilder.penaltyLog()
         }
@@ -76,12 +67,4 @@ class CameraX : Application() {
         )
     }
 
-    companion object {
-        private const val STRICT_MODE_TAG = "StrictMode"
-
-        private fun isPlatformBinderDiskNoise(violation: Violation): Boolean {
-            if (violation !is DiskReadViolation && violation !is DiskWriteViolation) return false
-            return StrictModeFilters.shouldSuppressDiskViolation(violation.stackTrace)
-        }
-    }
 }
