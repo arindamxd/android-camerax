@@ -181,11 +181,36 @@ dependencies {
     androidTestImplementation(libs.androidx.rules)
     androidTestImplementation(libs.androidx.runner)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.uiautomator)
 }
 
 kotlin {
     jvmToolchain(17)
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+// GrantPermissionRule fails on Android 16+ (UiAutomation lacks GRANT_RUNTIME_PERMISSIONS).
+val debugAppId = "${android.defaultConfig.applicationId}.debug"
+val debugTestPermissions = listOf(
+    "android.permission.CAMERA",
+    "android.permission.RECORD_AUDIO"
+)
+
+afterEvaluate {
+    tasks.matching { it.name == "connectedDebugAndroidTest" }.configureEach {
+        dependsOn("installDebug")
+        doFirst {
+            val adb = System.getenv("ANDROID_SERIAL")?.let { listOf("adb", "-s", it) } ?: listOf("adb")
+            debugTestPermissions.forEach { permission ->
+                runCatching {
+                    ProcessBuilder(adb + listOf("shell", "pm", "grant", debugAppId, permission))
+                        .redirectErrorStream(true)
+                        .start()
+                        .waitFor()
+                }
+            }
+        }
     }
 }

@@ -49,6 +49,27 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun probe_defaultsWhenDeviceReportsEmptyFeatures() {
+        val vm = SettingsViewModel(
+            cameraInteractors(
+                FakeCameraRepository(),
+                FakeMediaRepository(),
+                FakeSettingsRepository(),
+                FakeDeviceFeaturesRepository()
+            ),
+            versionLabel = "1.7.0",
+            dispatchers = AppDispatchers(
+                main = mainDispatcherRule.dispatcher,
+                default = mainDispatcherRule.dispatcher,
+                io = mainDispatcherRule.dispatcher
+            )
+        )
+        assertFalse(vm.uiState.value.features.concurrent)
+        assertFalse(vm.uiState.value.features.videoFps60)
+        assertFalse(vm.uiState.value.features.ultraHdr)
+    }
+
+    @Test
     fun refreshMicrophonePermission_falseWhenNotGranted() {
         RobolectricPermissions.revokeRecordAudio()
         val context = RobolectricPermissions.applicationContext()

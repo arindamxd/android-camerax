@@ -1,5 +1,6 @@
 package com.arindam.camerax.ui.home.gallery
 
+import com.arindam.camerax.domain.model.CaptureSettings
 import com.arindam.camerax.di.AppDispatchers
 import com.arindam.camerax.di.cameraInteractors
 import com.arindam.camerax.testing.FakeCameraRepository
@@ -10,6 +11,7 @@ import com.arindam.camerax.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -34,6 +36,32 @@ class GalleryViewModelTest {
     }
 
     @Test
+    fun refresh_emptyDirectoryShowsNoItems() {
+        val vm = viewModel(FakeMediaRepository())
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.items.isEmpty())
+    }
+
+    @Test
+    fun refresh_usesGalleryVideoAutoplayFromSettings() {
+        val settings = FakeSettingsRepository(CaptureSettings(galleryVideoAutoplay = true))
+        val vm = viewModel(FakeMediaRepository(), settings)
+        assertTrue(vm.uiState.value.videoAutoplay)
+    }
+
+    @Test
+    fun refresh_classifiesRawAndStillFiles() {
+        val media = FakeMediaRepository()
+        val still = File("photo.jpg")
+        val raw = File("frame.dng")
+        media.add(still)
+        media.add(raw)
+        val vm = viewModel(media)
+        assertFalse(vm.uiState.value.items[0].isRaw)
+        assertTrue(vm.uiState.value.items[1].isRaw)
+    }
+
+    @Test
     fun delete_removesItemFromState() {
         val media = FakeMediaRepository()
         val first = File("one.jpg")
@@ -45,11 +73,14 @@ class GalleryViewModelTest {
         assertEquals(listOf(second), vm.uiState.value.items.map { it.file })
     }
 
-    private fun viewModel(media: FakeMediaRepository) = GalleryViewModel(
+    private fun viewModel(
+        media: FakeMediaRepository,
+        settings: FakeSettingsRepository = FakeSettingsRepository()
+    ) = GalleryViewModel(
         cameraInteractors(
             FakeCameraRepository(),
             media,
-            FakeSettingsRepository(),
+            settings,
             FakeDeviceFeaturesRepository()
         ),
         File("dir"),

@@ -93,4 +93,55 @@ class SettingsCatalogTest {
         assertTrue(hdr.enabled)
         assertTrue(hdr.options.any { it.value == VideoHdrRange.HLG10.prefValue })
     }
+
+    @Test
+    fun settingsSections_disablesUltraHdrWhenUnavailable() {
+        val sections = settingsSections(versionLabel = "1.7.0", ultraHdrAvailable = false)
+        val ultraHdr = sections.flatMap { it.items }.filterIsInstance<SettingsRow.Toggle>()
+            .first { it.keyRes == R.string.pref_key_ultra_hdr }
+        assertFalse(ultraHdr.enabled)
+        assertEquals(R.string.pref_subtitle_ultra_hdr_unsupported, ultraHdr.subtitleRes)
+    }
+
+    @Test
+    fun settingsSections_disablesRawRowsWhenUnavailable() {
+        val sections = settingsSections(
+            versionLabel = "1.7.0",
+            rawCaptureAvailable = false,
+            fullSensorRawAvailable = false
+        )
+        val toggles = sections.flatMap { it.items }.filterIsInstance<SettingsRow.Toggle>()
+        val raw = toggles.first { it.keyRes == R.string.pref_key_raw_capture }
+        val fullSensor = toggles.first { it.keyRes == R.string.pref_key_raw_full_sensor }
+        assertFalse(raw.enabled)
+        assertFalse(fullSensor.enabled)
+        assertEquals(R.string.pref_subtitle_raw_unsupported, raw.subtitleRes)
+        assertEquals(R.string.pref_subtitle_raw_full_sensor_unsupported, fullSensor.subtitleRes)
+    }
+
+    @Test
+    fun settingsSections_disablesFps60WhenUnavailable() {
+        val sections = settingsSections(versionLabel = "1.7.0", videoFps60Available = false)
+        val fps60 = sections.flatMap { it.items }.filterIsInstance<SettingsRow.Toggle>()
+            .first { it.keyRes == R.string.pref_key_video_fps_60 }
+        assertFalse(fps60.enabled)
+        assertEquals(R.string.pref_subtitle_video_fps_60_unsupported, fps60.subtitleRes)
+    }
+
+    @Test
+    fun settingsSections_disablesStabilizationWhenUnavailable() {
+        val sections = settingsSections(versionLabel = "1.7.0", videoStabilizationAvailable = false)
+        val stabilization = sections.flatMap { it.items }.filterIsInstance<SettingsRow.Toggle>()
+            .first { it.keyRes == R.string.pref_key_video_stabilization }
+        assertFalse(stabilization.enabled)
+        assertEquals(R.string.pref_subtitle_video_stabilization_unsupported, stabilization.subtitleRes)
+    }
+
+    @Test
+    fun settingsSections_includesVersionInfo() {
+        val sections = settingsSections(versionLabel = "2.0.0")
+        val version = sections.flatMap { it.items }.filterIsInstance<SettingsRow.Info>()
+            .first { it.titleRes == R.string.pref_title_version }
+        assertEquals("2.0.0", version.value)
+    }
 }

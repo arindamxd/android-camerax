@@ -98,4 +98,34 @@ class CameraModeCatalogTest {
         assertEquals(FlashMode.ON, FlashMode.OFF.next())
         assertEquals(FlashMode.OFF, FlashMode.TORCH.next())
     }
+
+    @Test
+    fun effectsProfile_enablesEffectChipsAndStillCapture() {
+        val profile = CameraModeCatalog.profile(CameraMode.EFFECTS)
+        assertEquals(CaptureAction.STILL, profile.captureAction)
+        assertTrue(profile.showsEffects)
+        assertFalse(profile.allowsExtensions)
+        assertTrue(profile.rebindOnEnter)
+    }
+
+    @Test
+    fun panoramaProfile_disablesZoomAndFlash() {
+        val profile = CameraModeCatalog.profile(CameraMode.PANORAMA)
+        assertEquals(CaptureAction.PANORAMA, profile.captureAction)
+        assertFalse(profile.showsFlash)
+        assertFalse(profile.showsZoom)
+        assertFalse(profile.allowsMotionPhoto)
+    }
+
+    @Test
+    fun videoHdrRange_fromPrefDefaultsToSdr() {
+        assertEquals(VideoHdrRange.SDR, VideoHdrRange.fromPref(null))
+        assertEquals(VideoHdrRange.HLG10, VideoHdrRange.fromPref("hlg10"))
+    }
+
+    @Test
+    fun slowMotionRate_fromPrefDefaultsToAuto() {
+        assertEquals(SlowMotionRate.AUTO, SlowMotionRate.fromPref(null))
+        assertEquals(SlowMotionRate.FPS_120, SlowMotionRate.fromPref("120"))
+    }
 }
